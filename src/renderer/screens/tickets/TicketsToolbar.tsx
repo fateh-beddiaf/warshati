@@ -43,7 +43,7 @@ export function TicketsToolbar({
   ]
 
   return (
-    <div className="flex flex-col items-stretch justify-between gap-3 rounded-xl border border-border bg-card p-3 shadow-soft md:flex-row md:items-center">
+    <div className="flex flex-col items-stretch justify-between gap-3 rounded-xl border border-border bg-card p-3 shadow-soft xl:flex-row xl:items-center">
       <div className="relative min-w-[280px] flex-1">
         <Input
           type="text"
