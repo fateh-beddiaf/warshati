@@ -69,6 +69,10 @@ export interface IElectronAPI {
   checkTechnicianUsage: (id: number) => Promise<{ success: boolean; data?: import('../shared/types').DeleteReferenceCheckResult; error?: string }>
   deleteTechnician: (id: number) => Promise<{ success: boolean; error?: string }>
 
+  // Theme
+  getTheme: () => Promise<{ success: boolean; data?: { preference: import('../shared/theme').ThemePreference; resolved: import('../shared/theme').ResolvedTheme }; error?: string }>
+  setTheme: (preference: import('../shared/theme').ThemePreference) => Promise<{ success: boolean; data?: { preference: import('../shared/theme').ThemePreference; resolved: import('../shared/theme').ResolvedTheme }; error?: string }>
+
   // Backup & Restore
   getDatabaseInfo: () => Promise<{ success: boolean; data?: import('../shared/types').DatabaseInfo; error?: string }>
   exportBackup: () => Promise<{ success: boolean; filePath?: string; canceled?: boolean; error?: string }>

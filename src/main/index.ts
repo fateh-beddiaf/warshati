@@ -3,6 +3,14 @@ import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { initDatabase } from '../database'
 import { registerIpcHandlers } from './ipc'
+import { applyThemePreference, loadThemePreference, registerThemeHandlers } from './theme'
+import {
+  THEME_ARG_PREFERENCE,
+  THEME_ARG_RESOLVED,
+  THEME_BACKGROUND,
+  type ResolvedTheme,
+  type ThemePreference
+} from '../shared/theme'
 
 // WARSHATI_DATA_DIR isolates the database and userData (backups etc.) in a scratch
 // folder so tests and experiments never touch real shop data.
@@ -28,7 +36,7 @@ function attachDevDiagnostics(win: BrowserWindow): void {
   })
 }
 
-function createWindow(): void {
+function createWindow(preference: ThemePreference, resolved: ResolvedTheme): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1280,
@@ -36,13 +44,17 @@ function createWindow(): void {
     minWidth: 1024,
     minHeight: 700,
     show: false,
+    // Same colour as the theme's --background so the window never flashes white in dark mode
+    backgroundColor: THEME_BACKGROUND[resolved],
     autoHideMenuBar: true,
     title: 'ورشتي — إدارة محل تصليح الهواتف',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      // Read synchronously by the preload to set <html class="dark"> before the first paint
+      additionalArguments: [`${THEME_ARG_PREFERENCE}${preference}`, `${THEME_ARG_RESOLVED}${resolved}`]
     }
   })
 
@@ -97,13 +109,19 @@ app.whenReady().then(() => {
 
   // Register IPC handlers
   registerIpcHandlers()
+  registerThemeHandlers()
 
-  createWindow()
+  const themePreference = loadThemePreference()
+  const resolvedTheme = applyThemePreference(themePreference)
+  createWindow(themePreference, resolvedTheme)
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) {
+      const preference = loadThemePreference()
+      createWindow(preference, applyThemePreference(preference))
+    }
   })
 })
 

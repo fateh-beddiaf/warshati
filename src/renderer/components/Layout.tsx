@@ -12,6 +12,7 @@ import {
   Settings
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { ThemeToggle } from './ThemeToggle'
 
 interface LayoutProps {
   activeTab: 'tickets' | 'new-ticket' | 'reports' | 'settings'
@@ -150,6 +151,8 @@ export function Layout({
             <span>{t.scanner.scanningPrompt}</span>
           </div>
 
+          <div className="flex items-center gap-3">
+          <ThemeToggle />
           {/* Quick Barcode Scanner Simulation Input */}
           <form onSubmit={handleBarcodeSubmit} className="flex items-center gap-2">
             <div className="relative">
@@ -171,6 +174,7 @@ export function Layout({
               {t.scanner.simulateButton}
             </button>
           </form>
+          </div>
         </header>
 
         {/* Scrollable Page Body */}

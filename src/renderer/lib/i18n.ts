@@ -39,6 +39,14 @@ export const ar = {
     reports: 'التقارير المالية',
     settings: 'الإعدادات'
   },
+  theme: {
+    label: 'المظهر',
+    light: 'فاتح',
+    dark: 'مظلم',
+    system: 'حسب النظام',
+    toggle: 'تبديل المظهر',
+    description: 'اختر مظهر التطبيق: فاتح أو مظلم أو حسب إعدادات النظام'
+  },
   newTicket: {
     title: 'إنشاء تذكرة صيانة جديدة',
     subtitle: 'أدخل بيانات الزبون والجهاز وتفاصيل العطل لحفظ التذكرة فوراً',
@@ -406,6 +414,14 @@ export const en: typeof ar = {
     newTicket: 'New Ticket',
     reports: 'Financial Reports',
     settings: 'Settings'
+  },
+  theme: {
+    label: 'Appearance',
+    light: 'Light',
+    dark: 'Dark',
+    system: 'System',
+    toggle: 'Toggle theme',
+    description: 'Choose the app appearance: light, dark, or follow the system setting'
   },
   newTicket: {
     title: 'Create New Repair Ticket',
