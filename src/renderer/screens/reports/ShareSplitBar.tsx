@@ -32,7 +32,7 @@ export function ShareSplitBar({ report }: { report: FinancialReportResult | null
           <span className="flex items-center gap-1.5 text-foreground">
             <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-primary" />
             {t.ui.reports.myShareShort}
-            <span className="flex items-center gap-2 font-mono tabular text-muted-foreground">
+            <span className="flex items-center gap-2 tabular text-muted-foreground">
               <span>{formatCurrency(report.totalMyShare)}</span>
               <span dir="ltr">{Math.round(minePct)}%</span>
             </span>
@@ -40,7 +40,7 @@ export function ShareSplitBar({ report }: { report: FinancialReportResult | null
           <span className="flex items-center gap-1.5 text-foreground">
             <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-primary-to" />
             {t.ui.reports.partnerShareShort}
-            <span className="flex items-center gap-2 font-mono tabular text-muted-foreground">
+            <span className="flex items-center gap-2 tabular text-muted-foreground">
               <span>{formatCurrency(report.totalPartnerShare)}</span>
               <span dir="ltr">{Math.round(partnerPct)}%</span>
             </span>

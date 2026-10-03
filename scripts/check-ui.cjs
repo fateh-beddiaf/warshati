@@ -3,7 +3,8 @@
 //   1. no raw palette colours / hex / rgb / hsl literals (use the tokens from index.css)
 //   2. no Tailwind v4-only classes (this project is on Tailwind 3.4)
 //   3. no physical ml-/mr-/pl-/pr-/left-/right-/text-left/text-right (use ms-/me-/ps-/pe-/start-/end-/text-start/text-end)
-//   4. no file over 400 lines (i18n.ts and locales are exempt)
+//   4. no font-mono / tracking-* outside the <Mono> component, Input's `mono` prop and the label
+//   5. no file over 400 lines (i18n.ts and locales are exempt)
 // A line that is intentionally exempt (the printed label surface) carries the marker: allow-raw-color
 // Usage: node scripts/check-ui.cjs [--rtl] [--size]   (no flags = colours + v4 + size; --rtl adds the RTL check)
 const fs = require('fs')
@@ -15,6 +16,10 @@ const SIZE_EXEMPT = new Set(['i18n.ts'])
 const SIZE_EXEMPT_DIRS = ['locales']
 // The printed label is always black on white, whatever the theme
 const COLOR_EXEMPT_FILES = new Set(['BarcodeLabel.tsx', 'barcode-svg.ts'])
+// Monospace + letter-spacing break Arabic letter joining: only these files may use them
+// (Mono is the component for Latin codes, Input has the `mono` prop, the label is a print surface)
+const MONO_EXEMPT_FILES = new Set(['Mono.tsx', 'Input.tsx', 'BarcodeLabel.tsx'])
+const MONO_OR_TRACKING = /(?<![\w-])(?:[a-z-]+:)*(font-mono|tracking-[\w[\]./-]+)(?![\w-])/
 
 const PALETTE =
   '(white|black|slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)'
@@ -44,6 +49,7 @@ function check(file) {
 
   if (!sizeExempt && lines.length > MAX_LINES) problems.push(`${rel}: ${lines.length} lines (max ${MAX_LINES})`)
   if (isFont) return
+  const monoExempt = MONO_EXEMPT_FILES.has(path.basename(file))
   const colorExempt = COLOR_EXEMPT_FILES.has(path.basename(file))
 
   lines.forEach((line, i) => {
@@ -53,6 +59,8 @@ function check(file) {
     if (color) problems.push(`${where}: raw colour class "${color[0]}"`)
     const raw = colorExempt ? null : line.match(RAW_COLOR)
     if (raw && !/^\s*(\/\/|\*|\/\*)/.test(line)) problems.push(`${where}: raw colour literal "${raw[0]}"`)
+    const mono = monoExempt || /^\s*(\/\/|\*|\/\*)/.test(line) ? null : line.match(MONO_OR_TRACKING)
+    if (mono) problems.push(`${where}: "${mono[1]}" outside <Mono> (breaks Arabic letter joining; use <Mono> for Latin codes, tabular for numbers)`)
     const v4 = line.match(V4)
     if (v4) problems.push(`${where}: Tailwind v4-only class "${v4[0]}"`)
     if (wantRtl) {

@@ -44,7 +44,7 @@ export function CategorySplitField({ value, onChange }: CategorySplitFieldProps)
       />
       <div className="space-y-1 rounded-lg border border-border bg-muted/50 p-3 text-xs">
         <span className="block font-bold text-muted-foreground">{t.settings.categories.preview}</span>
-        <div className="flex flex-wrap justify-between gap-2 font-mono font-bold tabular-nums">
+        <div className="flex flex-wrap justify-between gap-2 font-bold tabular-nums">
           <span className="text-primary">
             {t.ui.settings.categories.previewOwner
               .replace('{amount}', fmt(PREVIEW_PRICE * (owner / 100)))

@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button'
 import { TableCell } from '../../components/ui/Table'
 import { StatusBadge } from '../../components/tickets/StatusBadge'
 import type { TicketListItem } from '../../../shared/types'
+import { Mono } from '../../components/ui/Mono'
 
 interface TicketRowProps {
   ticket: TicketListItem
@@ -42,9 +43,9 @@ export function TicketRow({ ticket, index, onOpen, onPrint }: TicketRowProps): R
       <TableCell className="relative px-2">
         {isOverdue && <span aria-hidden className="absolute inset-y-0 start-0 w-1 bg-status-overdue" />}
         <div className="flex flex-col">
-          <span className="w-fit rounded border border-border bg-muted px-1.5 py-1 font-mono text-xs font-bold text-foreground">
+          <Mono className="w-fit rounded border border-border bg-muted px-1.5 py-1 text-xs font-bold text-foreground">
             {ticket.barcode_code}
-          </span>
+          </Mono>
           <span className="mt-1 text-xs text-muted-foreground tabular">#{ticket.id}</span>
         </div>
       </TableCell>
@@ -53,9 +54,9 @@ export function TicketRow({ ticket, index, onOpen, onPrint }: TicketRowProps): R
       <TableCell className="px-2">
         <div className="flex flex-col items-start">
           <span className="font-bold text-foreground">{ticket.customer_name}</span>
-          <span className="mt-0.5 font-mono text-xs text-muted-foreground" dir="ltr">
+          <Mono className="mt-0.5 text-xs text-muted-foreground">
             {ticket.customer_phone}
-          </span>
+          </Mono>
         </div>
       </TableCell>
 
@@ -69,7 +70,7 @@ export function TicketRow({ ticket, index, onOpen, onPrint }: TicketRowProps): R
             </span>
           </div>
           {ticket.short_label && (
-            <span className="mt-0.5 font-mono text-xs font-bold text-primary">{ticket.short_label}</span>
+            <Mono className="mt-0.5 text-xs font-bold text-primary">{ticket.short_label}</Mono>
           )}
         </div>
       </TableCell>

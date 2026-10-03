@@ -15,7 +15,7 @@ export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDiv
 }
 
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>): React.JSX.Element {
-  return <h3 className={cn('text-lg font-bold leading-none tracking-tight text-foreground', className)} {...props} />
+  return <h3 className={cn('text-lg font-bold leading-none text-foreground', className)} {...props} />
 }
 
 export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>): React.JSX.Element {

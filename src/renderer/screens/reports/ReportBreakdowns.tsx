@@ -43,7 +43,7 @@ function ShareCell({
       <span className={`block text-[11px] font-semibold ${tone === 'neutral' ? 'text-muted-foreground' : toneClass}`}>
         {label}
       </span>
-      <span className={`mt-0.5 block font-mono text-xs font-extrabold tabular ${toneClass}`}>
+      <span className={`mt-0.5 block text-xs font-extrabold tabular ${toneClass}`}>
         {formatCurrency(value)}
       </span>
     </div>
@@ -130,7 +130,7 @@ export function ReportBreakdowns({ report, initialLoading }: ReportBreakdownsPro
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-foreground">{cat.categoryName}</span>
-                      <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] font-bold tabular text-muted-foreground">
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold tabular text-muted-foreground">
                         {t.ui.reports.percentMine.replace('{pct}', String(cat.splitPercentage))}
                       </span>
                     </div>
@@ -139,7 +139,7 @@ export function ReportBreakdowns({ report, initialLoading }: ReportBreakdownsPro
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-4 text-start font-mono tabular">
+                  <div className="flex items-center gap-4 text-start tabular">
                     <div>
                       <span className="block text-[10px] text-muted-foreground">{t.ui.reports.totalWord}</span>
                       <span className="font-bold text-foreground">{formatCurrency(cat.totalRevenue)}</span>

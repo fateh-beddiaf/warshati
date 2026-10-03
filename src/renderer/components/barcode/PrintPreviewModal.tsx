@@ -21,6 +21,7 @@ import {
 } from '../ui/Dialog'
 import type { PrinterInfo } from '../../../preload/index.d'
 import { Printer, CheckCircle2, AlertCircle, Eye, Maximize2, Tag, PhoneCall } from 'lucide-react'
+import { Mono } from '../ui/Mono'
 
 export interface PrintPreviewModalProps {
   isOpen: boolean
@@ -168,9 +169,9 @@ export function PrintPreviewModal({
           <>
             {/* Preview stage: the label is always black on white, whatever the app theme */}
             <div className="relative flex min-h-[230px] flex-col items-center justify-center gap-3 rounded-xl border border-border bg-muted p-6 pt-14">
-              <span dir="ltr" className="absolute start-3 top-3 rounded-md border border-border bg-card px-2 py-1 font-mono text-[11px] font-bold text-muted-foreground">
+              <Mono className="absolute start-3 top-3 rounded-md border border-border bg-card px-2 py-1 text-[11px] font-bold text-muted-foreground">
                 {t.ui.details.labelSize}
-              </span>
+              </Mono>
               <SegmentedControl
                 layoutGroup="print-scale"
                 ariaLabel={t.ui.details.scaleAria}
@@ -230,7 +231,7 @@ export function PrintPreviewModal({
                   value={shortLabel}
                   onChange={(e) => setShortLabel(e.target.value)}
                   placeholder={t.ui.details.shortLabelPlaceholder}
-                  className="font-mono font-bold"
+                  mono className="font-bold"
                 />
               </div>
 
@@ -266,7 +267,7 @@ export function PrintPreviewModal({
                 <Label htmlFor="print-show-phone" className="flex cursor-pointer items-center gap-1.5 text-xs">
                   <PhoneCall className="h-3.5 w-3.5 text-muted-foreground" />
                   <span>
-                    {t.print.showPhoneLabel} (<span className="tabular font-mono" dir="ltr">{data.customerPhone}</span>)
+                    {t.print.showPhoneLabel} (<Mono>{data.customerPhone}</Mono>)
                   </span>
                 </Label>
               </div>

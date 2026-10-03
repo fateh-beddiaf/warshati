@@ -4,6 +4,7 @@ import { useI18n } from '../../../lib/i18n'
 import { DialogDescription, DialogTitle } from '../../ui/Dialog'
 import { StatusBadge } from '../StatusBadge'
 import type { TicketFullDetails } from '../../../../shared/types'
+import { Mono } from '../../ui/Mono'
 
 /** Modal header: ticket id, status badge and the barcode. Doubles as the Radix title/description. */
 export function DetailsHeader({ ticketDetails }: { ticketDetails: TicketFullDetails }): React.JSX.Element {
@@ -28,9 +29,9 @@ export function DetailsHeader({ ticketDetails }: { ticketDetails: TicketFullDeta
           </div>
           <DialogDescription className="text-xs">
             {t.ticketDetails.ticketCode}{' '}
-            <strong dir="ltr" className="font-mono text-sm font-bold tracking-wide text-foreground">
+            <Mono className="text-sm font-bold text-foreground">
               {ticket.barcode_code}
-            </strong>
+            </Mono>
           </DialogDescription>
         </div>
       </div>

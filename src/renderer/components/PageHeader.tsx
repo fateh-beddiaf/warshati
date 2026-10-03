@@ -29,7 +29,7 @@ export function PageHeader({ title, subtitle, icon, actions, className }: PageHe
           </div>
         )}
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-foreground">{title}</h2>
+          <h2 className="text-2xl font-extrabold text-foreground">{title}</h2>
           {subtitle && <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>}
         </div>
       </div>

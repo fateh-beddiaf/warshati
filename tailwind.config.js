@@ -86,7 +86,7 @@ module.exports = {
       },
       fontFamily: {
         sans: ['"IBM Plex Sans Arabic"', '"Segoe UI"', 'Tahoma', 'Geneva', 'Verdana', 'sans-serif'],
-        mono: ['ui-monospace', 'SFMono-Regular', 'Consolas', '"Liberation Mono"', 'monospace']
+        mono: ['ui-monospace', 'SFMono-Regular', 'Consolas', '"Liberation Mono"', 'monospace', '"IBM Plex Sans Arabic"']
       },
       keyframes: {
         'skeleton-pulse': {

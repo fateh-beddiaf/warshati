@@ -65,7 +65,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             <br />
             Your data is safe. Press “Retry” to continue.
           </p>
-          <p className="mt-3 break-words rounded-lg bg-muted p-2 text-start font-mono text-[11px] text-muted-foreground" dir="ltr">
+          <p className="mt-3 break-words rounded-lg bg-muted p-2 text-start text-[11px] text-muted-foreground" dir="ltr">
             {error.message}
           </p>
           <button

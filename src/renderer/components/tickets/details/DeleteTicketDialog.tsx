@@ -17,6 +17,7 @@ import { FeedbackBanners } from './FeedbackBanners'
 import { fadeIn, transitions } from '../../../lib/motion'
 import type { TicketFullDetails } from '../../../../shared/types'
 import type { DeleteStep, TicketDetailsState } from './useTicketDetailsState'
+import { Mono } from '../../ui/Mono'
 
 function StepDots({ step }: { step: DeleteStep }): React.JSX.Element {
   return (
@@ -100,7 +101,7 @@ export function DeleteTicketDialog({
                 <div className="border-b border-border pb-1.5 font-bold text-foreground">{t.deleteTicket.step1DetailsTitle}</div>
                 <div className="grid grid-cols-2 gap-3">
                   <Detail label={t.deleteTicket.step1Barcode}>
-                    <span className="font-mono font-bold text-foreground" dir="ltr">{ticket.barcode_code}</span>
+                    <Mono className="font-bold text-foreground">{ticket.barcode_code}</Mono>
                   </Detail>
                   <Detail label={t.deleteTicket.step1Customer}>
                     <span className="font-bold text-foreground">{customer.name}</span>
@@ -136,9 +137,9 @@ export function DeleteTicketDialog({
           {deleteStep === 3 && (
             <>
               <p className="text-xs font-medium text-foreground">{t.deleteTicket.step3Instruction}</p>
-              <div className="rounded-lg border border-border bg-muted p-2.5 text-center font-mono text-sm font-bold text-foreground" dir="ltr">
+              <Mono className="block rounded-lg border border-border bg-muted p-2.5 text-center text-sm font-bold text-foreground">
                 {ticket.barcode_code}
-              </div>
+              </Mono>
               <div className="space-y-1.5">
                 <Input
                   type="text"
@@ -148,7 +149,7 @@ export function DeleteTicketDialog({
                   value={confirmBarcode}
                   onChange={(e) => state.setConfirmBarcode(e.target.value)}
                   placeholder={t.deleteTicket.step3Placeholder}
-                  className="text-center font-mono font-bold tracking-wider"
+                  mono className="text-center font-bold"
                   autoFocus
                 />
                 {confirmBarcode && confirmBarcode.trim() !== ticket.barcode_code.trim() && (

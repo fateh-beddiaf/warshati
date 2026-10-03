@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Skeleton } from '../../../components/ui/Skeleton'
 import type { SettingsTabProps } from '../types'
 import { ImportConfirmDialog } from './ImportConfirmDialog'
+import { Mono } from '../../../components/ui/Mono'
 
 function InfoCell({ label, children }: { label: string; children: React.ReactNode }): React.JSX.Element {
   return (
@@ -83,9 +84,9 @@ export function BackupTab({ data, loading, reload, notify }: SettingsTabProps): 
               {loading && !dbInfo ? (
                 <Skeleton className="h-4 w-full" />
               ) : (
-                <span dir="ltr" className="block break-all text-start font-mono text-[11px] text-foreground select-all">
+                <Mono className="block break-all text-start text-[11px] text-foreground select-all">
                   {dbInfo?.filePath || '...'}
-                </span>
+                </Mono>
               )}
             </InfoCell>
             <InfoCell label={t.settings.backup.databaseSize}>
