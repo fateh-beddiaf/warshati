@@ -233,3 +233,39 @@ test('header search input is emptied after a scan and after a manual submit', as
   await expect(header).toHaveValue('')
   await closeDetailsIfOpen()
 })
+
+test('delete-confirmation field (data-barcode-input) receives the scan instead of opening the ticket', async () => {
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+  await scan(barcode, 'latin')
+  await page.getByTestId('details-close').waitFor()
+
+  await page.getByTestId('details-delete').click()
+  await page.getByTestId('delete-next').click()
+  await page.getByTestId('delete-next').click()
+  const confirm = page.getByTestId('delete-confirm-input')
+  await expect(confirm).toBeFocused()
+  await expect(confirm).toHaveAttribute('data-barcode-input', 'true')
+  await expect(confirm).toHaveValue('')
+
+  // scanner burst under an Arabic layout: the field gets the real barcode, nothing else happens
+  await scan(barcode, 'arabic')
+  await expect(confirm).toHaveValue(barcode)
+  await expect(page.getByTestId('delete-confirm-input')).toBeVisible()
+  await expect(page.getByTestId('delete-back')).toBeVisible()
+  await expect(page.getByRole('button', { name: /تأكيد الحذف النهائي/ })).toBeEnabled()
+
+  // a second burst replaces the content (still the same barcode), the dialog is still open
+  await scan(barcode, 'latin')
+  await expect(confirm).toHaveValue(barcode)
+  await expect(page.getByTestId('delete-confirm-input')).toBeVisible()
+
+  // human typing in the same field is untouched
+  await confirm.fill('')
+  await page.keyboard.type('abc', { delay: 120 })
+  await expect(confirm).toHaveValue('abc')
+
+  // back out without deleting
+  for (let i = 0; i < 3; i++) await page.getByTestId('delete-back').click()
+  await expect(page.getByTestId('delete-back')).toHaveCount(0)
+  await closeDetailsIfOpen()
+})

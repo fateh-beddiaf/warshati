@@ -971,6 +971,7 @@ export function TicketDetailsModal({
                             type="text"
                             dir="ltr"
                             data-testid="delete-confirm-input"
+                            data-barcode-input="true"
                             value={confirmBarcode}
                             onChange={(e) => setConfirmBarcode(e.target.value)}
                             placeholder={t.deleteTicket.step3Placeholder}

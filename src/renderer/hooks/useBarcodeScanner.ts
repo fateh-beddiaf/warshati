@@ -80,8 +80,11 @@ function restoreField(snap: FieldSnapshot, value: string): void {
  * - If focus was inside an input / textarea / select, the characters of the burst were already
  *   typed into it (keydown fires before the character is inserted and we can only know it was a
  *   scan at the final Enter). So the value the field had BEFORE the burst began is snapshotted at
- *   the first character of every burst and restored on a confirmed scan. The dedicated manual
- *   barcode field (data-barcode-input="true") is cleared instead, since its content is consumed.
+ *   the first character of every burst and restored on a confirmed scan.
+ * - Exception: a field marked data-barcode-input="true" is waiting for a barcode (header search,
+ *   delete-confirmation). A scan is NOT intercepted there: the field receives the code (rewritten
+ *   from the physical keys so an Arabic/AZERTY layout cannot garble it), Enter keeps its normal
+ *   behaviour (e.g. submitting the header form) and `onScan` is not called.
  * - Normal human typing is never touched: keys are never prevented, and nothing is restored unless
  *   a complete scanner-speed, WSH-prefixed burst ended with Enter.
  */
@@ -101,7 +104,7 @@ export function useBarcodeScanner({
 
       const activeEl = document.activeElement
       const field = isFieldEl(activeEl) ? activeEl : null
-      const isDedicatedBarcodeInput = field?.getAttribute('data-barcode-input') === 'true'
+      const isBarcodeInput = field?.getAttribute('data-barcode-input') === 'true'
 
       if (k.kind === 'char') {
         const startedBurst = bufferRef.current.push(k.char, performance.now())
@@ -113,14 +116,20 @@ export function useBarcodeScanner({
       }
 
       if (k.kind === 'enter') {
-        const scanned = bufferRef.current.complete({ maxIntervalMs, minLength, prefix }, isDedicatedBarcodeInput)
+        const scanned = bufferRef.current.complete({ maxIntervalMs, minLength, prefix }, isBarcodeInput)
         const snap = snapshotRef.current
         snapshotRef.current = null
         if (scanned === null) return
 
+        if (isBarcodeInput && field) {
+          // The field consumes the code itself: hand it the layout-independent text, let Enter through
+          restoreField(snapshotField(field), scanned)
+          return
+        }
+
         e.preventDefault()
         e.stopPropagation()
-        if (snap) restoreField(snap, isDedicatedBarcodeInput ? '' : snap.value)
+        if (snap) restoreField(snap, snap.value)
         onScan(scanned)
         return
       }
