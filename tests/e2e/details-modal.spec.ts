@@ -132,3 +132,53 @@ test('a negative custom payment is rejected and never lowers amount_paid', async
   expect(after.amount_paid).toBe(1000)
   await closeDetails(page)
 })
+
+test('debt payment section: partial, overpay, invalid and full settlement', async () => {
+  const page = l.page
+  const code = await createTicket(page, { name: 'Gamma', phone: '0555000003', price: 5000, paid: 1000, type: 'credit' })
+  await openDetailsByBarcode(page, code)
+
+  // not offered before delivery
+  await expect(page.getByTestId('record-payment-section')).toHaveCount(0)
+  await page.getByTestId('status-to-ready').click()
+  await page.getByTestId('open-delivery').waitFor()
+  await expect(page.getByTestId('record-payment-section')).toHaveCount(0)
+
+  // deliver as debt (credit)
+  await page.getByTestId('open-delivery').click()
+  await page.getByTestId('settle-credit').check()
+  await page.getByTestId('confirm-delivery').click()
+  await page.getByTestId('status-back-to-ready').waitFor()
+  await expect(page.getByTestId('record-payment-section')).toBeVisible()
+  expect(await snapshot(code)).toMatchObject({ status: 'delivered', amount_paid: 1000, amount_remaining: 4000, payment_type: 'credit' })
+
+  // pay 2000 -> remaining 2000, still delivered, still credit
+  await page.getByTestId('record-payment-input').fill('2000')
+  await page.getByTestId('record-payment-submit').click()
+  await expect(page.getByTestId('details-success')).toBeVisible()
+  await expect(page.getByTestId('record-payment-input')).toHaveValue('')
+  expect(await snapshot(code)).toMatchObject({ status: 'delivered', amount_paid: 3000, amount_remaining: 2000, payment_type: 'credit' })
+  await expect(page.getByTestId('record-payment-section')).toBeVisible()
+  await expect(page.getByTestId('status-back-to-ready')).toBeVisible()
+
+  // overpay -> error, nothing changes
+  await page.getByTestId('record-payment-input').fill('2500')
+  await page.getByTestId('record-payment-submit').click()
+  await expect(page.getByTestId('details-error')).toBeVisible()
+  expect(await snapshot(code)).toMatchObject({ amount_paid: 3000, amount_remaining: 2000 })
+
+  // zero / negative -> error, nothing changes
+  for (const bad of ['0', '-100']) {
+    await page.getByTestId('record-payment-input').fill(bad)
+    await page.getByTestId('record-payment-submit').click()
+    await expect(page.getByTestId('details-error')).toBeVisible()
+    expect(await snapshot(code)).toMatchObject({ amount_paid: 3000, amount_remaining: 2000 })
+  }
+
+  // pay the exact remaining -> section disappears, payment type becomes cash
+  await page.getByTestId('record-payment-input').fill('2000')
+  await page.getByTestId('record-payment-submit').click()
+  await expect(page.getByTestId('record-payment-section')).toHaveCount(0)
+  expect(await snapshot(code)).toMatchObject({ status: 'delivered', amount_paid: 5000, amount_remaining: 0, payment_type: 'cash' })
+  await closeDetails(page)
+})

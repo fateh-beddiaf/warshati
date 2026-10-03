@@ -62,6 +62,10 @@ export function TicketDetailsModal({
   const [confirmBarcode, setConfirmBarcode] = useState('')
   const [deleting, setDeleting] = useState(false)
 
+  // Debt payment (delivered tickets with a remaining balance)
+  const [recordAmount, setRecordAmount] = useState('')
+  const [recordingPayment, setRecordingPayment] = useState(false)
+
   // The modal stays mounted while closed, so every piece of internal state is reset whenever it
   // closes/opens or a different ticket is displayed. `sessionRef` also lets in-flight async
   // handlers notice they belong to a previous ticket and skip touching the new one's state.
@@ -79,6 +83,8 @@ export function TicketDetailsModal({
     setDeleteStep(1)
     setConfirmBarcode('')
     setDeleting(false)
+    setRecordAmount('')
+    setRecordingPayment(false)
   }, [isOpen, displayedTicketId])
 
   const openDeleteDialog = (): void => {
@@ -205,6 +211,43 @@ export function TicketDetailsModal({
       if (isCurrent()) setErrorMessage(err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الحالة')
     } finally {
       if (isCurrent()) setLoading(false)
+    }
+  }
+
+  const handleRecordPayment = async (): Promise<void> => {
+    const raw = recordAmount.trim()
+    const amount = Number(raw)
+    setSuccessMessage(null)
+    if (raw === '' || !Number.isFinite(amount) || amount <= 0) {
+      setErrorMessage(t.lifecycle.recordPaymentInvalid)
+      return
+    }
+    if (amount > ticket.amount_remaining) {
+      setErrorMessage(t.lifecycle.recordPaymentTooMuch.replace('{remaining}', formatCurrency(ticket.amount_remaining)))
+      return
+    }
+
+    const session = sessionRef.current
+    const isCurrent = (): boolean => sessionRef.current === session
+    setRecordingPayment(true)
+    setErrorMessage(null)
+    try {
+      const res = await window.api.recordPayment(ticket.id, amount)
+      if (res.success) {
+        if (isCurrent()) {
+          setRecordAmount('')
+          setSuccessMessage(t.lifecycle.recordPaymentSuccess)
+        }
+        // reloads the displayed ticket and the list (same flow as a status update)
+        if (onStatusUpdated) onStatusUpdated()
+      } else if (isCurrent()) {
+        setErrorMessage(res.error || t.lifecycle.recordPaymentFailed)
+      }
+    } catch (err) {
+      console.error('Failed to record payment:', err)
+      if (isCurrent()) setErrorMessage(err instanceof Error ? err.message : t.lifecycle.recordPaymentFailed)
+    } finally {
+      if (isCurrent()) setRecordingPayment(false)
     }
   }
 
@@ -693,6 +736,43 @@ export function TicketDetailsModal({
                   <span>{t.ticketDetails.amountPaid} <strong>{formatCurrency(ticket.amount_paid)}</strong></span>
                   <span>{t.ticketDetails.createdAt} <strong>{formatDate(ticket.created_at)}</strong></span>
                 </div>
+
+                {/* Debt payment: delivered tickets that still carry a remaining balance */}
+                {ticket.status === 'delivered' && ticket.amount_remaining > 0 && (
+                  <div data-testid="record-payment-section" className="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                      <CreditCard className="h-4 w-4 text-amber-600" />
+                      <span>{t.lifecycle.recordPaymentTitle}</span>
+                      <span className="text-slate-500 font-semibold">
+                        ({t.ticketDetails.amountRemaining} {formatCurrency(ticket.amount_remaining)})
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min="1"
+                        max={ticket.amount_remaining}
+                        step="1"
+                        data-testid="record-payment-input"
+                        value={recordAmount}
+                        onChange={(e) => setRecordAmount(e.target.value)}
+                        placeholder={t.lifecycle.recordPaymentPlaceholder}
+                        aria-label={t.lifecycle.recordPaymentLabel}
+                        className="h-8 text-xs font-bold"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={recordingPayment || loading}
+                        data-testid="record-payment-submit"
+                        onClick={handleRecordPayment}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs whitespace-nowrap"
+                      >
+                        {recordingPayment ? t.lifecycle.recordPaymentSaving : t.lifecycle.recordPaymentButton}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Status Timeline */}
