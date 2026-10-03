@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { createContext, useContext, useState, useEffect } from 'react'
+import { setUiLanguage } from './utils'
 import { layoutAr, layoutEn } from './locales/layout'
 import { ticketsAr, ticketsEn } from './locales/tickets'
 import { newTicketAr, newTicketEn } from './locales/newTicket'
@@ -802,6 +803,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }): React
     const saved = localStorage.getItem('warshati_language') as Language
     return saved === 'en' ? 'en' : 'ar'
   })
+  // Formatters (currency, dates) follow the UI language; set during render so they are never one render stale
+  setUiLanguage(language)
 
   // Sync document dir and lang attributes
   useEffect(() => {

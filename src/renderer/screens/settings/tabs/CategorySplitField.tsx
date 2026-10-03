@@ -1,12 +1,13 @@
 import * as React from 'react'
 import { useI18n } from '../../../lib/i18n'
+import { formatAmount } from '../../../lib/utils'
 import { Label } from '../../../components/ui/Label'
 import { clampSplit } from './CategoryCard'
 
 /** Reference ticket price used for the live split preview. */
 const PREVIEW_PRICE = 10000
 
-const fmt = (n: number): string => n.toLocaleString('en-US')
+const fmt = (n: number): string => formatAmount(n)
 
 interface CategorySplitFieldProps {
   value: number
