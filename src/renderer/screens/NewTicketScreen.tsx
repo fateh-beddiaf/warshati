@@ -7,7 +7,7 @@ import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
 import { Autocomplete, type AutocompleteOption } from '../components/ui/Autocomplete'
 import { generateShortLabel } from '../../shared/device-utils'
-import type { AppMetadata, Brand, Customer, CreateTicketDTO, Model, PaymentType } from '../../database/types'
+import type { AppMetadata, Brand, Customer, CreateTicketDTO, Model, PaymentType } from '../../shared/types'
 import {
   User,
   Smartphone,

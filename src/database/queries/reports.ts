@@ -5,7 +5,7 @@ import type {
   TechnicianReportSummary,
   CategoryReportSummary,
   TicketListItem
-} from '../types'
+} from '../../shared/types'
 import { calculateProfitSplit } from '../../shared/profit'
 
 function getDateRange(

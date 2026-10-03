@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import type { CreateTicketDTO, TicketListItem, UpdateTicketStatusDTO, TicketFullDetails, Ticket } from '../types'
+import type { CreateTicketDTO, TicketListItem, UpdateTicketStatusDTO, TicketFullDetails, Ticket } from '../../shared/types'
 import { findOrCreateCustomer } from './customers'
 import { calculateRemaining, generateBarcodeCode } from '../helpers'
 import { generateShortLabel } from '../../shared/device-utils'
@@ -359,22 +359,22 @@ export function getTicketById(db: Database.Database, ticketId: number): TicketFu
   `).get(ticketId) as Ticket | undefined
   if (!ticket) return null
 
-  const customer = db.prepare(`SELECT * FROM Customer WHERE id = ?`).get(ticket.customer_id) as import('../types').Customer
-  const device = db.prepare(`SELECT * FROM TicketDevice WHERE ticket_id = ?`).get(ticket.id) as import('../types').TicketDevice
-  const category = (db.prepare(`SELECT * FROM RepairCategory WHERE id = ?`).get(ticket.repair_category_id) as import('../types').RepairCategory | undefined) || null
+  const customer = db.prepare(`SELECT * FROM Customer WHERE id = ?`).get(ticket.customer_id) as import('../../shared/types').Customer
+  const device = db.prepare(`SELECT * FROM TicketDevice WHERE ticket_id = ?`).get(ticket.id) as import('../../shared/types').TicketDevice
+  const category = (db.prepare(`SELECT * FROM RepairCategory WHERE id = ?`).get(ticket.repair_category_id) as import('../../shared/types').RepairCategory | undefined) || null
 
   const accessories = db.prepare(`
     SELECT a.id, a.name
     FROM Accessories a
     JOIN TicketAccessories ta ON ta.accessory_id = a.id
     WHERE ta.ticket_id = ?
-  `).all(ticket.id) as import('../types').Accessories[]
+  `).all(ticket.id) as import('../../shared/types').Accessories[]
 
   const statusLogs = db.prepare(`
     SELECT * FROM StatusLog
     WHERE ticket_id = ?
     ORDER BY id ASC
-  `).all(ticket.id) as import('../types').StatusLog[]
+  `).all(ticket.id) as import('../../shared/types').StatusLog[]
 
   const readyLog = statusLogs.filter((l) => l.new_status === 'ready').slice(-1)[0]
   const ready_at = readyLog ? readyLog.timestamp : null

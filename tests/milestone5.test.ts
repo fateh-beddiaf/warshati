@@ -32,7 +32,7 @@ import {
   deleteTechnician
 } from '../src/database/queries/metadata'
 import { ar, en } from '../src/renderer/lib/i18n'
-import type { CreateTicketDTO } from '../src/database/types'
+import type { CreateTicketDTO } from '../src/shared/types'
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {

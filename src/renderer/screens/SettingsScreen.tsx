@@ -22,10 +22,8 @@ import {
   AlertTriangle,
   AlertCircle,
   HardDrive,
-  Clock,
   Search,
-  Sliders,
-  Sparkles
+  Sliders
 } from 'lucide-react'
 import type {
   Brand,
@@ -34,12 +32,12 @@ import type {
   Accessories,
   Technician,
   DatabaseInfo
-} from '../../database/types'
+} from '../../shared/types'
 
 type SettingsTab = 'categories' | 'brandsModels' | 'accessories' | 'technicians' | 'backup' | 'preferences'
 
 export function SettingsScreen(): React.JSX.Element {
-  const { t, language, setLanguage, isRtl } = useI18n()
+  const { t, language, setLanguage } = useI18n()
   const [activeTab, setActiveTab] = useState<SettingsTab>('categories')
 
   // Notification Banner
@@ -629,10 +627,10 @@ export function SettingsScreen(): React.JSX.Element {
                       <div>
                         <h3 className="font-bold text-base text-slate-900">{cat.name}</h3>
                         <div className="flex items-center gap-2 mt-2 text-xs">
-                          <Badge variant="blue" className="font-semibold">
+                          <Badge variant="default" className="font-semibold">
                             {t.settings.categories.ownerShare.replace('{percent}', String(myPercentage))}
                           </Badge>
-                          <Badge variant="emerald" className="font-semibold">
+                          <Badge variant="success" className="font-semibold">
                             {t.settings.categories.partnerShare.replace('{percent}', String(partnerPercentage))}
                           </Badge>
                         </div>

@@ -6,7 +6,7 @@ import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
 import { formatCurrency, formatDate } from '../lib/utils'
-import type { TicketListItem, TicketStatus } from '../../database/types'
+import type { TicketListItem } from '../../shared/types'
 import {
   Search,
   PlusCircle,

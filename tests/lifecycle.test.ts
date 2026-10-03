@@ -3,7 +3,7 @@ import { initializeSchema } from '../src/database/schema'
 import { seedInitialData } from '../src/database/seed'
 import { createTicket, updateTicketStatus, getTicketById, getTicketsList } from '../src/database/queries/tickets'
 import { setSetting, getOverdueThresholdDays } from '../src/database/queries/settings'
-import type { CreateTicketDTO } from '../src/database/types'
+import type { CreateTicketDTO } from '../src/shared/types'
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {

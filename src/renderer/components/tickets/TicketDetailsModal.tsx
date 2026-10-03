@@ -8,14 +8,13 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Input } from '../ui/Input'
 import { formatCurrency, formatDate } from '../../lib/utils'
 import { calculateProfitSplit } from '../../../shared/profit'
-import type { TicketFullDetails, TicketStatus, PaymentType, UpdateTicketStatusDTO } from '../../../database/types'
+import type { TicketFullDetails, TicketStatus, PaymentType, UpdateTicketStatusDTO } from '../../../shared/types'
 import {
   X,
   Printer,
   User,
   Phone,
   Smartphone,
-  Wrench,
   Clock,
   CheckCircle,
   PackageCheck,
@@ -28,7 +27,6 @@ import {
   Check,
   CreditCard,
   PieChart,
-  Percent,
   Sparkles,
   Trash2
 } from 'lucide-react'
@@ -49,7 +47,6 @@ export function TicketDetailsModal({
   onStatusUpdated
 }: TicketDetailsModalProps): React.JSX.Element | null {
   const { t } = useI18n()
-  const [updating, setUpdating] = useState(false)
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)

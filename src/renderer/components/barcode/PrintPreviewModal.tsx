@@ -14,7 +14,6 @@ import {
   AlertCircle,
   Eye,
   Maximize2,
-  Check,
   Tag,
   PhoneCall
 } from 'lucide-react'

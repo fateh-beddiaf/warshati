@@ -3,7 +3,7 @@ import { existsSync, statSync, copyFileSync, unlinkSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import Database from 'better-sqlite3'
 import { getDatabase, closeDatabase, initDatabase, getDatabasePath } from '../database'
-import type { DatabaseInfo } from '../database/types'
+import type { DatabaseInfo } from '../shared/types'
 
 export type SafetyBackupCreator = (
   database: Database.Database,
