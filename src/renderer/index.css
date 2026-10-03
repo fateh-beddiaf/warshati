@@ -100,6 +100,7 @@
   --sidebar-border: 226 28% 20%;
   --sidebar-accent: 226 32% 18%;
 
+  --overlay: 224 40% 8%;
   --shadow-color: 224 40% 20%;
   --scrollbar: 218 16% 76%;
   --scrollbar-hover: 218 14% 60%;
@@ -181,6 +182,7 @@
   --sidebar-border: 226 20% 15%;
   --sidebar-accent: 226 24% 15%;
 
+  --overlay: 226 50% 3%;
   --shadow-color: 230 60% 2%;
   --scrollbar: 226 12% 28%;
   --scrollbar-hover: 226 12% 40%;

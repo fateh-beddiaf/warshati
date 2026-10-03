@@ -52,6 +52,7 @@ module.exports = {
           DEFAULT: token('popover'),
           foreground: token('popover-foreground')
         },
+        overlay: token('overlay'),
         success: family('success'),
         warning: family('warning'),
         danger: family('danger'),
