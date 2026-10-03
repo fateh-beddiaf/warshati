@@ -57,13 +57,13 @@ async function runMilestone5Tests(): Promise<void> {
 
   // 1.1 Brands CRUD & Guard
   console.log('\n[1.1] Brands CRUD & Usage Guard:')
-  const newBrand = addBrand(db, 'Google Pixel')
-  assert(newBrand.id > 0 && newBrand.name === 'Google Pixel', 'Added Brand "Google Pixel"')
+  const newBrand = addBrand(db, 'Test Brand A')
+  assert(newBrand.id > 0 && newBrand.name === 'Test Brand A', 'Added Brand "Test Brand A"')
 
-  updateBrand(db, newBrand.id, 'Google')
+  updateBrand(db, newBrand.id, 'Test Brand B')
   const brandsAfterUpdate = getBrands(db)
   const updatedBrand = brandsAfterUpdate.find((b) => b.id === newBrand.id)
-  assert(updatedBrand?.name === 'Google', 'Updated Brand name to "Google"')
+  assert(updatedBrand?.name === 'Test Brand B', 'Updated Brand name to "Test Brand B"')
 
   // Not used in any tickets -> can delete
   const brandUsage1 = checkBrandUsage(db, newBrand.id)
@@ -108,8 +108,8 @@ async function runMilestone5Tests(): Promise<void> {
 
   // 1.2 Models CRUD & Guard
   console.log('\n[1.2] Models CRUD & Usage Guard:')
-  const newModel = addModel(db, samsungBrand.id, 'Galaxy S25 Ultra')
-  assert(newModel.id > 0 && newModel.name === 'Galaxy S25 Ultra', 'Added Model "Galaxy S25 Ultra"')
+  const newModel = addModel(db, samsungBrand.id, 'Galaxy Test Model 1')
+  assert(newModel.id > 0 && newModel.name === 'Galaxy Test Model 1', 'Added Model "Galaxy Test Model 1"')
 
   updateModel(db, newModel.id, 'Galaxy S25+')
   const s25Model = getModelsByBrand(db, samsungBrand.id).find((m) => m.id === newModel.id)

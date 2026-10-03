@@ -1,131 +1,110 @@
 import type Database from 'better-sqlite3'
+import { CORE_ACCESSORIES_V1, CORE_BRANDS_V1, CORE_CATEGORIES_V1, CORE_TECHNICIANS_V1 } from './catalog/core'
+import { BRAND_CATALOG_V2, type CatalogBrand } from './catalog/brands'
+
+/**
+ * Versioned seed.
+ *
+ * Each pack is applied at most once in the lifetime of a database (tracked by the `seed_version`
+ * key in the Setting table), so items the user deletes never come back on the next launch.
+ * Packs are additive only: they never delete or rename anything, and brand/model names are
+ * compared case-insensitively to avoid duplicates ("samsung" = "Samsung").
+ *
+ * A database that already contains data but has no `seed_version` (created before versioning
+ * existed) is treated as having pack 1 applied.
+ */
+export const SEED_VERSION_KEY = 'seed_version'
+
+interface SeedPack {
+  version: number
+  apply: (db: Database.Database) => void
+}
+
+function ensureBrandId(db: Database.Database, name: string): number {
+  const existing = db.prepare(`SELECT id FROM Brand WHERE lower(name) = lower(?)`).get(name) as
+    | { id: number }
+    | undefined
+  if (existing) return existing.id
+  return Number(db.prepare(`INSERT INTO Brand (name) VALUES (?)`).run(name).lastInsertRowid)
+}
+
+function addModels(db: Database.Database, brandId: number, models: string[]): void {
+  const exists = db.prepare(`SELECT 1 FROM Model WHERE brand_id = ? AND lower(name) = lower(?)`)
+  const insert = db.prepare(`INSERT INTO Model (brand_id, name) VALUES (?, ?)`)
+  for (const model of models) {
+    if (!exists.get(brandId, model)) insert.run(brandId, model)
+  }
+}
+
+function addCatalog(db: Database.Database, catalog: CatalogBrand[]): void {
+  for (const brand of catalog) {
+    const brandId = ensureBrandId(db, brand.name)
+    if (brand.models) addModels(db, brandId, brand.models)
+  }
+}
+
+const SEED_PACKS: SeedPack[] = [
+  {
+    // Original first-run data: technicians, repair categories, accessories, a few brands
+    version: 1,
+    apply: (db) => {
+      const insertTechnician = db.prepare(`INSERT OR IGNORE INTO Technician (name, is_partner) VALUES (?, ?)`)
+      for (const tech of CORE_TECHNICIANS_V1) insertTechnician.run(tech.name, tech.isPartner)
+
+      const insertCategory = db.prepare(
+        `INSERT OR IGNORE INTO RepairCategory (name, default_split_percentage) VALUES (?, ?)`
+      )
+      for (const cat of CORE_CATEGORIES_V1) insertCategory.run(cat.name, cat.split)
+
+      const insertAccessory = db.prepare(`INSERT OR IGNORE INTO Accessories (name) VALUES (?)`)
+      for (const acc of CORE_ACCESSORIES_V1) insertAccessory.run(acc)
+
+      addCatalog(
+        db,
+        Object.entries(CORE_BRANDS_V1).map(([name, models]) => ({ name, models }))
+      )
+    }
+  },
+  {
+    // Full phone brand catalog (+ models for the major brands)
+    version: 2,
+    apply: (db) => addCatalog(db, BRAND_CATALOG_V2)
+  }
+]
+
+export const LATEST_SEED_VERSION = SEED_PACKS[SEED_PACKS.length - 1].version
+
+function readSeedVersion(db: Database.Database): number {
+  const row = db.prepare(`SELECT value FROM Setting WHERE key = ?`).get(SEED_VERSION_KEY) as
+    | { value: string }
+    | undefined
+  if (row) {
+    const parsed = parseInt(row.value, 10)
+    if (!isNaN(parsed)) return parsed
+  }
+
+  // No version recorded: a database that already holds data predates versioning,
+  // so pack 1 was effectively applied (and may have been customised by the user since).
+  const hasData = ['Technician', 'RepairCategory', 'Accessories', 'Brand', 'Ticket'].some(
+    (table) => db.prepare(`SELECT 1 FROM ${table} LIMIT 1`).get() !== undefined
+  )
+  return hasData ? 1 : 0
+}
 
 export function seedInitialData(db: Database.Database): void {
-  const insertTechnician = db.prepare(`INSERT OR IGNORE INTO Technician (name, is_partner) VALUES (?, ?)`)
-  const insertCategory = db.prepare(
-    `INSERT OR IGNORE INTO RepairCategory (name, default_split_percentage) VALUES (?, ?)`
-  )
-  const insertAccessory = db.prepare(`INSERT OR IGNORE INTO Accessories (name) VALUES (?)`)
-  const insertBrand = db.prepare(`INSERT OR IGNORE INTO Brand (name) VALUES (?)`)
-  const insertModel = db.prepare(
-    `INSERT OR IGNORE INTO Model (brand_id, name) VALUES ((SELECT id FROM Brand WHERE name = ?), ?)`
-  )
+  const run = db.transaction(() => {
+    const current = readSeedVersion(db)
+    const setVersion = db.prepare(`
+      INSERT INTO Setting (key, value) VALUES (?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    `)
 
-  const seedTransaction = db.transaction(() => {
-    // 1. Technicians
-    const technicians = [
-      { name: 'أنا', isPartner: 0 },
-      { name: 'الشريك', isPartner: 1 }
-    ]
-    for (const tech of technicians) {
-      insertTechnician.run(tech.name, tech.isPartner)
+    for (const pack of SEED_PACKS) {
+      if (pack.version > current) pack.apply(db)
     }
-
-    // 2. Repair Categories
-    const categories = [
-      { name: 'تغيير شاشة', split: 40.0 },
-      { name: 'بطارية ومنفذ شحن', split: 50.0 },
-      { name: 'صيانة بورد وسوفتوير', split: 70.0 },
-      { name: 'صيانة عامة وأخرى', split: 50.0 }
-    ]
-    for (const cat of categories) {
-      insertCategory.run(cat.name, cat.split)
-    }
-
-    // 3. Accessories
-    const accessories = ['بدون ملحقات', 'شاحن', 'كفر / جراب', 'شريحة SIM', 'بطاقة ذاكرة SD']
-    for (const acc of accessories) {
-      insertAccessory.run(acc)
-    }
-
-    // 4. Brands & Models
-    const brandsWithModels: Record<string, string[]> = {
-      Samsung: [
-        'Galaxy A04',
-        'Galaxy A14',
-        'Galaxy A24',
-        'Galaxy A34',
-        'Galaxy A54',
-        'Galaxy A55',
-        'Galaxy S21',
-        'Galaxy S22',
-        'Galaxy S23',
-        'Galaxy S24 Ultra'
-      ],
-      Apple: [
-        'iPhone X / XS',
-        'iPhone 11',
-        'iPhone 11 Pro Max',
-        'iPhone 12',
-        'iPhone 12 Pro Max',
-        'iPhone 13',
-        'iPhone 13 Pro Max',
-        'iPhone 14',
-        'iPhone 14 Pro Max',
-        'iPhone 15',
-        'iPhone 15 Pro Max'
-      ],
-      Xiaomi: [
-        'Redmi 9A / 9C',
-        'Redmi 10 / 10C',
-        'Redmi 12 / 12C',
-        'Redmi Note 10',
-        'Redmi Note 11',
-        'Redmi Note 12',
-        'Redmi Note 13 Pro',
-        'Poco X3 Pro',
-        'Poco X5 Pro',
-        'Poco F5'
-      ],
-      Huawei: [
-        'Y9 2019 / Prime',
-        'Y7P / Y6P',
-        'Nova 7i',
-        'Nova 9',
-        'Nova 10',
-        'P30 Lite',
-        'P40 Pro'
-      ],
-      Oppo: [
-        'A16 / A17',
-        'A54 / A55',
-        'A58 / A78',
-        'Reno 6',
-        'Reno 8',
-        'Reno 10'
-      ],
-      Realme: [
-        'C11 / C21',
-        'C33 / C35',
-        'C53 / C55',
-        'Realme 9',
-        'Realme 11 Pro'
-      ],
-      Infinix: [
-        'Smart 6 / 7 / 8',
-        'Hot 11 / 12 Play',
-        'Hot 30 / 40',
-        'Note 12 / 30'
-      ],
-      Tecno: [
-        'Pop 5 / 7',
-        'Spark 8 / 10 / 20',
-        'Camon 18 / 20'
-      ],
-      Honor: [
-        'Honor X6 / X7',
-        'Honor X8 / X9a',
-        'Honor 90'
-      ]
-    }
-
-    for (const [brand, models] of Object.entries(brandsWithModels)) {
-      insertBrand.run(brand)
-      for (const model of models) {
-        insertModel.run(brand, model)
-      }
-    }
+    // Record the version even when nothing ran, so a legacy database is "stamped" once
+    setVersion.run(SEED_VERSION_KEY, String(Math.max(current, LATEST_SEED_VERSION)))
   })
 
-  seedTransaction()
+  run()
 }
