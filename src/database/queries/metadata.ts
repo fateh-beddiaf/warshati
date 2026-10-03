@@ -202,6 +202,15 @@ export function getRepairCategories(db: Database.Database): RepairCategory[] {
   return db.prepare(`SELECT * FROM RepairCategory ORDER BY id ASC`).all() as RepairCategory[]
 }
 
+/** Rejects non-numeric / NaN / infinite split percentages with a clear message, then clamps to 0–100. */
+function normalizeSplitPercentage(value: unknown): number {
+  const parsed = typeof value === 'string' && value.trim() !== '' ? Number(value) : value
+  if (typeof parsed !== 'number' || !Number.isFinite(parsed)) {
+    throw new Error('نسبة الحصة يجب أن تكون رقماً صالحاً بين 0 و 100.')
+  }
+  return Math.max(0, Math.min(100, parsed))
+}
+
 export function addRepairCategory(
   db: Database.Database,
   name: string,
@@ -209,7 +218,7 @@ export function addRepairCategory(
 ): RepairCategory {
   const trimmedName = name.trim()
   if (!trimmedName) throw new Error('اسم تصنيف العطل مطلوب')
-  const split = Math.max(0, Math.min(100, defaultSplitPercentage))
+  const split = normalizeSplitPercentage(defaultSplitPercentage)
   const stmt = db.prepare(`INSERT INTO RepairCategory (name, default_split_percentage) VALUES (?, ?)`)
   const result = stmt.run(trimmedName, split)
   return { id: Number(result.lastInsertRowid), name: trimmedName, default_split_percentage: split }
@@ -223,7 +232,7 @@ export function updateRepairCategory(
 ): void {
   const trimmedName = name.trim()
   if (!trimmedName) throw new Error('اسم تصنيف العطل مطلوب')
-  const split = Math.max(0, Math.min(100, defaultSplitPercentage))
+  const split = normalizeSplitPercentage(defaultSplitPercentage)
   db.prepare(`UPDATE RepairCategory SET name = ?, default_split_percentage = ? WHERE id = ?`).run(
     trimmedName,
     split,

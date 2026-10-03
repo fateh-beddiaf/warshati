@@ -21,6 +21,7 @@ export interface PrinterInfo {
 
 export interface IElectronAPI {
   createTicket: (dto: CreateTicketDTO) => Promise<{ success: boolean; data?: { ticketId: number; barcode: string }; error?: string }>
+  recordPayment: (ticketId: number, amount: number) => Promise<{ success: boolean; data?: Ticket; error?: string }>
   updateTicketStatus: (dto: UpdateTicketStatusDTO) => Promise<{ success: boolean; data?: { success: boolean; ticket: Ticket }; error?: string }>
   getTicketsList: (searchQuery?: string, statusFilter?: string) => Promise<{ success: boolean; data?: TicketListItem[]; error?: string }>
   getTicketById: (id: number) => Promise<{ success: boolean; data?: TicketFullDetails | null; error?: string }>

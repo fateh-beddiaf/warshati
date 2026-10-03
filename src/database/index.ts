@@ -99,6 +99,9 @@ export const dbService = {
   updateTicketStatus: (dto: UpdateTicketStatusDTO): { success: boolean; ticket: Ticket } => {
     return ticketQueries.updateTicketStatus(getDatabase(), dto)
   },
+  recordPayment: (ticketId: number, amount: number): Ticket => {
+    return ticketQueries.recordPayment(getDatabase(), ticketId, amount)
+  },
   getTicketsList: (searchQuery?: string, statusFilter?: string): TicketListItem[] => {
     return ticketQueries.getTicketsList(getDatabase(), searchQuery, statusFilter)
   },

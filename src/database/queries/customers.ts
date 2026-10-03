@@ -22,39 +22,56 @@ export function getCustomerById(db: Database.Database, id: number): Customer | n
   return result || null
 }
 
+/** Trim, collapse inner whitespace, case-fold — used to decide whether two names are the same person. */
+export function normalizeName(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+/** Phones are compared without any whitespace ("0555 12 34 56" = "0555123456"). */
+export function normalizePhone(value: string): string {
+  return value.replace(/\s+/g, '')
+}
+
+/**
+ * Never renames or re-numbers an existing customer silently.
+ * - With `customer.id`: reuse it only if the name and phone in the form still match the stored ones;
+ *   otherwise the form describes someone else, so a new customer is created.
+ * - Without an id: reuse an existing customer only when BOTH phone and name match
+ *   (after normalisation); anything else creates a new customer.
+ * Only the notes of a reused customer may be updated (when provided).
+ */
 export function findOrCreateCustomer(
   db: Database.Database,
   customer: { id?: number; name: string; phone: string; notes?: string }
 ): number {
+  const name = customer.name.trim().replace(/\s+/g, ' ')
+  const phone = customer.phone.trim()
+  const notes = customer.notes?.trim() || null
+
+  const reuse = (id: number): number => {
+    if (notes) db.prepare(`UPDATE Customer SET notes = ? WHERE id = ?`).run(notes, id)
+    return id
+  }
+
   if (customer.id) {
-    // Update existing customer info if needed
-    db.prepare(`UPDATE Customer SET name = ?, phone = ?, notes = ? WHERE id = ?`).run(
-      customer.name.trim(),
-      customer.phone.trim(),
-      customer.notes?.trim() || null,
-      customer.id
-    )
-    return customer.id
+    const stored = db.prepare(`SELECT id, name, phone FROM Customer WHERE id = ?`).get(customer.id) as
+      | { id: number; name: string; phone: string }
+      | undefined
+    if (
+      stored &&
+      normalizeName(stored.name) === normalizeName(name) &&
+      normalizePhone(stored.phone) === normalizePhone(phone)
+    ) {
+      return reuse(stored.id)
+    }
   }
 
-  // Check if customer with same phone already exists
-  const existing = db
-    .prepare(`SELECT id FROM Customer WHERE phone = ?`)
-    .get(customer.phone.trim()) as { id: number } | undefined
+  const candidates = db
+    .prepare(`SELECT id, name FROM Customer WHERE replace(replace(phone, ' ', ''), char(9), '') = ?`)
+    .all(normalizePhone(phone)) as { id: number; name: string }[]
+  const match = candidates.find((c) => normalizeName(c.name) === normalizeName(name))
+  if (match) return reuse(match.id)
 
-  if (existing) {
-    db.prepare(`UPDATE Customer SET name = ?, notes = COALESCE(?, notes) WHERE id = ?`).run(
-      customer.name.trim(),
-      customer.notes?.trim() || null,
-      existing.id
-    )
-    return existing.id
-  }
-
-  // Create new customer
-  const info = db
-    .prepare(`INSERT INTO Customer (name, phone, notes) VALUES (?, ?, ?)`)
-    .run(customer.name.trim(), customer.phone.trim(), customer.notes?.trim() || null)
-
+  const info = db.prepare(`INSERT INTO Customer (name, phone, notes) VALUES (?, ?, ?)`).run(name, phone, notes)
   return Number(info.lastInsertRowid)
 }
