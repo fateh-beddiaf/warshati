@@ -17,6 +17,7 @@ import { Toaster } from './components/ui/Sonner'
 import type { TicketFullDetails, TicketListItem } from '../shared/types'
 import { AlertCircle } from 'lucide-react'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { pageTransition, slideDown } from './lib/motion'
 
 function AppContent(): React.JSX.Element {
   const { t } = useI18n()
@@ -139,12 +140,12 @@ function AppContent(): React.JSX.Element {
       <AnimatePresence>
         {scanAlert && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="mb-4 p-3 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 text-xs font-bold flex items-center gap-2 shadow-sm"
+            {...slideDown}
+            role="status"
+            data-testid="scan-alert"
+            className="mb-4 flex items-center gap-2 rounded-xl border border-warning/25 bg-warning-soft p-3 text-xs font-bold text-warning-soft-foreground shadow-soft"
           >
-            <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
             <span>{scanAlert}</span>
           </motion.div>
         )}
@@ -157,10 +158,7 @@ function AppContent(): React.JSX.Element {
           {activeTab === 'tickets' && (
             <motion.div
               key="tickets"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
+              {...pageTransition}
             >
               <TicketsListScreen
                 onNewTicketClick={() => setActiveTab('new-ticket')}
@@ -174,10 +172,7 @@ function AppContent(): React.JSX.Element {
           {activeTab === 'new-ticket' && (
             <motion.div
               key="new-ticket"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
+              {...pageTransition}
             >
               <NewTicketScreen onTicketCreated={handleTicketCreated} />
             </motion.div>
@@ -186,10 +181,7 @@ function AppContent(): React.JSX.Element {
           {activeTab === 'reports' && (
             <motion.div
               key="reports"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
+              {...pageTransition}
             >
               <ReportsScreen onOpenTicketDetails={handleOpenTicketDetails} />
             </motion.div>
@@ -198,10 +190,7 @@ function AppContent(): React.JSX.Element {
           {activeTab === 'settings' && (
             <motion.div
               key="settings"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
+              {...pageTransition}
             >
               <SettingsScreen />
             </motion.div>
