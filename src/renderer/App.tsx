@@ -10,8 +10,9 @@ import { PrintPreviewModal } from './components/barcode/PrintPreviewModal'
 import { useBarcodeScanner } from './hooks/useBarcodeScanner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { I18nProvider, useI18n } from './lib/i18n'
-import type { TicketFullDetails, TicketListItem } from '../database/types'
+import type { TicketFullDetails, TicketListItem } from '../shared/types'
 import { AlertCircle } from 'lucide-react'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 function AppContent(): React.JSX.Element {
   const { t } = useI18n()
@@ -139,75 +140,83 @@ function AppContent(): React.JSX.Element {
       </AnimatePresence>
 
       {/* Screen Views */}
-      <AnimatePresence mode="wait">
-        {activeTab === 'tickets' && (
-          <motion.div
-            key={`tickets-${listRefreshKey}`}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-          >
-            <TicketsListScreen
-              onNewTicketClick={() => setActiveTab('new-ticket')}
-              onOpenTicketDetails={handleOpenTicketDetails}
-              onPrintTicket={handlePrintTicket}
-            />
-          </motion.div>
-        )}
+      {/* resetKey: switching tabs clears a previous crash without remounting (keeps exit animations) */}
+      <ErrorBoundary scope={`screen:${activeTab}`} resetKey={activeTab}>
+        <AnimatePresence mode="wait">
+          {activeTab === 'tickets' && (
+            <motion.div
+              key="tickets"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+            >
+              <TicketsListScreen
+                onNewTicketClick={() => setActiveTab('new-ticket')}
+                onOpenTicketDetails={handleOpenTicketDetails}
+                onPrintTicket={handlePrintTicket}
+                refreshKey={listRefreshKey}
+              />
+            </motion.div>
+          )}
 
-        {activeTab === 'new-ticket' && (
-          <motion.div
-            key="new-ticket"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-          >
-            <NewTicketScreen onTicketCreated={handleTicketCreated} />
-          </motion.div>
-        )}
+          {activeTab === 'new-ticket' && (
+            <motion.div
+              key="new-ticket"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+            >
+              <NewTicketScreen onTicketCreated={handleTicketCreated} />
+            </motion.div>
+          )}
 
-        {activeTab === 'reports' && (
-          <motion.div
-            key="reports"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-          >
-            <ReportsScreen onOpenTicketDetails={handleOpenTicketDetails} />
-          </motion.div>
-        )}
+          {activeTab === 'reports' && (
+            <motion.div
+              key="reports"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+            >
+              <ReportsScreen onOpenTicketDetails={handleOpenTicketDetails} />
+            </motion.div>
+          )}
 
-        {activeTab === 'settings' && (
-          <motion.div
-            key="settings"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-          >
-            <SettingsScreen />
-          </motion.div>
-        )}
-      </AnimatePresence>
+          {activeTab === 'settings' && (
+            <motion.div
+              key="settings"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+            >
+              <SettingsScreen />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </ErrorBoundary>
 
       {/* Ticket Details Modal */}
-      <TicketDetailsModal
-        isOpen={isTicketDetailsOpen}
-        onClose={() => setIsTicketDetailsOpen(false)}
-        ticketDetails={selectedTicketDetails}
-        onReprintClick={handleReprintFromDetails}
-        onStatusUpdated={handleTicketStatusUpdated}
-      />
+      <ErrorBoundary scope="ticket-details" resetKey={selectedTicketDetails?.ticket.id}>
+        <TicketDetailsModal
+          isOpen={isTicketDetailsOpen}
+          onClose={() => setIsTicketDetailsOpen(false)}
+          ticketDetails={selectedTicketDetails}
+          onReprintClick={handleReprintFromDetails}
+          onStatusUpdated={handleTicketStatusUpdated}
+        />
+      </ErrorBoundary>
 
       {/* Print / Reprint Preview Modal */}
-      <PrintPreviewModal
-        isOpen={isPrintModalOpen}
-        onClose={() => setIsPrintModalOpen(false)}
-        data={printModalData}
-      />
+      <ErrorBoundary scope="print-preview" resetKey={printModalData?.barcode}>
+        <PrintPreviewModal
+          isOpen={isPrintModalOpen}
+          onClose={() => setIsPrintModalOpen(false)}
+          data={printModalData}
+        />
+      </ErrorBoundary>
     </Layout>
   )
 }

@@ -1,11 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { CreateTicketDTO, ReportFilterDTO } from '../database/types'
+import type { CreateTicketDTO, ReportFilterDTO } from '../shared/types'
 
 // Custom APIs for renderer
 const api = {
   // Tickets
   createTicket: (dto: CreateTicketDTO) => ipcRenderer.invoke('tickets:create', dto),
-  updateTicketStatus: (dto: import('../database/types').UpdateTicketStatusDTO) =>
+  updateTicketStatus: (dto: import('../shared/types').UpdateTicketStatusDTO) =>
     ipcRenderer.invoke('tickets:updateStatus', dto),
   getTicketsList: (searchQuery?: string, statusFilter?: string) =>
     ipcRenderer.invoke('tickets:list', searchQuery, statusFilter),
@@ -71,7 +71,7 @@ const api = {
 
   // Printer
   getPrinters: () => ipcRenderer.invoke('printer:getPrinters'),
-  printLabel: (labelData: import('../database/types').PrintLabelData & { svgContent?: string }) =>
+  printLabel: (labelData: import('../shared/types').PrintLabelData & { svgContent?: string }) =>
     ipcRenderer.invoke('printer:printLabel', labelData),
 
   // Reports

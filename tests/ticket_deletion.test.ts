@@ -4,7 +4,7 @@ import { seedInitialData } from '../src/database/seed'
 import { createTicket, deleteTicket, getTicketById, updateTicketStatus } from '../src/database/queries/tickets'
 import { getFinancialReport } from '../src/database/queries/reports'
 import { getBrands, getModelsByBrand, getTechnicians } from '../src/database/queries/metadata'
-import type { CreateTicketDTO } from '../src/database/types'
+import type { CreateTicketDTO } from '../src/shared/types'
 
 function assert(condition: boolean, message: string): void {
   if (!condition) throw new Error(`Assertion failed: ${message}`)

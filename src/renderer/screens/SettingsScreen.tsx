@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useI18n } from '../lib/i18n'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
@@ -22,10 +22,8 @@ import {
   AlertTriangle,
   AlertCircle,
   HardDrive,
-  Clock,
   Search,
-  Sliders,
-  Sparkles
+  Sliders
 } from 'lucide-react'
 import type {
   Brand,
@@ -34,20 +32,29 @@ import type {
   Accessories,
   Technician,
   DatabaseInfo
-} from '../../database/types'
+} from '../../shared/types'
 
 type SettingsTab = 'categories' | 'brandsModels' | 'accessories' | 'technicians' | 'backup' | 'preferences'
 
 export function SettingsScreen(): React.JSX.Element {
-  const { t, language, setLanguage, isRtl } = useI18n()
+  const { t, language, setLanguage } = useI18n()
   const [activeTab, setActiveTab] = useState<SettingsTab>('categories')
 
   // Notification Banner
   const [alert, setAlert] = useState<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null)
 
+  const alertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const showAlert = useCallback((type: 'success' | 'error' | 'warning', message: string) => {
+    // Clear the previous timer so an older alert can't dismiss a newer one early
+    if (alertTimerRef.current) clearTimeout(alertTimerRef.current)
     setAlert({ type, message })
-    setTimeout(() => setAlert(null), 5000)
+    alertTimerRef.current = setTimeout(() => setAlert(null), 5000)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (alertTimerRef.current) clearTimeout(alertTimerRef.current)
+    }
   }, [])
 
   // Data States
@@ -59,7 +66,6 @@ export function SettingsScreen(): React.JSX.Element {
   const [technicians, setTechnicians] = useState<Technician[]>([])
   const [dbInfo, setDbInfo] = useState<DatabaseInfo | null>(null)
   const [overdueDays, setOverdueDays] = useState<number>(3)
-  const [loading, setLoading] = useState(false)
 
   // Modals & Form States
   // Category Form
@@ -96,7 +102,6 @@ export function SettingsScreen(): React.JSX.Element {
 
   // Fetch all settings data
   const loadAllData = useCallback(async () => {
-    setLoading(true)
     try {
       const [metaRes, infoRes, daysRes] = await Promise.all([
         window.api.getMetadata(),
@@ -110,9 +115,8 @@ export function SettingsScreen(): React.JSX.Element {
         setCategories(metaRes.data.repairCategories || [])
         setAccessories(metaRes.data.accessories || [])
         setTechnicians(metaRes.data.technicians || [])
-        if (!selectedBrandId && metaRes.data.brands.length > 0) {
-          setSelectedBrandId(metaRes.data.brands[0].id)
-        }
+        // Functional update: keeps loadAllData stable so selecting a brand doesn't reload everything
+        setSelectedBrandId((prev) => prev ?? metaRes.data?.brands?.[0]?.id ?? null)
       }
 
       if (infoRes.success && infoRes.data) {
@@ -125,10 +129,8 @@ export function SettingsScreen(): React.JSX.Element {
     } catch (err) {
       console.error('Failed to load settings data:', err)
       showAlert('error', 'فشل في تحميل بيانات الإعدادات')
-    } finally {
-      setLoading(false)
     }
-  }, [selectedBrandId, showAlert])
+  }, [showAlert])
 
   useEffect(() => {
     loadAllData()
@@ -502,6 +504,7 @@ export function SettingsScreen(): React.JSX.Element {
       <div className="flex flex-wrap gap-2 p-1.5 bg-slate-200/80 rounded-xl border border-slate-300/60 shadow-inner">
         <button
           type="button"
+          data-testid="settings-tab-categories"
           onClick={() => setActiveTab('categories')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
             activeTab === 'categories'
@@ -515,6 +518,7 @@ export function SettingsScreen(): React.JSX.Element {
 
         <button
           type="button"
+          data-testid="settings-tab-brandsModels"
           onClick={() => setActiveTab('brandsModels')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
             activeTab === 'brandsModels'
@@ -528,6 +532,7 @@ export function SettingsScreen(): React.JSX.Element {
 
         <button
           type="button"
+          data-testid="settings-tab-accessories"
           onClick={() => setActiveTab('accessories')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
             activeTab === 'accessories'
@@ -541,6 +546,7 @@ export function SettingsScreen(): React.JSX.Element {
 
         <button
           type="button"
+          data-testid="settings-tab-technicians"
           onClick={() => setActiveTab('technicians')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
             activeTab === 'technicians'
@@ -554,6 +560,7 @@ export function SettingsScreen(): React.JSX.Element {
 
         <button
           type="button"
+          data-testid="settings-tab-backup"
           onClick={() => setActiveTab('backup')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
             activeTab === 'backup'
@@ -567,6 +574,7 @@ export function SettingsScreen(): React.JSX.Element {
 
         <button
           type="button"
+          data-testid="settings-tab-preferences"
           onClick={() => setActiveTab('preferences')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
             activeTab === 'preferences'
@@ -619,10 +627,10 @@ export function SettingsScreen(): React.JSX.Element {
                       <div>
                         <h3 className="font-bold text-base text-slate-900">{cat.name}</h3>
                         <div className="flex items-center gap-2 mt-2 text-xs">
-                          <Badge variant="blue" className="font-semibold">
+                          <Badge variant="default" className="font-semibold">
                             {t.settings.categories.ownerShare.replace('{percent}', String(myPercentage))}
                           </Badge>
-                          <Badge variant="emerald" className="font-semibold">
+                          <Badge variant="success" className="font-semibold">
                             {t.settings.categories.partnerShare.replace('{percent}', String(partnerPercentage))}
                           </Badge>
                         </div>
@@ -1115,6 +1123,7 @@ export function SettingsScreen(): React.JSX.Element {
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
+                      data-testid="lang-ar"
                       onClick={() => setLanguage('ar')}
                       className={`p-3.5 rounded-xl border text-xs font-bold flex items-center justify-between transition-all ${
                         language === 'ar'
@@ -1128,6 +1137,7 @@ export function SettingsScreen(): React.JSX.Element {
 
                     <button
                       type="button"
+                      data-testid="lang-en"
                       onClick={() => setLanguage('en')}
                       className={`p-3.5 rounded-xl border text-xs font-bold flex items-center justify-between transition-all ${
                         language === 'en'

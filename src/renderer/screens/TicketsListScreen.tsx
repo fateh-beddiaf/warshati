@@ -1,12 +1,12 @@
 import * as React from 'react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useI18n } from '../lib/i18n'
 import { Card, CardContent } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
 import { formatCurrency, formatDate } from '../lib/utils'
-import type { TicketListItem, TicketStatus } from '../../database/types'
+import type { TicketListItem } from '../../shared/types'
 import {
   Search,
   PlusCircle,
@@ -26,12 +26,15 @@ interface TicketsListScreenProps {
   onNewTicketClick: () => void
   onOpenTicketDetails?: (ticketId: number) => void
   onPrintTicket?: (ticket: TicketListItem) => void
+  /** Bump to refetch the list in place (without remounting the screen) */
+  refreshKey?: number
 }
 
 export function TicketsListScreen({
   onNewTicketClick,
   onOpenTicketDetails,
-  onPrintTicket
+  onPrintTicket,
+  refreshKey = 0
 }: TicketsListScreenProps): React.JSX.Element {
   const { t } = useI18n()
   const [tickets, setTickets] = useState<TicketListItem[]>([])
@@ -45,13 +48,19 @@ export function TicketsListScreen({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [customThresholdInput, setCustomThresholdInput] = useState('3')
 
+  const latestRequestRef = useRef(0)
+
   const fetchTicketsAndSettings = async (): Promise<void> => {
+    const requestId = ++latestRequestRef.current
     setLoading(true)
     try {
       const [ticketsRes, thresholdRes] = await Promise.all([
         window.api.getTicketsList(searchQuery, statusFilter === 'overdue' ? 'ready' : statusFilter),
         window.api.getOverdueDays()
       ])
+
+      // Ignore out-of-order responses (fast typing / quick filter switches)
+      if (requestId !== latestRequestRef.current) return
 
       if (ticketsRes.success && ticketsRes.data) {
         if (statusFilter === 'overdue') {
@@ -68,14 +77,14 @@ export function TicketsListScreen({
     } catch (err) {
       console.error('Error fetching tickets:', err)
     } finally {
-      setLoading(false)
+      if (requestId === latestRequestRef.current) setLoading(false)
     }
   }
 
-  // Load tickets on search / filter changes
+  // Load tickets on search / filter changes and when the parent requests a refresh
   useEffect(() => {
     fetchTicketsAndSettings()
-  }, [searchQuery, statusFilter])
+  }, [searchQuery, statusFilter, refreshKey])
 
   const handleSaveThreshold = async (): Promise<void> => {
     const parsed = parseInt(customThresholdInput, 10)
@@ -216,6 +225,7 @@ export function TicketsListScreen({
             type="button"
             size="sm"
             variant="outline"
+            data-testid="overdue-banner"
             onClick={() => setStatusFilter('overdue')}
             className="border-amber-300 bg-white text-amber-900 hover:bg-amber-100 text-xs font-bold"
           >
@@ -242,6 +252,7 @@ export function TicketsListScreen({
         <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-lg">
           <button
             type="button"
+            data-testid="filter-all"
             onClick={() => setStatusFilter('all')}
             className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
               statusFilter === 'all'
@@ -253,6 +264,7 @@ export function TicketsListScreen({
           </button>
           <button
             type="button"
+            data-testid="filter-in_progress"
             onClick={() => setStatusFilter('in_progress')}
             className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
               statusFilter === 'in_progress'
@@ -264,6 +276,7 @@ export function TicketsListScreen({
           </button>
           <button
             type="button"
+            data-testid="filter-ready"
             onClick={() => setStatusFilter('ready')}
             className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
               statusFilter === 'ready'
@@ -275,6 +288,7 @@ export function TicketsListScreen({
           </button>
           <button
             type="button"
+            data-testid="filter-overdue"
             onClick={() => setStatusFilter('overdue')}
             className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${
               statusFilter === 'overdue'
@@ -287,6 +301,7 @@ export function TicketsListScreen({
           </button>
           <button
             type="button"
+            data-testid="filter-delivered"
             onClick={() => setStatusFilter('delivered')}
             className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
               statusFilter === 'delivered'
@@ -418,6 +433,7 @@ export function TicketsListScreen({
                           type="button"
                           variant="outline"
                           size="sm"
+                          data-testid="row-print"
                           onClick={() => onPrintTicket && onPrintTicket(ticket)}
                           className="text-xs text-slate-700 hover:text-blue-600 hover:border-blue-300 gap-1.5"
                           title={t.print.reprintButton}

@@ -7,7 +7,7 @@ import type {
   Accessories,
   Technician,
   DeleteReferenceCheckResult
-} from '../types'
+} from '../../shared/types'
 
 function mapTechnician(row: { id: number; name: string; is_partner: number | boolean }): Technician {
   return { ...row, is_partner: Boolean(row.is_partner) }

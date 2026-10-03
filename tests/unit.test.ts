@@ -16,7 +16,11 @@ const shortLabelCases = [
   { brand: 'Oppo', model: 'Reno 8', expected: 'OP Reno 8' },
   { brand: 'Realme', model: 'C55', expected: 'RL C55' },
   { brand: 'Infinix', model: 'Hot 30', expected: 'IN Hot 30' },
-  { brand: 'Tecno', model: 'Spark 10', expected: 'TC Spark 10' }
+  { brand: 'Tecno', model: 'Spark 10', expected: 'TC Spark 10' },
+  // Regression: regex metacharacters in a custom brand used to throw (white screen)
+  { brand: 'C++', model: 'C++ X1', expected: 'C X1' },
+  { brand: '(', model: 'Model 1', expected: '( Model 1' },
+  { brand: 'LG [x', model: 'G8', expected: 'LG G8' }
 ]
 
 for (const tc of shortLabelCases) {

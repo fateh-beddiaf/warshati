@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import type { Customer } from '../types'
+import type { Customer } from '../../shared/types'
 
 export function searchCustomers(db: Database.Database, query: string): Customer[] {
   const cleanQuery = query.trim()

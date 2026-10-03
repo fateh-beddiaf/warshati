@@ -57,6 +57,7 @@ export function Layout({
           <nav className="p-3 space-y-1">
             <button
               type="button"
+              data-testid="nav-tickets"
               onClick={() => onTabChange('tickets')}
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all',
@@ -71,6 +72,7 @@ export function Layout({
 
             <button
               type="button"
+              data-testid="nav-new-ticket"
               onClick={() => onTabChange('new-ticket')}
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all',
@@ -85,6 +87,7 @@ export function Layout({
 
             <button
               type="button"
+              data-testid="nav-reports"
               onClick={() => onTabChange('reports')}
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all',
@@ -99,6 +102,7 @@ export function Layout({
 
             <button
               type="button"
+              data-testid="nav-settings"
               onClick={() => onTabChange('settings')}
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all',

@@ -1,5 +1,5 @@
 import { BrowserWindow } from 'electron'
-import type { PrintLabelData } from '../database/types'
+import type { PrintLabelData } from '../shared/types'
 
 export interface PrintOptions extends PrintLabelData {
   svgContent?: string

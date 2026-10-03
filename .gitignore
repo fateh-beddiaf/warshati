@@ -23,3 +23,7 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# Playwright output
+test-results/
+playwright-report/

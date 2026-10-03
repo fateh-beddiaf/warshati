@@ -4,7 +4,7 @@ import { initializeSchema } from '../src/database/schema'
 import { seedInitialData } from '../src/database/seed'
 import { createTicket, updateTicketStatus, getTicketById } from '../src/database/queries/tickets'
 import { getFinancialReport } from '../src/database/queries/reports'
-import type { CreateTicketDTO } from '../src/database/types'
+import type { CreateTicketDTO } from '../src/shared/types'
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useState, useEffect, useCallback } from 'react'
 import { useI18n } from '../lib/i18n'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card'
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
 import { formatCurrency, formatDate } from '../lib/utils'
@@ -9,9 +9,8 @@ import type {
   FinancialReportResult,
   ReportPeriod,
   ReportFilterDTO,
-  AppMetadata,
-  TicketListItem
-} from '../../database/types'
+  AppMetadata
+} from '../../shared/types'
 import {
   TrendingUp,
   Coins,
@@ -19,13 +18,7 @@ import {
   Users,
   CreditCard,
   Calendar,
-  Filter,
-  CheckCircle,
-  Clock,
-  Sparkles,
-  PieChart,
   Layers,
-  ArrowUpDown,
   RefreshCw,
   FileSpreadsheet
 } from 'lucide-react'
@@ -131,6 +124,7 @@ export function ReportsScreen({ onOpenTicketDetails }: ReportsScreenProps): Reac
               
               <button
                 type="button"
+                data-testid="period-today"
                 onClick={() => setPeriod('today')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   period === 'today'
@@ -143,6 +137,7 @@ export function ReportsScreen({ onOpenTicketDetails }: ReportsScreenProps): Reac
 
               <button
                 type="button"
+                data-testid="period-this_week"
                 onClick={() => setPeriod('this_week')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   period === 'this_week'
@@ -155,6 +150,7 @@ export function ReportsScreen({ onOpenTicketDetails }: ReportsScreenProps): Reac
 
               <button
                 type="button"
+                data-testid="period-this_month"
                 onClick={() => setPeriod('this_month')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   period === 'this_month'
@@ -167,6 +163,7 @@ export function ReportsScreen({ onOpenTicketDetails }: ReportsScreenProps): Reac
 
               <button
                 type="button"
+                data-testid="period-all_time"
                 onClick={() => setPeriod('all_time')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   period === 'all_time'
@@ -179,6 +176,7 @@ export function ReportsScreen({ onOpenTicketDetails }: ReportsScreenProps): Reac
 
               <button
                 type="button"
+                data-testid="period-custom"
                 onClick={() => setPeriod('custom')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   period === 'custom'

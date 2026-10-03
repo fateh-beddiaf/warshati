@@ -20,7 +20,7 @@ import type {
   Ticket,
   ReportFilterDTO,
   FinancialReportResult
-} from './types'
+} from '../shared/types'
 
 let dbInstance: Database.Database | null = null
 let currentDbPath: string | null = null
@@ -149,10 +149,10 @@ export const dbService = {
     metadataQueries.deleteModel(getDatabase(), id)
   },
 
-  getAccessories: (): import('./types').Accessories[] => {
+  getAccessories: (): import('../shared/types').Accessories[] => {
     return metadataQueries.getAccessories(getDatabase())
   },
-  addAccessory: (name: string): import('./types').Accessories => {
+  addAccessory: (name: string): import('../shared/types').Accessories => {
     return metadataQueries.addAccessory(getDatabase(), name)
   },
   updateAccessory: (id: number, name: string): void => {
@@ -165,10 +165,10 @@ export const dbService = {
     metadataQueries.deleteAccessory(getDatabase(), id)
   },
 
-  getRepairCategories: (): import('./types').RepairCategory[] => {
+  getRepairCategories: (): import('../shared/types').RepairCategory[] => {
     return metadataQueries.getRepairCategories(getDatabase())
   },
-  addRepairCategory: (name: string, defaultSplitPercentage: number): import('./types').RepairCategory => {
+  addRepairCategory: (name: string, defaultSplitPercentage: number): import('../shared/types').RepairCategory => {
     return metadataQueries.addRepairCategory(getDatabase(), name, defaultSplitPercentage)
   },
   updateRepairCategory: (id: number, name: string, defaultSplitPercentage: number): void => {
@@ -181,10 +181,10 @@ export const dbService = {
     metadataQueries.deleteRepairCategory(getDatabase(), id)
   },
 
-  getTechnicians: (): import('./types').Technician[] => {
+  getTechnicians: (): import('../shared/types').Technician[] => {
     return metadataQueries.getTechnicians(getDatabase())
   },
-  addTechnician: (name: string): import('./types').Technician => {
+  addTechnician: (name: string): import('../shared/types').Technician => {
     return metadataQueries.addTechnician(getDatabase(), name)
   },
   updateTechnician: (id: number, name: string): void => {
@@ -214,5 +214,5 @@ export const dbService = {
   }
 }
 
-export * from './types'
+export * from '../shared/types'
 

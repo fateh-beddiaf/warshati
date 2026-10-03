@@ -8,14 +8,13 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Input } from '../ui/Input'
 import { formatCurrency, formatDate } from '../../lib/utils'
 import { calculateProfitSplit } from '../../../shared/profit'
-import type { TicketFullDetails, TicketStatus, PaymentType, UpdateTicketStatusDTO } from '../../../database/types'
+import type { TicketFullDetails, TicketStatus, PaymentType, UpdateTicketStatusDTO } from '../../../shared/types'
 import {
   X,
   Printer,
   User,
   Phone,
   Smartphone,
-  Wrench,
   Clock,
   CheckCircle,
   PackageCheck,
@@ -28,7 +27,6 @@ import {
   Check,
   CreditCard,
   PieChart,
-  Percent,
   Sparkles,
   Trash2
 } from 'lucide-react'
@@ -49,7 +47,6 @@ export function TicketDetailsModal({
   onStatusUpdated
 }: TicketDetailsModalProps): React.JSX.Element | null {
   const { t } = useI18n()
-  const [updating, setUpdating] = useState(false)
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -299,6 +296,7 @@ export function TicketDetailsModal({
                     <Button
                       type="button"
                       disabled={loading}
+                      data-testid="status-to-ready"
                       onClick={() => handleUpdateStatus('ready')}
                       className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-sm flex-1"
                     >
@@ -313,6 +311,7 @@ export function TicketDetailsModal({
                       <Button
                         type="button"
                         disabled={loading}
+                        data-testid="open-delivery"
                         onClick={() => setIsDeliveryDialogOpen(true)}
                         className="bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-sm flex-1"
                       >
@@ -324,6 +323,7 @@ export function TicketDetailsModal({
                         type="button"
                         variant="secondary"
                         disabled={loading}
+                        data-testid="status-to-in-progress"
                         onClick={() => handleUpdateStatus('in_progress')}
                         className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs"
                         title={t.lifecycle.revertToInProgress}
@@ -345,6 +345,7 @@ export function TicketDetailsModal({
                         type="button"
                         variant="secondary"
                         disabled={loading}
+                        data-testid="status-back-to-ready"
                         onClick={() => handleUpdateStatus('ready')}
                         className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs"
                       >
@@ -524,6 +525,7 @@ export function TicketDetailsModal({
                       type="button"
                       size="sm"
                       disabled={loading}
+                      data-testid="confirm-delivery"
                       onClick={handleConfirmDelivery}
                       className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20"
                     >
@@ -694,6 +696,7 @@ export function TicketDetailsModal({
                 <Button
                   type="button"
                   variant="outline"
+                  data-testid="details-close"
                   onClick={onClose}
                 >
                   {t.ticketDetails.closeButton}
@@ -712,6 +715,7 @@ export function TicketDetailsModal({
 
               <Button
                 type="button"
+                data-testid="details-reprint"
                 onClick={() => onReprintClick(ticketDetails)}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-500/20"
               >

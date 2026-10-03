@@ -7,7 +7,7 @@ import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
 import { Autocomplete, type AutocompleteOption } from '../components/ui/Autocomplete'
 import { generateShortLabel } from '../../shared/device-utils'
-import type { AppMetadata, Brand, Customer, CreateTicketDTO, Model, PaymentType } from '../../database/types'
+import type { AppMetadata, Brand, Customer, CreateTicketDTO, Model, PaymentType } from '../../shared/types'
 import {
   User,
   Smartphone,
@@ -276,7 +276,7 @@ export function NewTicketScreen({ onTicketCreated }: NewTicketScreenProps): Reac
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form data-testid="new-ticket-form" onSubmit={handleSubmit} className="space-y-6">
         {/* 1. Customer Section */}
         <Card>
           <CardHeader>

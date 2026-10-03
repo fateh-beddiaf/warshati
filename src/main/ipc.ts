@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { dbService } from '../database'
-import type { CreateTicketDTO, ReportFilterDTO } from '../database/types'
+import type { CreateTicketDTO, ReportFilterDTO } from '../shared/types'
 
 export function registerIpcHandlers(): void {
   // Tickets
@@ -17,7 +17,7 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('tickets:updateStatus', async (_event, dto: import('../database/types').UpdateTicketStatusDTO) => {
+  ipcMain.handle('tickets:updateStatus', async (_event, dto: import('../shared/types').UpdateTicketStatusDTO) => {
     try {
       const result = dbService.updateTicketStatus(dto)
       return { success: true, data: result }
