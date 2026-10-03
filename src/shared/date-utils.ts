@@ -16,3 +16,24 @@ export function toLocalDateString(d: Date): string {
 export function startOfMonthLocalString(d: Date): string {
   return toLocalDateString(new Date(d.getFullYear(), d.getMonth(), 1))
 }
+
+/**
+ * Parses a strict YYYY-MM-DD string as a LOCAL date, at 00:00:00.000 or (endOfDay) 23:59:59.999.
+ * Returns null for anything else, including impossible dates such as 2026-02-31.
+ * (`new Date('2026-10-03')` would be UTC midnight, i.e. the previous local day west of UTC.)
+ */
+export function parseLocalDateString(
+  value: string | undefined | null,
+  endOfDay = false
+): Date | null {
+  if (typeof value !== 'string') return null
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim())
+  if (!match) return null
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])]
+  const d = endOfDay
+    ? new Date(year, month - 1, day, 23, 59, 59, 999)
+    : new Date(year, month - 1, day, 0, 0, 0, 0)
+  // Reject overflowed dates (month 13, Feb 31, ...): Date silently rolls them over.
+  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null
+  return d
+}
