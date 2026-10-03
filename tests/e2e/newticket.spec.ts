@@ -63,7 +63,7 @@ test('customer search finds old customers beyond the latest 20', async () => {
   const inputs = page.locator('[data-testid="new-ticket-form"] input[type="text"]')
   await inputs.nth(0).click()
   await inputs.nth(0).pressSequentially('زبون 01', { delay: 30 })
-  await expect(page.getByRole('button', { name: /زبون 01/ }).first()).toBeVisible({ timeout: 5000 })
+  await expect(page.getByRole('option', { name: /زبون 01/ }).first()).toBeVisible({ timeout: 5000 })
 })
 
 test('typing a registered phone offers the matching customer and selecting fills the form', async () => {
@@ -91,7 +91,7 @@ test('editing the name of a selected customer creates a new customer instead of 
   await page.locator('[data-testid="new-ticket-form"] input[type="number"]').nth(0).fill('1000')
   await page.locator('[data-testid="new-ticket-form"] input[type="number"]').nth(1).fill('1000')
   await page.locator('[data-testid="new-ticket-form"] button[type="submit"]').click()
-  await page.waitForSelector('.bg-emerald-50')
+  await page.waitForSelector('[data-testid="ticket-created-banner"]')
 
   const names = await page.evaluate(async () => {
     const res = await window.api.searchCustomers('0550100005')
@@ -122,4 +122,45 @@ test('partial payment switches the payment type to credit', async () => {
   await expect(page.locator('input[name="paymentType"][value="credit"]')).toBeChecked()
   await numbers.nth(1).fill('5000')
   await expect(page.locator('input[name="paymentType"][value="cash"]')).toBeChecked()
+  await page.locator('input[name="paymentType"][value="credit"]').check()
+  await expect(page.locator('input[name="paymentType"][value="credit"]')).toBeChecked()
+})
+
+test('autocomplete: list is portalled out of the form, caps at 100 with a narrowing hint', async () => {
+  await page.getByTestId('nav-tickets').click()
+  await page.getByTestId('filter-all').waitFor()
+  await page.getByTestId('nav-new-ticket').click()
+  const form = page.getByTestId('new-ticket-form')
+  const inputs = form.locator('input[type="text"]')
+  await expect(inputs).toHaveCount(6) // name, phone, notes, brand, model, short label
+  await inputs.nth(4).click() // model, no brand chosen: the whole catalog
+  await expect(page.getByRole('option').first()).toBeVisible()
+  expect(await page.getByRole('option').count()).toBe(100)
+  await expect(page.getByText('اكتب لتضييق النتائج')).toBeVisible()
+  await expect(form.getByRole('option')).toHaveCount(0)
+  await expect(inputs).toHaveCount(6)
+  await expect(inputs.nth(4)).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('option')).toHaveCount(0)
+})
+
+test('autocomplete: arrows + Enter pick an option, focus stays in the field', async () => {
+  await page.getByTestId('nav-tickets').click()
+  await page.getByTestId('filter-all').waitFor()
+  await page.getByTestId('nav-new-ticket').click()
+  const inputs = page.locator('[data-testid="new-ticket-form"] input[type="text"]')
+  await inputs.nth(3).click()
+  await inputs.nth(3).pressSequentially('Sam', { delay: 20 })
+  await expect(page.getByRole('option', { name: 'Samsung', exact: true })).toBeVisible()
+  await expect(inputs.nth(3)).toBeFocused()
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('Enter')
+  await expect(inputs.nth(3)).toHaveValue('Samsung')
+  await expect(page.getByRole('option')).toHaveCount(0)
+  // a typed custom value stays as typed (Enter without navigation does not force a suggestion)
+  await inputs.nth(4).fill('Zzz custom model')
+  await expect(page.getByText(/Zzz custom model/)).toBeVisible()
+  await inputs.nth(4).press('Enter')
+  await expect(inputs.nth(4)).toHaveValue('Zzz custom model')
+  expect(problems, 'console warnings/errors').toEqual([])
 })

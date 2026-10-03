@@ -1,9 +1,24 @@
 import * as React from 'react'
 import { createContext, useContext, useState, useEffect } from 'react'
+import { layoutAr, layoutEn } from './locales/layout'
+import { ticketsAr, ticketsEn } from './locales/tickets'
+import { newTicketAr, newTicketEn } from './locales/newTicket'
+import { detailsAr, detailsEn } from './locales/details'
+import { reportsAr, reportsEn } from './locales/reports'
+import { settingsAr, settingsEn } from './locales/settings'
 
 export type Language = 'ar' | 'en'
 
 export const ar = {
+  // New T003 strings, one namespace per area: t.ui.layout.x, t.ui.tickets.x, ...
+  ui: {
+    layout: layoutAr,
+    tickets: ticketsAr,
+    newTicket: newTicketAr,
+    details: detailsAr,
+    reports: reportsAr,
+    settings: settingsAr
+  },
   common: {
     save: 'حفظ',
     saving: 'جاري الحفظ...',
@@ -38,6 +53,14 @@ export const ar = {
     newTicket: 'تذكرة جديدة',
     reports: 'التقارير المالية',
     settings: 'الإعدادات'
+  },
+  theme: {
+    label: 'المظهر',
+    light: 'فاتح',
+    dark: 'مظلم',
+    system: 'حسب النظام',
+    toggle: 'تبديل المظهر',
+    description: 'اختر مظهر التطبيق: فاتح أو مظلم أو حسب إعدادات النظام'
   },
   newTicket: {
     title: 'إنشاء تذكرة صيانة جديدة',
@@ -207,7 +230,7 @@ export const ar = {
     }
   },
   print: {
-    modalTitle: 'معاينة وطباعة الملصق (40×20mm)',
+    modalTitle: 'معاينة وطباعة الملصق (…40×20mm⁩)',
     modalSubtitle: 'معاينة الملصق بدقة قبل إرساله إلى طابعة الملصقات الحرارية',
     actualSizeToggle: 'الحجم الفعلي (1:1)',
     zoomedToggle: 'معاينة مكبّرة',
@@ -372,6 +395,14 @@ export const ar = {
 
 
 export const en: typeof ar = {
+  ui: {
+    layout: layoutEn,
+    tickets: ticketsEn,
+    newTicket: newTicketEn,
+    details: detailsEn,
+    reports: reportsEn,
+    settings: settingsEn
+  },
   common: {
     save: 'Save',
     saving: 'Saving...',
@@ -406,6 +437,14 @@ export const en: typeof ar = {
     newTicket: 'New Ticket',
     reports: 'Financial Reports',
     settings: 'Settings'
+  },
+  theme: {
+    label: 'Appearance',
+    light: 'Light',
+    dark: 'Dark',
+    system: 'System',
+    toggle: 'Toggle theme',
+    description: 'Choose the app appearance: light, dark, or follow the system setting'
   },
   newTicket: {
     title: 'Create New Repair Ticket',

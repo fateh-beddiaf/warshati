@@ -30,12 +30,18 @@ test.afterEach(() => {
 
 async function stubPrinter(mode: 'capture' | 'hang'): Promise<void> {
   await l.app.evaluate(({ ipcMain }, m) => {
-    const g = globalThis as unknown as { __prints: unknown[] }
+    const g = globalThis as unknown as { __prints: unknown[]; __hung: Promise<unknown>[] }
     g.__prints = []
+    g.__hung = []
     ipcMain.removeHandler('printer:printLabel')
     ipcMain.handle('printer:printLabel', (_e, labelData) => {
       g.__prints.push(labelData)
-      return m === 'hang' ? new Promise(() => {}) : { success: true }
+      if (m !== 'hang') return { success: true }
+      // Keep a reference to the never-settling promise: if it is garbage collected Electron
+      // rejects the invoke with "reply was never sent", which made this test flaky.
+      const hung = new Promise(() => {})
+      g.__hung.push(hung)
+      return hung
     })
   }, mode)
 }

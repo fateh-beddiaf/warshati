@@ -51,27 +51,27 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         role="alert"
         className={
           isApp
-            ? 'flex h-screen w-screen items-center justify-center bg-slate-100 p-6'
+            ? 'flex h-screen w-screen items-center justify-center bg-background p-6'
             : 'flex items-center justify-center p-6'
         }
       >
-        <div className="max-w-md rounded-2xl border border-rose-200 bg-white p-6 text-center shadow-sm">
-          <AlertTriangle className="mx-auto h-10 w-10 text-rose-500" />
-          <h2 className="mt-3 text-lg font-bold text-slate-900">
+        <div className="max-w-md rounded-2xl border border-danger/25 bg-card p-6 text-center text-card-foreground shadow-card">
+          <AlertTriangle className="mx-auto h-10 w-10 text-danger" />
+          <h2 className="mt-3 text-lg font-bold text-foreground">
             حدث خطأ غير متوقع / Something went wrong
           </h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-muted-foreground">
             بياناتك محفوظة ولم تتأثر. اضغط «إعادة المحاولة» للمتابعة.
             <br />
             Your data is safe. Press “Retry” to continue.
           </p>
-          <p className="mt-3 break-words rounded-lg bg-slate-50 p-2 text-start font-mono text-[11px] text-slate-500" dir="ltr">
+          <p className="mt-3 break-words rounded-lg bg-muted p-2 text-start font-mono text-[11px] text-muted-foreground" dir="ltr">
             {error.message}
           </p>
           <button
             type="button"
             onClick={this.handleRetry}
-            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700"
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-primary-hover"
           >
             <RotateCcw className="h-4 w-4" />
             إعادة المحاولة / Retry

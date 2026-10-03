@@ -1,5 +1,28 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { CreateTicketDTO, ReportFilterDTO } from '../shared/types'
+import { THEME_ARG_RESOLVED, type ResolvedTheme } from '../shared/theme'
+
+// Apply the saved theme to <html> before the first paint (no white flash in dark mode).
+// Main passes the already-resolved theme as a process argument so this stays synchronous.
+function applyBootTheme(): void {
+  const arg = process.argv.find((a) => a.startsWith(THEME_ARG_RESOLVED))
+  const resolved: ResolvedTheme = arg?.slice(THEME_ARG_RESOLVED.length) === 'dark' ? 'dark' : 'light'
+  const apply = (): boolean => {
+    const root = document.documentElement
+    if (!root) return false
+    root.classList.toggle('dark', resolved === 'dark')
+    root.style.colorScheme = resolved
+    root.setAttribute('data-theme-boot', resolved)
+    return true
+  }
+  if (apply()) return
+  // documentElement can still be null when the preload runs this early: wait for it
+  const observer = new MutationObserver(() => {
+    if (apply()) observer.disconnect()
+  })
+  observer.observe(document, { childList: true })
+}
+applyBootTheme()
 
 // Custom APIs for renderer
 const api = {
@@ -65,6 +88,10 @@ const api = {
   updateTechnician: (id: number, name: string) => ipcRenderer.invoke('settings:technicians:update', id, name),
   checkTechnicianUsage: (id: number) => ipcRenderer.invoke('settings:technicians:checkUsage', id),
   deleteTechnician: (id: number) => ipcRenderer.invoke('settings:technicians:delete', id),
+
+  // Theme (persisted in the Setting table by the main process)
+  getTheme: () => ipcRenderer.invoke('theme:get'),
+  setTheme: (preference: string) => ipcRenderer.invoke('theme:set', preference),
 
   // Backup & Restore
   getDatabaseInfo: () => ipcRenderer.invoke('backup:getInfo'),
