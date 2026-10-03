@@ -78,7 +78,7 @@ function StatCard({
             </>
           ) : (
             <>
-              <p className={cn('mt-3 font-mono text-2xl font-extrabold tabular text-foreground', valueClassName)}>
+              <p className={cn('mt-3 text-2xl font-extrabold tabular text-foreground', valueClassName)}>
                 <AnimatedNumber value={value} format={formatCurrency} data-testid={testId} />
               </p>
               <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3 text-[11px] font-medium text-muted-foreground">
@@ -134,7 +134,7 @@ export function ReportStatCards({ report, initialLoading }: ReportStatCardsProps
         valueClassName="text-primary"
         skeleton={initialLoading}
         footerStart={<span>{t.reports.kpi.myTotalShareDesc}</span>}
-        footerEnd={<span className="font-mono font-bold tabular text-primary">{pct(report?.totalMyShare || 0)}</span>}
+        footerEnd={<span className="font-bold tabular text-primary">{pct(report?.totalMyShare || 0)}</span>}
       />
       <StatCard
         testId="stat-partner-share"
@@ -146,7 +146,7 @@ export function ReportStatCards({ report, initialLoading }: ReportStatCardsProps
         skeleton={initialLoading}
         footerStart={<span>{t.reports.kpi.partnerTotalShareDesc}</span>}
         footerEnd={
-          <span className="font-mono font-bold tabular text-primary-to">{pct(report?.totalPartnerShare || 0)}</span>
+          <span className="font-bold tabular text-primary-to">{pct(report?.totalPartnerShare || 0)}</span>
         }
       />
       <StatCard
@@ -159,7 +159,7 @@ export function ReportStatCards({ report, initialLoading }: ReportStatCardsProps
         skeleton={initialLoading}
         footerStart={<span>{t.reports.kpi.outstandingDebtDesc}</span>}
         footerEnd={
-          <span className="font-mono tabular">
+          <span className="tabular">
             {t.ui.reports.paidLabel} {formatCurrency(report?.totalPaid || 0)}
           </span>
         }

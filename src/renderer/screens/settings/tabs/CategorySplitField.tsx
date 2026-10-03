@@ -1,12 +1,13 @@
 import * as React from 'react'
 import { useI18n } from '../../../lib/i18n'
+import { formatAmount } from '../../../lib/utils'
 import { Label } from '../../../components/ui/Label'
 import { clampSplit } from './CategoryCard'
 
 /** Reference ticket price used for the live split preview. */
 const PREVIEW_PRICE = 10000
 
-const fmt = (n: number): string => n.toLocaleString('en-US')
+const fmt = (n: number): string => formatAmount(n)
 
 interface CategorySplitFieldProps {
   value: number
@@ -44,7 +45,7 @@ export function CategorySplitField({ value, onChange }: CategorySplitFieldProps)
       />
       <div className="space-y-1 rounded-lg border border-border bg-muted/50 p-3 text-xs">
         <span className="block font-bold text-muted-foreground">{t.settings.categories.preview}</span>
-        <div className="flex flex-wrap justify-between gap-2 font-mono font-bold tabular-nums">
+        <div className="flex flex-wrap justify-between gap-2 font-bold tabular-nums">
           <span className="text-primary">
             {t.ui.settings.categories.previewOwner
               .replace('{amount}', fmt(PREVIEW_PRICE * (owner / 100)))

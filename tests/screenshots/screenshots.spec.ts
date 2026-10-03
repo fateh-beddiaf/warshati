@@ -74,6 +74,12 @@ async function shot(page: Page, name: string, theme: string, lang: string, settl
   await page.screenshot({ path: join(OUT_DIR, `${name}-${theme}-${lang}.png`) })
 }
 
+async function setWidth(app: ElectronApplication, width: number): Promise<void> {
+  await app.evaluate(({ BrowserWindow }, w) => {
+    BrowserWindow.getAllWindows()[0].setSize(w, 800)
+  }, width)
+}
+
 async function nav(page: Page, tab: 'tickets' | 'new-ticket' | 'reports' | 'settings'): Promise<void> {
   await page.getByTestId(`nav-${tab}`).click()
 }
@@ -116,6 +122,10 @@ for (const theme of THEMES) {
         // --- Tickets list
         await nav(page, 'tickets')
         await shot(page, 'tickets', theme, lang)
+        // The minimum supported window width: the whole table must still fit
+        await setWidth(app, 1024)
+        await shot(page, 'tickets-1024', theme, lang, 900)
+        await setWidth(app, 1280)
         await page.getByTestId('filter-overdue').click()
         await shot(page, 'tickets-overdue-filter', theme, lang, 500)
         await page.getByTestId('filter-all').click()

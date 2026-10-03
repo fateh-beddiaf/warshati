@@ -101,7 +101,7 @@ export function Layout({
               <Wrench className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-lg font-bold leading-tight tracking-wide text-sidebar-foreground">
+              <h1 className="text-lg font-bold leading-tight text-sidebar-foreground">
                 {t.app.title}
               </h1>
               <p className="text-xs text-sidebar-muted">{t.app.subtitle}</p>
@@ -168,6 +168,7 @@ export function Layout({
             <form onSubmit={handleBarcodeSubmit} className="flex items-center gap-2">
               <div className="relative">
                 <Input
+                  mono
                   type="text"
                   data-barcode-input="true"
                   data-testid="header-barcode-input"
@@ -175,7 +176,7 @@ export function Layout({
                   value={barcodeInput}
                   onChange={(e) => setBarcodeInput(e.target.value)}
                   placeholder={t.scanner.simulateInputPlaceholder}
-                  className="h-8 w-64 bg-muted ps-8 pe-3 font-mono text-xs font-semibold focus-visible:bg-card"
+                  className="h-8 w-64 bg-muted ps-8 pe-3 text-xs font-semibold focus-visible:bg-card"
                 />
                 <Search className="pointer-events-none absolute start-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
               </div>

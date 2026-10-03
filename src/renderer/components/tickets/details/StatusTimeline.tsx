@@ -32,7 +32,7 @@ export function StatusTimeline({ ticketDetails }: { ticketDetails: TicketFullDet
                 ) : null}
                 <span className="text-primary">{t.status[log.new_status] || log.new_status}</span>
               </div>
-              <span className="tabular font-mono text-[11px] text-muted-foreground" dir="ltr">
+              <span className="tabular text-[11px] text-muted-foreground">
                 {formatDate(log.timestamp)}
               </span>
             </div>

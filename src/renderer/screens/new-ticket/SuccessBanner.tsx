@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle2, Plus, Printer } from 'lucide-react'
 import { useI18n } from '../../lib/i18n'
 import { scaleIn, slideDown } from '../../lib/motion'
 import { Button } from '../../components/ui/Button'
+import { Mono } from '../../components/ui/Mono'
 
 interface SuccessBannerProps {
   barcode: string
@@ -35,13 +36,12 @@ export function SuccessBanner({ barcode, onPrint, onAnother, onView }: SuccessBa
           <h4 className="text-base font-bold">{t.newTicket.successTitle}</h4>
           <p className="text-sm">
             {t.newTicket.successBarcode}{' '}
-            <span
+            <Mono
               data-testid="ticket-created-barcode"
-              dir="ltr"
-              className="inline-block rounded-md bg-success/15 px-2 py-0.5 font-mono font-bold"
+              className="inline-block rounded-md bg-success/15 px-2 py-0.5 font-bold"
             >
               {barcode}
-            </span>
+            </Mono>
           </p>
         </div>
       </div>

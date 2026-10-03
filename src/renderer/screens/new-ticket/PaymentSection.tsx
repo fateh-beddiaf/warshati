@@ -1,14 +1,13 @@
 import * as React from 'react'
 import { Banknote, Coins, Wallet } from 'lucide-react'
 import { useI18n } from '../../lib/i18n'
-import { cn } from '../../lib/utils'
+import { cn, formatAmount } from '../../lib/utils'
 import { Input } from '../../components/ui/Input'
 import { AnimatedNumber } from '../../components/AnimatedNumber'
 import { Field } from './Field'
 import { SectionCard } from './SectionCard'
 import type { NewTicketForm } from './useNewTicketForm'
 
-const formatAmount = (n: number): string => new Intl.NumberFormat('ar-DZ', { maximumFractionDigits: 0 }).format(Math.round(n))
 
 interface PaymentOptionProps {
   value: 'cash' | 'credit'
@@ -135,10 +134,10 @@ export function PaymentSection({ form }: { form: NewTicketForm }): React.JSX.Ele
         data-testid="payment-summary"
       >
         <SummaryRow label={text.payment.total}>
-          {formatAmount(form.numPrice)} {text.currency}
+          {formatAmount(Math.round(form.numPrice))} {text.currency}
         </SummaryRow>
         <SummaryRow label={text.payment.paid}>
-          {formatAmount(form.numPaid)} {text.currency}
+          {formatAmount(Math.round(form.numPaid))} {text.currency}
         </SummaryRow>
         <div className="border-t border-border/60 pt-3">
           <p className="text-xs font-semibold text-muted-foreground">{t.newTicket.amountRemaining}</p>
@@ -148,7 +147,7 @@ export function PaymentSection({ form }: { form: NewTicketForm }): React.JSX.Ele
               hasDebt ? 'text-warning-soft-foreground' : 'text-success-soft-foreground'
             )}
           >
-            <AnimatedNumber value={form.calculatedRemaining} format={formatAmount} data-testid="payment-remaining" />{' '}
+            <AnimatedNumber value={form.calculatedRemaining} format={(n) => formatAmount(Math.round(n))} data-testid="payment-remaining" />{' '}
             <span className="text-sm font-bold">{text.currency}</span>
           </p>
         </div>

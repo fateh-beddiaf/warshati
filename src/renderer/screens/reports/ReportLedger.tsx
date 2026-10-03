@@ -16,6 +16,7 @@ import {
 import { StatusBadge } from '../../components/tickets/StatusBadge'
 import { formatCurrency, formatDate } from '../../lib/utils'
 import type { TicketListItem } from '../../../shared/types'
+import { Mono } from '../../components/ui/Mono'
 
 interface ReportLedgerProps {
   tickets: TicketListItem[]
@@ -74,22 +75,22 @@ export function ReportLedger({ tickets, initialLoading, onOpenTicketDetails }: R
                 className="cursor-pointer focus-visible:bg-accent/50 focus-visible:outline-none"
               >
                 <TableCell className="px-3 py-3">
-                  <span className="block font-mono text-xs font-bold text-foreground">{tItem.barcode_code}</span>
+                  <Mono className="block text-xs font-bold text-foreground">{tItem.barcode_code}</Mono>
                   <StatusBadge status={tItem.status} className="mt-1 px-2 py-0 text-[10px]" />
                 </TableCell>
                 <TableCell className="px-3 py-3">
                   <span className="block text-xs font-bold text-foreground">{tItem.customer_name}</span>
-                  <span className="font-mono text-[11px] tabular text-muted-foreground" dir="ltr">
+                  <Mono className="text-[11px] text-muted-foreground">
                     {tItem.customer_phone}
-                  </span>
+                  </Mono>
                 </TableCell>
                 <TableCell className="px-3 py-3">
                   <span className="block text-xs font-semibold text-foreground">
                     {tItem.brand} {tItem.model}
                   </span>
-                  <span className="inline-block rounded bg-muted px-1.5 font-mono text-[10px] font-bold text-muted-foreground">
+                  <Mono className="inline-block rounded bg-muted px-1.5 text-[10px] font-bold text-muted-foreground">
                     {tItem.short_label}
-                  </span>
+                  </Mono>
                 </TableCell>
                 <TableCell className="px-3 py-3 text-xs font-semibold text-foreground">{tItem.category_name}</TableCell>
                 <TableCell className="px-3 py-3">
@@ -97,13 +98,13 @@ export function ReportLedger({ tickets, initialLoading, onOpenTicketDetails }: R
                     {tItem.technician}
                   </Badge>
                 </TableCell>
-                <TableCell className="px-3 py-3 font-mono text-xs font-extrabold tabular text-foreground">
+                <TableCell className="px-3 py-3 text-xs font-extrabold tabular text-foreground">
                   {formatCurrency(tItem.price)}
                 </TableCell>
-                <TableCell className="px-3 py-3 font-mono text-xs font-extrabold tabular text-primary">
+                <TableCell className="px-3 py-3 text-xs font-extrabold tabular text-primary">
                   {formatCurrency(tItem.my_share ?? 0)}
                 </TableCell>
-                <TableCell className="px-3 py-3 font-mono text-xs font-extrabold tabular text-primary-to">
+                <TableCell className="px-3 py-3 text-xs font-extrabold tabular text-primary-to">
                   {formatCurrency(tItem.partner_share ?? 0)}
                 </TableCell>
                 <TableCell className="px-3 py-3">
@@ -117,7 +118,7 @@ export function ReportLedger({ tickets, initialLoading, onOpenTicketDetails }: R
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell className="px-3 py-3 font-mono text-[11px] tabular text-muted-foreground">
+                <TableCell className="px-3 py-3 text-[11px] tabular text-muted-foreground">
                   {formatDate(tItem.created_at)}
                 </TableCell>
               </TableRow>

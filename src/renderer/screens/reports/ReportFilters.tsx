@@ -119,7 +119,7 @@ export function ReportFilters({
                 type="date"
                 value={filters.startDate}
                 onChange={(e) => onStartDateChange(e.target.value)}
-                className="h-9 w-40 font-mono text-xs font-bold tabular"
+                className="h-9 w-40 text-xs font-bold tabular"
               />
             </label>
 
@@ -129,7 +129,7 @@ export function ReportFilters({
                 type="date"
                 value={filters.endDate}
                 onChange={(e) => onEndDateChange(e.target.value)}
-                className="h-9 w-40 font-mono text-xs font-bold tabular"
+                className="h-9 w-40 text-xs font-bold tabular"
               />
             </label>
           </motion.div>

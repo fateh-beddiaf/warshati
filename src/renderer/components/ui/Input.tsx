@@ -3,15 +3,18 @@ import { cn } from '../../lib/utils'
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: boolean
+  /** Latin codes (barcode, phone): monospace for typed text, but the placeholder stays in the UI font */
+  mono?: boolean
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, error, ...props }, ref) => {
+  ({ className, type, error, mono, ...props }, ref) => {
     return (
       <input
         type={type}
         className={cn(
           'flex h-10 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground transition-colors placeholder:text-muted-foreground file:border-0 file:bg-transparent focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50',
+          mono && 'font-mono placeholder:font-sans',
           error && 'border-danger focus-visible:border-danger focus-visible:ring-danger/30',
           className
         )}

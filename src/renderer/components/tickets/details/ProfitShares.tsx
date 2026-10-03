@@ -30,8 +30,8 @@ function ShareCard({ label, percentage, amount, caption, tone, testId }: ShareCa
         <span
           className={
             owner
-              ? 'tabular rounded-md bg-primary px-2 py-0.5 font-mono text-xs font-bold text-primary-foreground'
-              : 'tabular rounded-md bg-primary-to px-2 py-0.5 font-mono text-xs font-bold text-primary-foreground'
+              ? 'tabular rounded-md bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground'
+              : 'tabular rounded-md bg-primary-to px-2 py-0.5 text-xs font-bold text-primary-foreground'
           }
         >
           {percentage}%
