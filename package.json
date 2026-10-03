@@ -1,0 +1,48 @@
+{
+  "name": "warshati",
+  "version": "1.0.0",
+  "description": "تطبيق إدارة محل تصليح الهواتف - ورشتي",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "test": "electron -r tsx tests/profit.test.ts && electron -r tsx tests/lifecycle.test.ts && electron -r tsx tests/unit.test.ts && electron -r tsx tests/milestone5.test.ts && electron -r tsx tests/ui_integrity.test.ts && electron -r tsx tests/audit_fixes.test.ts && electron -r tsx tests/ticket_deletion.test.ts",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "@types/jsbarcode": "^3.11.4",
+    "better-sqlite3": "^11.8.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.4.7",
+    "jsbarcode": "^3.12.3",
+    "lucide-react": "^1.16.0",
+    "tailwind-merge": "^3.0.2"
+  },
+  "devDependencies": {
+    "@electron-toolkit/preload": "^3.0.1",
+    "@electron-toolkit/utils": "^3.0.0",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.13.4",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "electron": "^34.2.0",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^3.0.0",
+    "postcss": "^8.5.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.23.12",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0"
+  },
+  "allowScripts": {
+    "electron@34.5.8": true,
+    "better-sqlite3@11.10.0": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.2": true
+  }
+}

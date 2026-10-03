@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+out/
+dist/
+release/
+*.tsbuildinfo
+
+# Local data (never commit customer databases)
+data/
+*.db
+*.db-shm
+*.db-wal
+*.db.bak
+
+# Logs & OS files
+*.log
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

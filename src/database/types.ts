@@ -1,0 +1,236 @@
+export interface Customer {
+  id: number
+  name: string
+  phone: string
+  notes: string | null
+}
+
+export type TechnicianName = 'أنا' | 'الشريك' | string
+export type PaymentType = 'cash' | 'credit'
+export type TicketStatus = 'in_progress' | 'ready' | 'delivered'
+
+export interface Ticket {
+  id: number
+  barcode_code: string
+  customer_id: number
+  created_at: string
+  technician: TechnicianName
+  technician_id: number
+  technician_is_partner?: boolean
+  repair_category_id: number
+  price: number
+  payment_type: PaymentType
+  amount_paid: number
+  amount_remaining: number
+  status: TicketStatus
+  my_share?: number | null
+  partner_share?: number | null
+}
+
+export interface TicketDevice {
+  id: number
+  ticket_id: number
+  brand: string
+  model: string
+  brand_id: number | null
+  model_id: number | null
+  short_label: string
+}
+
+export interface Accessories {
+  id: number
+  name: string
+}
+
+export interface TicketAccessories {
+  ticket_id: number
+  accessory_id: number
+}
+
+export interface RepairCategory {
+  id: number
+  name: string
+  default_split_percentage: number
+}
+
+export interface StatusLog {
+  id: number
+  ticket_id: number
+  old_status: TicketStatus | null
+  new_status: TicketStatus
+  timestamp: string
+}
+
+export interface Brand {
+  id: number
+  name: string
+}
+
+export interface Model {
+  id: number
+  brand_id: number
+  name: string
+}
+
+export interface Technician {
+  id: number
+  name: string
+  is_partner: boolean
+}
+
+export interface Setting {
+  key: string
+  value: string
+}
+
+// DTOs and aggregated views for IPC & UI
+export interface CreateTicketDTO {
+  customer: {
+    id?: number
+    name: string
+    phone: string
+    notes?: string
+  }
+  device: {
+    brand: string
+    model: string
+    brand_id?: number
+    model_id?: number
+    short_label?: string
+  }
+  ticket: {
+    repair_category_id: number
+    price: number
+    payment_type: PaymentType
+    amount_paid: number
+    technician_id: number
+  }
+  accessory_ids?: number[]
+}
+
+export interface UpdateTicketStatusDTO {
+  ticketId: number
+  newStatus: TicketStatus
+  paymentUpdate?: {
+    amount_paid?: number
+    payment_type?: PaymentType
+  }
+}
+
+export interface TicketListItem {
+  id: number
+  barcode_code: string
+  customer_id: number
+  customer_name: string
+  customer_phone: string
+  brand: string
+  model: string
+  short_label: string
+  category_name: string
+  repair_category_id: number
+  price: number
+  payment_type: PaymentType
+  amount_paid: number
+  amount_remaining: number
+  status: TicketStatus
+  technician: TechnicianName
+  technician_id: number
+  technician_is_partner?: boolean
+  created_at: string
+  my_share?: number | null
+  partner_share?: number | null
+  accessories?: string[]
+  ready_at?: string | null
+  is_overdue?: boolean
+  overdue_days?: number
+}
+
+export interface AppMetadata {
+  brands: Brand[]
+  models: Model[]
+  repairCategories: RepairCategory[]
+  accessories: Accessories[]
+  technicians: Technician[]
+}
+
+export interface TicketFullDetails {
+  ticket: Ticket
+  customer: Customer
+  device: TicketDevice
+  category: RepairCategory | null
+  accessories: Accessories[]
+  statusLogs: StatusLog[]
+  ready_at?: string | null
+  is_overdue?: boolean
+  overdue_days?: number
+}
+
+export interface PrintLabelData {
+  barcode: string
+  customerName: string
+  customerPhone?: string
+  shortLabel: string
+  ticketId?: number
+  printerName?: string
+}
+
+// Report Data Types
+export type ReportPeriod = 'today' | 'this_week' | 'this_month' | 'custom' | 'all_time'
+
+export interface ReportFilterDTO {
+  period: ReportPeriod
+  startDate?: string
+  endDate?: string
+  technicianFilter?: string
+  categoryFilter?: number | 'all'
+}
+
+export interface TechnicianReportSummary {
+  technicianId: number
+  technician: string
+  isPartner: boolean
+  ticketsCount: number
+  totalRevenue: number
+  myShare: number
+  partnerShare: number
+}
+
+export interface CategoryReportSummary {
+  categoryId: number
+  categoryName: string
+  splitPercentage: number
+  ticketsCount: number
+  totalRevenue: number
+  myShare: number
+  partnerShare: number
+}
+
+export interface FinancialReportResult {
+  period: ReportPeriod
+  startDate: string
+  endDate: string
+  totalRevenue: number
+  totalMyShare: number
+  totalPartnerShare: number
+  totalPaid: number
+  totalOutstandingDebt: number
+  completedTicketsCount: number
+  inProgressTicketsCount: number
+  readyTicketsCount: number
+  technicianBreakdown: TechnicianReportSummary[]
+  categoryBreakdown: CategoryReportSummary[]
+  tickets: TicketListItem[]
+}
+
+export interface DatabaseInfo {
+  filePath: string
+  fileSizeBytes: number
+  fileSizeFormatted: string
+  lastModified: string
+}
+
+export interface DeleteReferenceCheckResult {
+  canDelete: boolean
+  usedCount: number
+  message?: string
+}
