@@ -52,6 +52,7 @@ export const ar = {
     notesPlaceholder: 'أي ملاحظات خاصة بالزبون...',
     newCustomerBadge: 'زبون جديد',
     existingCustomerBadge: 'زبون مسجل',
+    phoneMatches: 'زبائن مسجلون بنفس الرقم:',
 
     deviceSection: 'بيانات الجهاز',
     brand: 'الماركة',
@@ -407,6 +408,7 @@ export const en: typeof ar = {
     notesPlaceholder: 'Any specific notes about the customer...',
     newCustomerBadge: 'New Customer',
     existingCustomerBadge: 'Registered Customer',
+    phoneMatches: 'Registered customers with this number:',
 
     deviceSection: 'Device Information',
     brand: 'Brand',

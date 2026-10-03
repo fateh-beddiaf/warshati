@@ -4,6 +4,8 @@ import { cn } from '../../lib/utils'
 import { Search, ChevronDown, Check } from 'lucide-react'
 
 export interface AutocompleteOption {
+  /** Unique React key (values can repeat, e.g. the same model name under two brands) */
+  id?: string | number
   value: string | number
   label: string
   sublabel?: string
@@ -20,6 +22,9 @@ interface AutocompleteProps {
   allowCustomInput?: boolean
   error?: boolean
 }
+
+// Rendering hundreds of rows on every keystroke is wasteful: show the first N and let typing narrow the list
+const MAX_VISIBLE_OPTIONS = 100
 
 export function Autocomplete({
   options,
@@ -60,13 +65,15 @@ export function Autocomplete({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const filteredOptions = query
-    ? options.filter(
-        (opt) =>
-          opt.label.toLowerCase().includes(query.toLowerCase()) ||
-          (opt.sublabel && opt.sublabel.toLowerCase().includes(query.toLowerCase()))
-      )
-    : options
+  const filteredOptions = (
+    query
+      ? options.filter(
+          (opt) =>
+            opt.label.toLowerCase().includes(query.toLowerCase()) ||
+            (opt.sublabel && opt.sublabel.toLowerCase().includes(query.toLowerCase()))
+        )
+      : options
+  ).slice(0, MAX_VISIBLE_OPTIONS)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const val = e.target.value
@@ -111,11 +118,11 @@ export function Autocomplete({
       {isOpen && !disabled && (
         <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
           {filteredOptions.length > 0 ? (
-            filteredOptions.map((opt) => {
+            filteredOptions.map((opt, index) => {
               const isSelected = opt.value === value || opt.label === query
               return (
                 <button
-                  key={String(opt.value)}
+                  key={opt.id ?? `${String(opt.value)}-${index}`}
                   type="button"
                   onClick={() => handleSelect(opt)}
                   className={cn(
