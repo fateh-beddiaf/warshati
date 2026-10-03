@@ -56,8 +56,8 @@ export async function createTicket(
   await form.locator('input[type="number"]').nth(1).fill(String(o.paid))
   await form.locator(`input[name="paymentType"][value="${o.type}"]`).check()
   await form.locator('button[type="submit"]').click()
-  await page.waitForSelector('.bg-emerald-50')
-  const barcode = ((await page.locator('.bg-emerald-50 span.font-mono').first().textContent()) ?? '').trim()
+  await page.waitForSelector('[data-testid="ticket-created-banner"]')
+  const barcode = ((await page.getByTestId('ticket-created-barcode').textContent()) ?? '').trim()
   if (!/^WSH[A-Z0-9]+$/.test(barcode)) throw new Error(`unexpected barcode: ${barcode}`)
   return barcode
 }
