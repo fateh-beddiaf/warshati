@@ -178,7 +178,8 @@ export const ar = {
       date: 'تاريخ التسليم / الإنشاء'
     },
     emptyReports: 'لا توجد بيانات مالية مسجلة لهذه الفترة',
-    emptyReportsSubtitle: 'قم بتغيير نطاق التاريخ أو تسليم تذاكر لعرض تقاريرها المالية'
+    emptyReportsSubtitle: 'قم بتغيير نطاق التاريخ أو تسليم تذاكر لعرض تقاريرها المالية',
+    loadError: 'تعذّر تحميل التقرير المالي. حاول مرة أخرى أو غيّر نطاق التاريخ.'
   },
   ticketsList: {
     title: 'قائمة تذاكر الصيانة',
@@ -545,7 +546,8 @@ export const en: typeof ar = {
       date: 'Delivered / Created Date'
     },
     emptyReports: 'No financial records found for this period',
-    emptyReportsSubtitle: 'Change date range filter or deliver tickets to view financial reports'
+    emptyReportsSubtitle: 'Change date range filter or deliver tickets to view financial reports',
+    loadError: 'Could not load the financial report. Try again or change the date range.'
   },
   ticketsList: {
     title: 'Repair Tickets List',

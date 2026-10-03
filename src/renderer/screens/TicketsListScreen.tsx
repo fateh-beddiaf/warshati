@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useI18n } from '../lib/i18n'
 import { Card, CardContent } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
@@ -21,6 +21,9 @@ import {
   AlertTriangle,
   SlidersHorizontal
 } from 'lucide-react'
+
+/** Delay between the last keystroke in the search box and the list query */
+const SEARCH_DEBOUNCE_MS = 250
 
 interface TicketsListScreenProps {
   onNewTicketClick: () => void
@@ -50,14 +53,22 @@ export function TicketsListScreen({
 
   const latestRequestRef = useRef(0)
 
-  const fetchTicketsAndSettings = async (): Promise<void> => {
+  // The list is queried with a debounced copy of the search box so that fast
+  // typing doesn't fire one IPC round trip per keystroke.
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  useEffect(() => {
+    const handle = setTimeout(() => setDebouncedQuery(searchQuery), SEARCH_DEBOUNCE_MS)
+    return () => clearTimeout(handle)
+  }, [searchQuery])
+
+  const fetchTickets = useCallback(async (): Promise<void> => {
     const requestId = ++latestRequestRef.current
     setLoading(true)
     try {
-      const [ticketsRes, thresholdRes] = await Promise.all([
-        window.api.getTicketsList(searchQuery, statusFilter === 'overdue' ? 'ready' : statusFilter),
-        window.api.getOverdueDays()
-      ])
+      const ticketsRes = await window.api.getTicketsList(
+        debouncedQuery,
+        statusFilter === 'overdue' ? 'ready' : statusFilter
+      )
 
       // Ignore out-of-order responses (fast typing / quick filter switches)
       if (requestId !== latestRequestRef.current) return
@@ -69,22 +80,37 @@ export function TicketsListScreen({
           setTickets(ticketsRes.data)
         }
       }
-
-      if (thresholdRes.success && thresholdRes.data !== undefined) {
-        setOverdueThreshold(thresholdRes.data)
-        setCustomThresholdInput(String(thresholdRes.data))
-      }
     } catch (err) {
       console.error('Error fetching tickets:', err)
     } finally {
       if (requestId === latestRequestRef.current) setLoading(false)
     }
-  }
+  }, [debouncedQuery, statusFilter])
 
-  // Load tickets on search / filter changes and when the parent requests a refresh
+  // Load tickets on (debounced) search / filter changes and when the parent requests a refresh
   useEffect(() => {
-    fetchTicketsAndSettings()
-  }, [searchQuery, statusFilter, refreshKey])
+    fetchTickets()
+  }, [fetchTickets, refreshKey])
+
+  // The overdue threshold is a setting, not list data: read it once on mount.
+  useEffect(() => {
+    let cancelled = false
+    window.api
+      .getOverdueDays()
+      .then((res) => {
+        if (!cancelled && res.success && res.data !== undefined) setOverdueThreshold(res.data)
+      })
+      .catch((err) => console.error('Error fetching overdue threshold:', err))
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Keep the threshold input in sync with the saved value, but never while the
+  // settings panel is open (that would overwrite what the user is typing).
+  useEffect(() => {
+    if (!isSettingsOpen) setCustomThresholdInput(String(overdueThreshold))
+  }, [overdueThreshold, isSettingsOpen])
 
   const handleSaveThreshold = async (): Promise<void> => {
     const parsed = parseInt(customThresholdInput, 10)
@@ -92,7 +118,7 @@ export function TicketsListScreen({
       await window.api.setSetting('overdue_ready_days', String(parsed))
       setOverdueThreshold(parsed)
       setIsSettingsOpen(false)
-      fetchTicketsAndSettings()
+      fetchTickets()
     }
   }
 
@@ -163,7 +189,7 @@ export function TicketsListScreen({
             type="button"
             variant="outline"
             size="icon"
-            onClick={fetchTicketsAndSettings}
+            onClick={fetchTickets}
             title="تحديث القائمة"
             disabled={loading}
           >
@@ -240,6 +266,7 @@ export function TicketsListScreen({
         <div className="relative flex-1 min-w-[280px]">
           <Input
             type="text"
+            data-testid="tickets-search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t.ticketsList.searchPlaceholder}
