@@ -39,71 +39,61 @@ export function TicketRow({ ticket, index, onOpen, onPrint }: TicketRowProps): R
           : 'hover:bg-accent/50'
       )}
     >
-      {/* Barcode & ID (+ start-edge accent bar for overdue tickets) */}
+      {/* Barcode, id and created date (+ start-edge accent bar for overdue tickets) */}
       <TableCell className="relative px-2">
         {isOverdue && <span aria-hidden className="absolute inset-y-0 start-0 w-1 bg-status-overdue" />}
-        <div className="flex flex-col">
+        <div className="flex flex-col items-start gap-1">
           <Mono className="w-fit rounded border border-border bg-muted px-1.5 py-1 text-xs font-bold text-foreground">
             {ticket.barcode_code}
           </Mono>
-          <span className="mt-1 text-xs text-muted-foreground tabular">#{ticket.id}</span>
+          <span className="text-xs text-muted-foreground tabular">
+            #{ticket.id} · {createdAt.date}
+          </span>
+          <span className="text-[11px] text-muted-foreground tabular">{createdAt.time}</span>
         </div>
       </TableCell>
 
       {/* Customer */}
-      <TableCell className="px-2">
+      <TableCell className="whitespace-normal px-2">
         <div className="flex flex-col items-start">
           <span className="font-bold text-foreground">{ticket.customer_name}</span>
-          <Mono className="mt-0.5 text-xs text-muted-foreground">
-            {ticket.customer_phone}
-          </Mono>
+          <Mono className="mt-0.5 text-xs text-muted-foreground">{ticket.customer_phone}</Mono>
         </div>
       </TableCell>
 
-      {/* Device */}
-      <TableCell className="px-2">
-        <div className="flex flex-col">
+      {/* Device + repair category */}
+      <TableCell className="whitespace-normal px-2">
+        <div className="flex flex-col items-start gap-1">
           <div className="flex items-center gap-1.5 font-semibold text-foreground">
-            <Smartphone className="h-3.5 w-3.5 text-primary" />
+            <Smartphone className="h-3.5 w-3.5 shrink-0 text-primary" />
             <span>
               {ticket.brand} {ticket.model}
             </span>
+            {ticket.short_label && <Mono className="text-xs font-bold text-primary">{ticket.short_label}</Mono>}
           </div>
-          {ticket.short_label && (
-            <Mono className="mt-0.5 text-xs font-bold text-primary">{ticket.short_label}</Mono>
+          <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+            {ticket.category_name || t.ui.tickets.categoryFallback}
+          </span>
+        </div>
+      </TableCell>
+
+      {/* Price + remaining */}
+      <TableCell className="px-2">
+        <div className="flex flex-col items-start gap-1">
+          <span className="font-bold text-foreground tabular">{formatCurrency(ticket.price)}</span>
+          {ticket.amount_remaining > 0 ? (
+            <span className="rounded border border-warning/25 bg-warning-soft px-2 py-0.5 text-xs font-bold text-warning-soft-foreground tabular">
+              {formatCurrency(ticket.amount_remaining)}
+            </span>
+          ) : (
+            <span className="rounded border border-success/25 bg-success-soft px-2 py-0.5 text-xs font-semibold text-success-soft-foreground">
+              {t.ui.tickets.settled}
+            </span>
           )}
         </div>
       </TableCell>
 
-      {/* Repair category */}
-      <TableCell className="px-2">
-        <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-foreground">
-          {ticket.category_name || t.ui.tickets.categoryFallback}
-        </span>
-      </TableCell>
-
-      {/* Total price */}
-      <TableCell className="px-2 font-bold text-foreground tabular">{formatCurrency(ticket.price)}</TableCell>
-
-      {/* Remaining amount */}
-      <TableCell className="px-2">
-        {ticket.amount_remaining > 0 ? (
-          <span className="rounded border border-warning/25 bg-warning-soft px-2 py-0.5 text-xs font-bold text-warning-soft-foreground tabular">
-            {formatCurrency(ticket.amount_remaining)}
-          </span>
-        ) : (
-          <span className="rounded border border-success/25 bg-success-soft px-2 py-0.5 text-xs font-semibold text-success-soft-foreground">
-            {t.ui.tickets.settled}
-          </span>
-        )}
-      </TableCell>
-
-      {/* Technician */}
-      <TableCell className="px-2">
-        <span className="rounded bg-muted px-2 py-1 text-xs font-bold text-foreground">{ticket.technician}</span>
-      </TableCell>
-
-      {/* Status */}
+      {/* Status (+ overdue days) and technician */}
       <TableCell className="px-2">
         <div className="flex flex-col items-start gap-1">
           <StatusBadge status={ticket.status} overdue={isOverdue} />
@@ -112,13 +102,8 @@ export function TicketRow({ ticket, index, onOpen, onPrint }: TicketRowProps): R
               {t.lifecycle.overdueBadge.replace('{days}', String(ticket.overdue_days || 0))}
             </span>
           )}
+          <span className="text-xs font-semibold text-muted-foreground">{ticket.technician}</span>
         </div>
-      </TableCell>
-
-      {/* Created date */}
-      <TableCell className="px-2 text-xs text-muted-foreground">
-        <div className="tabular font-medium text-foreground/80">{createdAt.date}</div>
-        <div className="tabular">{createdAt.time}</div>
       </TableCell>
 
       {/* Reprint barcode */}

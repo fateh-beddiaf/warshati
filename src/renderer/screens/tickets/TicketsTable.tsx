@@ -15,16 +15,13 @@ interface TicketsTableProps {
 
 export function TicketsTable({ tickets, onOpen, onPrint }: TicketsTableProps): React.JSX.Element {
   const { t } = useI18n()
+  // Compact layout (fits a 1024px window): related fields share a column
   const columns = [
-    t.ticketsList.table.ticketNumber,
+    `${t.ticketsList.table.ticketNumber} / ${t.ticketsList.table.createdAt}`,
     t.ticketsList.table.customer,
-    t.ticketsList.table.device,
-    t.ticketsList.table.category,
-    t.ticketsList.table.price,
-    t.ticketsList.table.remaining,
-    t.ticketsList.table.technician,
-    t.ticketsList.table.status,
-    t.ticketsList.table.createdAt
+    `${t.ticketsList.table.device} / ${t.ticketsList.table.category}`,
+    `${t.ticketsList.table.price} / ${t.ticketsList.table.remaining}`,
+    `${t.ticketsList.table.status} / ${t.ticketsList.table.technician}`
   ]
 
   return (
