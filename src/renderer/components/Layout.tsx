@@ -156,6 +156,7 @@ export function Layout({
               <input
                 type="text"
                 data-barcode-input="true"
+                data-testid="header-barcode-input"
                 value={barcodeInput}
                 onChange={(e) => setBarcodeInput(e.target.value)}
                 placeholder={t.scanner.simulateInputPlaceholder}

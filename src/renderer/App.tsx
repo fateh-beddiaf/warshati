@@ -56,7 +56,8 @@ function AppContent(): React.JSX.Element {
   useBarcodeScanner({
     onScan: handleBarcodeScanned,
     maxIntervalMs: 60,
-    minLength: 6
+    minLength: 6,
+    prefix: 'WSH'
   })
 
   // Open ticket details by ID
