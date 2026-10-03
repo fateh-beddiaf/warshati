@@ -39,7 +39,7 @@ export function TicketRow({ ticket, index, onOpen, onPrint }: TicketRowProps): R
       )}
     >
       {/* Barcode & ID (+ start-edge accent bar for overdue tickets) */}
-      <TableCell className="relative px-2.5">
+      <TableCell className="relative px-2">
         {isOverdue && <span aria-hidden className="absolute inset-y-0 start-0 w-1 bg-status-overdue" />}
         <div className="flex flex-col">
           <span className="w-fit rounded border border-border bg-muted px-1.5 py-1 font-mono text-xs font-bold text-foreground">
@@ -50,7 +50,7 @@ export function TicketRow({ ticket, index, onOpen, onPrint }: TicketRowProps): R
       </TableCell>
 
       {/* Customer */}
-      <TableCell className="px-2.5">
+      <TableCell className="px-2">
         <div className="flex flex-col items-start">
           <span className="font-bold text-foreground">{ticket.customer_name}</span>
           <span className="mt-0.5 font-mono text-xs text-muted-foreground" dir="ltr">
@@ -60,7 +60,7 @@ export function TicketRow({ ticket, index, onOpen, onPrint }: TicketRowProps): R
       </TableCell>
 
       {/* Device */}
-      <TableCell className="px-2.5">
+      <TableCell className="px-2">
         <div className="flex flex-col">
           <div className="flex items-center gap-1.5 font-semibold text-foreground">
             <Smartphone className="h-3.5 w-3.5 text-primary" />
@@ -75,17 +75,17 @@ export function TicketRow({ ticket, index, onOpen, onPrint }: TicketRowProps): R
       </TableCell>
 
       {/* Repair category */}
-      <TableCell className="px-2.5">
-        <span className="rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+      <TableCell className="px-2">
+        <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-foreground">
           {ticket.category_name || t.ui.tickets.categoryFallback}
         </span>
       </TableCell>
 
       {/* Total price */}
-      <TableCell className="px-2.5 font-bold text-foreground tabular">{formatCurrency(ticket.price)}</TableCell>
+      <TableCell className="px-2 font-bold text-foreground tabular">{formatCurrency(ticket.price)}</TableCell>
 
       {/* Remaining amount */}
-      <TableCell className="px-2.5">
+      <TableCell className="px-2">
         {ticket.amount_remaining > 0 ? (
           <span className="rounded border border-warning/25 bg-warning-soft px-2 py-0.5 text-xs font-bold text-warning-soft-foreground tabular">
             {formatCurrency(ticket.amount_remaining)}
@@ -98,12 +98,12 @@ export function TicketRow({ ticket, index, onOpen, onPrint }: TicketRowProps): R
       </TableCell>
 
       {/* Technician */}
-      <TableCell className="px-2.5">
+      <TableCell className="px-2">
         <span className="rounded bg-muted px-2 py-1 text-xs font-bold text-foreground">{ticket.technician}</span>
       </TableCell>
 
       {/* Status */}
-      <TableCell className="px-2.5">
+      <TableCell className="px-2">
         <div className="flex flex-col items-start gap-1">
           <StatusBadge status={ticket.status} overdue={isOverdue} />
           {isOverdue && (
@@ -115,13 +115,13 @@ export function TicketRow({ ticket, index, onOpen, onPrint }: TicketRowProps): R
       </TableCell>
 
       {/* Created date */}
-      <TableCell className="px-2.5 text-xs text-muted-foreground">
+      <TableCell className="px-2 text-xs text-muted-foreground">
         <div className="tabular font-medium text-foreground/80">{createdAt.date}</div>
         <div className="tabular">{createdAt.time}</div>
       </TableCell>
 
       {/* Reprint barcode */}
-      <TableCell className="px-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+      <TableCell className="px-2 text-center" onClick={(e) => e.stopPropagation()}>
         <Button
           type="button"
           variant="outline"

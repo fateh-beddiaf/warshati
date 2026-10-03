@@ -33,11 +33,11 @@ export function TicketsTable({ tickets, onOpen, onPrint }: TicketsTableProps): R
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             {columns.map((label) => (
-              <TableHead key={label} className="px-2.5">
+              <TableHead key={label} className="px-2">
                 {label}
               </TableHead>
             ))}
-            <TableHead className="px-2.5 text-center">{t.common.actions}</TableHead>
+            <TableHead className="px-2 text-center">{t.common.actions}</TableHead>
           </TableRow>
         </TableHeader>
         <motion.tbody
