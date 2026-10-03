@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '../../lib/i18n'
 import { BarcodeLabel } from './BarcodeLabel'
@@ -48,8 +48,13 @@ export function PrintPreviewModal({
   const [printing, setPrinting] = useState(false)
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
+  // Incremented whenever the modal opens/closes or the data changes, so the result of a print
+  // started earlier (e.g. a job that timed out after the user closed the modal) is ignored.
+  const printRequestRef = useRef(0)
+
   // Reset/sync local state whenever modal opens or data changes
   useEffect(() => {
+    printRequestRef.current += 1
     if (data) {
       setShortLabel(data.shortLabel || '')
       setShowPhone(!!data.customerPhone)
@@ -76,6 +81,8 @@ export function PrintPreviewModal({
   if (!isOpen || !data) return null
 
   const handlePrint = async (): Promise<void> => {
+    const requestId = ++printRequestRef.current
+    const isCurrent = (): boolean => printRequestRef.current === requestId
     setPrinting(true)
     setStatusMessage(null)
 
@@ -90,6 +97,7 @@ export function PrintPreviewModal({
         svgContent: svgContent || undefined
       })
 
+      if (!isCurrent()) return
       if (res.success) {
         setStatusMessage({ type: 'success', text: t.print.printSuccess })
         if (onPrintSuccess) onPrintSuccess()
@@ -97,12 +105,13 @@ export function PrintPreviewModal({
         setStatusMessage({ type: 'error', text: res.error || t.print.printError })
       }
     } catch (err) {
+      if (!isCurrent()) return
       setStatusMessage({
         type: 'error',
         text: err instanceof Error ? err.message : t.print.printError
       })
     } finally {
-      setPrinting(false)
+      if (isCurrent()) setPrinting(false)
     }
   }
 
@@ -273,8 +282,8 @@ export function PrintPreviewModal({
               <Button
                 type="button"
                 variant="outline"
+                data-testid="print-close-footer"
                 onClick={onClose}
-                disabled={printing}
               >
                 {t.ticketDetails.closeButton}
               </Button>

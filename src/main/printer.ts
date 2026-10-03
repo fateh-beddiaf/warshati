@@ -1,5 +1,6 @@
 import { BrowserWindow } from 'electron'
 import type { PrintLabelData } from '../shared/types'
+import { withTimeout } from '../shared/with-timeout'
 
 export interface PrintOptions extends PrintLabelData {
   svgContent?: string
@@ -14,11 +15,30 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#039;')
 }
 
+export const PRINT_TIMEOUT_MS = 30_000
+export const PRINT_TIMEOUT_ERROR = 'انتهت مهلة الطباعة: لم تستجب الطابعة خلال 30 ثانية. تحقق من الطابعة وأعد المحاولة.'
+
+type PrintResult = { success: boolean; error?: string }
+
 /**
  * Executes high-precision 40x20mm thermal printing via a dedicated hidden window.
  * Configured specifically for Xprinter (203 DPI) with zero margins and crisp contrast.
+ * A job that never reports back (driver hang, dialog never answered) is aborted after
+ * `timeoutMs`: the hidden window is destroyed and { success:false, error } is returned.
  */
-export async function printTicketLabel(data: PrintOptions): Promise<{ success: boolean; error?: string }> {
+export function printTicketLabel(data: PrintOptions, timeoutMs: number = PRINT_TIMEOUT_MS): Promise<PrintResult> {
+  const ctx: { win: BrowserWindow | null } = { win: null }
+  return withTimeout(runPrintJob(data, ctx), timeoutMs, () => {
+    try {
+      if (ctx.win && !ctx.win.isDestroyed()) ctx.win.destroy()
+    } catch {
+      // window already gone
+    }
+    return { success: false, error: PRINT_TIMEOUT_ERROR }
+  })
+}
+
+function runPrintJob(data: PrintOptions, ctx: { win: BrowserWindow | null }): Promise<PrintResult> {
   return new Promise((resolve) => {
     let printWin: BrowserWindow | null = null
     try {
@@ -31,6 +51,8 @@ export async function printTicketLabel(data: PrintOptions): Promise<{ success: b
           contextIsolation: true
         }
       })
+
+      ctx.win = printWin
 
       // Clean, high-density HTML markup tailored for 40x20mm thermal labels
       const htmlContent = `
