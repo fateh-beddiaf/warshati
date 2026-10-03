@@ -1,9 +1,24 @@
 import * as React from 'react'
 import { createContext, useContext, useState, useEffect } from 'react'
+import { layoutAr, layoutEn } from './locales/layout'
+import { ticketsAr, ticketsEn } from './locales/tickets'
+import { newTicketAr, newTicketEn } from './locales/newTicket'
+import { detailsAr, detailsEn } from './locales/details'
+import { reportsAr, reportsEn } from './locales/reports'
+import { settingsAr, settingsEn } from './locales/settings'
 
 export type Language = 'ar' | 'en'
 
 export const ar = {
+  // New T003 strings, one namespace per area: t.ui.layout.x, t.ui.tickets.x, ...
+  ui: {
+    layout: layoutAr,
+    tickets: ticketsAr,
+    newTicket: newTicketAr,
+    details: detailsAr,
+    reports: reportsAr,
+    settings: settingsAr
+  },
   common: {
     save: 'حفظ',
     saving: 'جاري الحفظ...',
@@ -380,6 +395,14 @@ export const ar = {
 
 
 export const en: typeof ar = {
+  ui: {
+    layout: layoutEn,
+    tickets: ticketsEn,
+    newTicket: newTicketEn,
+    details: detailsEn,
+    reports: reportsEn,
+    settings: settingsEn
+  },
   common: {
     save: 'Save',
     saving: 'Saving...',
