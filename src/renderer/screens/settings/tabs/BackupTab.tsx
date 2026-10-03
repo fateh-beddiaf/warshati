@@ -92,7 +92,7 @@ export function BackupTab({ data, loading, reload, notify }: SettingsTabProps): 
               {loading && !dbInfo ? (
                 <Skeleton className="h-4 w-20" />
               ) : (
-                <span className="text-sm font-bold tabular-nums text-success-soft-foreground">
+                <span dir="ltr" className="block text-start text-sm font-bold tabular-nums text-success-soft-foreground">
                   {dbInfo?.fileSizeFormatted || '...'}
                 </span>
               )}
@@ -101,7 +101,7 @@ export function BackupTab({ data, loading, reload, notify }: SettingsTabProps): 
               {loading && !dbInfo ? (
                 <Skeleton className="h-4 w-32" />
               ) : (
-                <span className="text-xs font-semibold tabular-nums text-foreground">
+                <span dir="ltr" className="block text-start text-xs font-semibold tabular-nums text-foreground">
                   {dbInfo?.lastModified ? new Date(dbInfo.lastModified).toLocaleString() : '...'}
                 </span>
               )}
