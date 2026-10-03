@@ -11,13 +11,15 @@ import { BRAND_CATALOG_V2, type CatalogBrand } from './catalog/brands'
  * compared case-insensitively to avoid duplicates ("samsung" = "Samsung").
  *
  * A database that already contains data but has no `seed_version` (created before versioning
- * existed) is treated as having pack 1 applied.
+ * existed) is treated as having pack 1 applied. Later packs never bring back a brand that pack 1
+ * seeded and that is no longer in such a database: the user deleted it on purpose.
  */
 export const SEED_VERSION_KEY = 'seed_version'
 
 interface SeedPack {
   version: number
-  apply: (db: Database.Database) => void
+  /** `previousVersion` is the pack version the database was at before this run (0 = brand new) */
+  apply: (db: Database.Database, previousVersion: number) => void
 }
 
 function ensureBrandId(db: Database.Database, name: string): number {
@@ -36,8 +38,10 @@ function addModels(db: Database.Database, brandId: number, models: string[]): vo
   }
 }
 
-function addCatalog(db: Database.Database, catalog: CatalogBrand[]): void {
+function addCatalog(db: Database.Database, catalog: CatalogBrand[], skipBrands: Set<string> = new Set()): void {
+  const brandExists = db.prepare(`SELECT 1 FROM Brand WHERE lower(name) = lower(?)`)
   for (const brand of catalog) {
+    if (skipBrands.has(brand.name.toLowerCase()) && !brandExists.get(brand.name)) continue
     const brandId = ensureBrandId(db, brand.name)
     if (brand.models) addModels(db, brandId, brand.models)
   }
@@ -66,9 +70,14 @@ const SEED_PACKS: SeedPack[] = [
     }
   },
   {
-    // Full phone brand catalog (+ models for the major brands)
+    // Well-known phone brand catalog (+ models for the major brands)
     version: 2,
-    apply: (db) => addCatalog(db, BRAND_CATALOG_V2)
+    apply: (db, previousVersion) => {
+      // Pack 1 already ran on this database: a pack-1 brand that is missing now was deleted by
+      // the user, so it is not re-added (its missing models are still filled in if it exists).
+      const deletedByUser = previousVersion >= 1 ? new Set(Object.keys(CORE_BRANDS_V1).map((n) => n.toLowerCase())) : new Set<string>()
+      addCatalog(db, BRAND_CATALOG_V2, deletedByUser)
+    }
   }
 ]
 
@@ -100,7 +109,7 @@ export function seedInitialData(db: Database.Database): void {
     `)
 
     for (const pack of SEED_PACKS) {
-      if (pack.version > current) pack.apply(db)
+      if (pack.version > current) pack.apply(db, current)
     }
     // Record the version even when nothing ran, so a legacy database is "stamped" once
     setVersion.run(SEED_VERSION_KEY, String(Math.max(current, LATEST_SEED_VERSION)))

@@ -48,13 +48,14 @@ test.afterAll(() => {
 test('catalog is seeded and a deleted brand does not return after restart', async () => {
   let { app, page } = await launch()
   const first = await brandNames(page)
-  expect(first.length).toBeGreaterThanOrEqual(60)
-  expect(first).toEqual(expect.arrayContaining(['Condor', 'IRIS', 'Stream System', 'Brandt', 'Itel']))
+  expect(first.length).toBe(25)
+  expect(first).toEqual(expect.arrayContaining(['Samsung', 'Redmi', 'Itel', 'Honor', 'Meizu']))
+  for (const gone of ['Apple', 'Vivo', 'Condor', 'IRIS', 'Brandt', 'Wiko']) expect(first).not.toContain(gone)
 
   // delete a seeded brand (no tickets use it) through the app API
   const deleted = await page.evaluate(async () => {
     const res = await window.api.getBrands()
-    const brand = (res.data ?? []).find((b: { name: string }) => b.name === 'Wiko')
+    const brand = (res.data ?? []).find((b: { name: string }) => b.name === 'Meizu')
     if (!brand) return false
     const del = await window.api.deleteBrand(brand.id)
     return del.success
@@ -65,7 +66,7 @@ test('catalog is seeded and a deleted brand does not return after restart', asyn
   // restart on the same data directory
   ;({ app, page } = await launch())
   const second = await brandNames(page)
-  expect(second).not.toContain('Wiko')
+  expect(second).not.toContain('Meizu')
   expect(second.length).toBe(first.length - 1)
   await app.close()
 })
@@ -79,7 +80,7 @@ test('brand/model type-ahead stays fast with the full catalog', async () => {
 
   await brandInput.click()
   const optionCount = await page.locator('[data-testid="new-ticket-form"] div.max-h-60 button').count()
-  expect(optionCount).toBeGreaterThanOrEqual(50)
+  expect(optionCount).toBeGreaterThanOrEqual(20)
 
   const started = Date.now()
   await brandInput.fill('')

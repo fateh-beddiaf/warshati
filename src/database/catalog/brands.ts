@@ -3,8 +3,9 @@
  * Applied once per database by the versioned seed (see ../seed.ts). Never edit a shipped
  * pack to "fix" data on existing installs: add a new pack instead.
  *
- * Models are listed only for the major brands (roughly the last 5 years); every other brand
- * is added without models and the shop adds models from Settings as needed.
+ * Only well-known brands are included. Models are listed only for the major ones (roughly the
+ * last 5 years); every other brand is added without models and the shop adds models from
+ * Settings as needed.
  */
 export interface CatalogBrand {
   name: string
@@ -23,15 +24,6 @@ export const BRAND_CATALOG_V2: CatalogBrand[] = [
       'Galaxy S22+', 'Galaxy S22 Ultra', 'Galaxy S23+', 'Galaxy S23 Ultra', 'Galaxy S23 FE', 'Galaxy S24',
       'Galaxy S24+', 'Galaxy S25', 'Galaxy S25 Ultra', 'Galaxy Z Flip 3', 'Galaxy Z Flip 4', 'Galaxy Z Flip 5',
       'Galaxy Z Fold 3', 'Galaxy Z Fold 4', 'Galaxy Z Fold 5', 'Galaxy Note 20 Ultra'
-    ]
-  },
-  {
-    name: 'Apple',
-    models: [
-      'iPhone 7', 'iPhone 7 Plus', 'iPhone 8', 'iPhone 8 Plus', 'iPhone X', 'iPhone XR', 'iPhone XS',
-      'iPhone XS Max', 'iPhone 11 Pro', 'iPhone 12 mini', 'iPhone 12 Pro', 'iPhone 13 mini', 'iPhone 13 Pro',
-      'iPhone 14 Plus', 'iPhone 14 Pro', 'iPhone 15 Plus', 'iPhone 15 Pro', 'iPhone 16', 'iPhone 16 Plus',
-      'iPhone 16 Pro', 'iPhone 16 Pro Max', 'iPhone SE (2020)', 'iPhone SE (2022)'
     ]
   },
   {
@@ -110,24 +102,8 @@ export const BRAND_CATALOG_V2: CatalogBrand[] = [
       'Honor X9b', 'Honor 50', 'Honor 70', 'Honor 90 Lite', 'Honor Magic 5', 'Honor Magic 6', 'Honor 200'
     ]
   },
-  {
-    name: 'Vivo',
-    models: [
-      'Y01', 'Y02', 'Y12', 'Y15', 'Y20', 'Y21', 'Y22', 'Y33s', 'Y35', 'Y36', 'Y51', 'Y53s', 'Y72', 'V21',
-      'V23', 'V25', 'V27', 'V29', 'X60', 'X70 Pro', 'X80', 'X90'
-    ]
-  },
-  {
-    // Best-effort list (local Algerian brand) — worth a quick review by the shop
-    name: 'Condor',
-    models: [
-      'Allure M3', 'Allure M3 Plus', 'Allure M4', 'Allure M5', 'Plume P6 Pro', 'Plume P7', 'Plume P8',
-      'Plume P8 Pro', 'Plume L6', 'Plume L7', 'Griffe T4', 'Griffe T5', 'Griffe T6', 'C8', 'C8 Pro'
-    ]
-  },
 
   // Brands below are added without models (the shop adds models as needed)
-  { name: 'iQOO' },
   { name: 'OnePlus' },
   { name: 'Motorola' },
   { name: 'Nokia' },
@@ -135,52 +111,11 @@ export const BRAND_CATALOG_V2: CatalogBrand[] = [
   { name: 'Sony' },
   { name: 'LG' },
   { name: 'HTC' },
-  { name: 'BlackBerry' },
   { name: 'Asus' },
   { name: 'Lenovo' },
   { name: 'Alcatel' },
   { name: 'TCL' },
   { name: 'ZTE' },
-  { name: 'Nubia' },
-  { name: 'Meizu' },
   { name: 'Nothing' },
-  { name: 'Fairphone' },
-  { name: 'IRIS' },
-  { name: 'Stream System' },
-  { name: 'Brandt' },
-  { name: 'Evertek' },
-  { name: 'Wiko' },
-  { name: 'Doogee' },
-  { name: 'Ulefone' },
-  { name: 'Blackview' },
-  { name: 'Oukitel' },
-  { name: 'Umidigi' },
-  { name: 'Cubot' },
-  { name: 'Hotwav' },
-  { name: 'AGM' },
-  { name: 'Cat' },
-  { name: 'Energizer' },
-  { name: 'Sharp' },
-  { name: 'Gionee' },
-  { name: 'Lava' },
-  { name: 'Micromax' },
-  { name: 'Panasonic' },
-  { name: 'Philips' },
-  { name: 'Coolpad' },
-  { name: 'Leagoo' },
-  { name: 'Elephone' },
-  { name: 'Vernee' },
-  { name: 'Oscal' },
-  { name: 'Sonim' },
-  { name: 'BLU' },
-  { name: 'Hisense' },
-  { name: 'Black Shark' },
-  { name: 'RedMagic' },
-  { name: 'Kyocera' },
-  { name: 'Archos' },
-  { name: 'Gigaset' },
-  { name: 'Hammer' },
-  { name: 'Walton' },
-  { name: 'Symphony' },
-  { name: 'Vsmart' }
+  { name: 'Meizu' }
 ]

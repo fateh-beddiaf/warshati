@@ -29,19 +29,6 @@ export const CORE_BRANDS_V1: Record<string, string[]> = {
     'Galaxy S23',
     'Galaxy S24 Ultra'
   ],
-  Apple: [
-    'iPhone X / XS',
-    'iPhone 11',
-    'iPhone 11 Pro Max',
-    'iPhone 12',
-    'iPhone 12 Pro Max',
-    'iPhone 13',
-    'iPhone 13 Pro Max',
-    'iPhone 14',
-    'iPhone 14 Pro Max',
-    'iPhone 15',
-    'iPhone 15 Pro Max'
-  ],
   Xiaomi: [
     'Redmi 9A / 9C',
     'Redmi 10 / 10C',
