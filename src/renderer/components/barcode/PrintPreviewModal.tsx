@@ -1,8 +1,9 @@
 import * as React from 'react'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '../../lib/i18n'
 import { BarcodeLabel } from './BarcodeLabel'
+import { buildPrintSvg, svgMatchesBarcode } from './barcode-svg'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../ui/Card'
@@ -44,7 +45,19 @@ export function PrintPreviewModal({
   const [printers, setPrinters] = useState<PrinterInfo[]>([])
   const [selectedPrinter, setSelectedPrinter] = useState<string>('')
 
-  const [svgContent, setSvgContent] = useState<string>('')
+  // The SVG sent to the printer is derived synchronously from the CURRENT barcode (always with the
+  // 'actual' size settings, independent of the zoom toggle), so it can never belong to another ticket.
+  const barcodeValue = data?.barcode ?? ''
+  const printSvg = useMemo<{ svg: string; ok: boolean }>(() => {
+    if (!barcodeValue) return { svg: '', ok: false }
+    try {
+      const svg = buildPrintSvg(barcodeValue)
+      return { svg, ok: svgMatchesBarcode(svg, barcodeValue) }
+    } catch (err) {
+      console.warn('Failed to generate print barcode:', err)
+      return { svg: '', ok: false }
+    }
+  }, [barcodeValue])
   const [printing, setPrinting] = useState(false)
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -80,7 +93,14 @@ export function PrintPreviewModal({
 
   if (!isOpen || !data) return null
 
+  // A barcode that cannot be drawn is an error the user must see; printing stays disabled.
+  const shownMessage = statusMessage ?? (printSvg.ok ? null : { type: 'error' as const, text: t.print.barcodeError })
+
   const handlePrint = async (): Promise<void> => {
+    if (!printSvg.ok || !svgMatchesBarcode(printSvg.svg, data.barcode)) {
+      setStatusMessage({ type: 'error', text: t.print.barcodeError })
+      return
+    }
     const requestId = ++printRequestRef.current
     const isCurrent = (): boolean => printRequestRef.current === requestId
     setPrinting(true)
@@ -94,7 +114,7 @@ export function PrintPreviewModal({
         shortLabel: shortLabel.trim() || data.shortLabel,
         ticketId: data.ticketId,
         printerName: selectedPrinter || undefined,
-        svgContent: svgContent || undefined
+        svgContent: printSvg.svg
       })
 
       if (!isCurrent()) return
@@ -199,26 +219,26 @@ export function PrintPreviewModal({
                     shortLabel={shortLabel}
                     customerPhone={showPhone ? data.customerPhone : undefined}
                     scaleMode={scaleMode}
-                    onSvgGenerated={setSvgContent}
                   />
                 </div>
               </div>
 
               {/* Status Message */}
-              {statusMessage && (
+              {shownMessage && (
                 <div
+                  data-testid="print-status"
                   className={`p-3.5 rounded-xl border text-sm flex items-center gap-2.5 font-semibold ${
-                    statusMessage.type === 'success'
+                    shownMessage.type === 'success'
                       ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
                       : 'bg-red-50 text-red-900 border-red-200'
                   }`}
                 >
-                  {statusMessage.type === 'success' ? (
+                  {shownMessage.type === 'success' ? (
                     <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
                   ) : (
                     <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
                   )}
-                  <span>{statusMessage.text}</span>
+                  <span>{shownMessage.text}</span>
                 </div>
               )}
 
@@ -290,8 +310,9 @@ export function PrintPreviewModal({
 
               <Button
                 type="button"
+                data-testid="print-submit"
                 onClick={handlePrint}
-                disabled={printing}
+                disabled={printing || !printSvg.ok}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-500/20 px-6"
               >
                 <Printer className="h-4 w-4 me-2" />

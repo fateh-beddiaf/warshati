@@ -207,6 +207,7 @@ export const ar = {
     printingButton: 'جاري الإرسال للطابعة...',
     printSuccess: 'تم إرسال الملصق للطباعة بنجاح',
     printError: 'فشل في إرسال أمر الطباعة',
+    barcodeError: 'تعذّر إنشاء رمز الباركود لهذه التذكرة، تم تعطيل الطباعة.',
     reprintButton: 'إعادة طباعة الملصق',
     previewBadge: 'أبعاد الملصق 40×20 ملم'
   },
@@ -562,6 +563,7 @@ export const en: typeof ar = {
     printingButton: 'Sending to Printer...',
     printSuccess: 'Label successfully sent to printer',
     printError: 'Failed to send print command',
+    barcodeError: 'Could not generate the barcode for this ticket, printing is disabled.',
     reprintButton: 'Reprint Label',
     previewBadge: 'Sticker Dimensions 40×20 mm'
   },
