@@ -46,7 +46,9 @@ export function generateShortLabel(brand: string, model: string): string {
 
   // Simplify model name by stripping redundant brand names at start
   let cleanModel = trimmedModel
-  const regex = new RegExp(`^(${trimmedBrand}|galaxy|iphone|redmi)\\s*`, 'i')
+  // Brand is free user text (custom input) — escape it, otherwise "C++" or "(" throws SyntaxError
+  const escapedBrand = trimmedBrand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`^(${escapedBrand}|galaxy|iphone|redmi)\\s*`, 'i')
   cleanModel = cleanModel.replace(regex, '').trim() || trimmedModel
 
   return `${code} ${cleanModel}`.trim()
