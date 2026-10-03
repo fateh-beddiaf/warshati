@@ -8,8 +8,12 @@ import { SettingsScreen } from './screens/SettingsScreen'
 import { TicketDetailsModal } from './components/tickets/TicketDetailsModal'
 import { PrintPreviewModal } from './components/barcode/PrintPreviewModal'
 import { useBarcodeScanner } from './hooks/useBarcodeScanner'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion'
+import { DirectionProvider } from '@radix-ui/react-direction'
 import { I18nProvider, useI18n } from './lib/i18n'
+import { ThemeProvider } from './lib/theme'
+import { TooltipProvider } from './components/ui/Tooltip'
+import { Toaster } from './components/ui/Sonner'
 import type { TicketFullDetails, TicketListItem } from '../shared/types'
 import { AlertCircle } from 'lucide-react'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -228,11 +232,29 @@ function AppContent(): React.JSX.Element {
   )
 }
 
-export function App(): React.JSX.Element {
+function Providers({ children }: { children: React.ReactNode }): React.JSX.Element {
+  const { dir } = useI18n()
   return (
-    <I18nProvider>
-      <AppContent />
-    </I18nProvider>
+    <DirectionProvider dir={dir}>
+      {/* reducedMotion="user": Framer transform animations are skipped when the OS asks for less motion */}
+      <MotionConfig reducedMotion="user">
+        <TooltipProvider delayDuration={300}>
+          {children}
+          <Toaster />
+        </TooltipProvider>
+      </MotionConfig>
+    </DirectionProvider>
   )
 }
 
+export function App(): React.JSX.Element {
+  return (
+    <ThemeProvider>
+      <I18nProvider>
+        <Providers>
+          <AppContent />
+        </Providers>
+      </I18nProvider>
+    </ThemeProvider>
+  )
+}
