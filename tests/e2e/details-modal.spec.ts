@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import type { Page } from '@playwright/test'
 import {
   launchApp,
   shutdownApp,
@@ -41,6 +42,20 @@ async function snapshot(barcode: string): Promise<Snapshot> {
   }, barcode)
 }
 
+/** The delivery confirmation is a nested modal dialog: Esc closes only that one (not the details modal). */
+async function dismissDeliveryDialog(page: Page): Promise<void> {
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('confirm-delivery')).toHaveCount(0)
+  await expect(page.getByTestId('details-close')).toBeVisible()
+}
+
+/** Types a barcode like a HID scanner (fast burst + Enter) with no field focused, so the global listener handles it. */
+async function scanBarcode(page: Page, code: string): Promise<void> {
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+  await page.keyboard.type(code, { delay: 0 })
+  await page.keyboard.press('Enter')
+}
+
 test('setup: two credit tickets moved to ready', async () => {
   barcodeA = await createTicket(l.page, { name: 'Alpha', phone: '0555000001', price: 5000, paid: 1000, type: 'credit' })
   barcodeB = await createTicket(l.page, { name: 'Beta', phone: '0555000002', price: 4000, paid: 500, type: 'credit' })
@@ -63,6 +78,7 @@ test('closing the modal resets the delivery dialog, its fields and messages', as
   await expect(page.getByTestId('details-error')).toBeVisible()
   await page.getByTestId('settle-partial-amount').fill('777')
   await expect(page.getByTestId('confirm-delivery')).toBeVisible()
+  await dismissDeliveryDialog(page)
   await closeDetails(page)
 
   // ticket B: everything pristine
@@ -74,6 +90,7 @@ test('closing the modal resets the delivery dialog, its fields and messages', as
   await expect(page.getByTestId('settle-full')).toBeChecked()
   await page.getByTestId('settle-partial').check()
   await expect(page.getByTestId('settle-partial-amount')).toHaveValue('')
+  await dismissDeliveryDialog(page)
   await closeDetails(page)
 
   // reopening A (same ticket) also starts clean
@@ -92,10 +109,9 @@ test('switching to another ticket while a delete dialog is open resets it', asyn
   await page.getByTestId('delete-confirm-input').fill(barcodeA)
   await expect(page.getByTestId('delete-confirm-input')).toHaveValue(barcodeA)
 
-  // the modal stays open but displays ticket B (e.g. a barcode scan)
-  const header = page.getByTestId('header-barcode-input')
-  await header.fill(barcodeB)
-  await header.press('Enter')
+  // the modal stays open but displays ticket B (a barcode scan: the header field sits behind the
+  // modal overlay, so the scan goes through the app-wide scanner listener)
+  await scanBarcode(page, barcodeB)
   await expect(page.locator('strong', { hasText: barcodeB }).first()).toBeVisible()
   await expect(page.getByTestId('delete-confirm-input')).toHaveCount(0)
   await expect(page.getByTestId('delete-next')).toHaveCount(0)
@@ -130,6 +146,7 @@ test('a negative custom payment is rejected and never lowers amount_paid', async
   expect(after).toEqual(before)
   expect(after.status).toBe('ready')
   expect(after.amount_paid).toBe(1000)
+  await dismissDeliveryDialog(page)
   await closeDetails(page)
 })
 
