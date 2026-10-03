@@ -4,6 +4,30 @@ import { is } from '@electron-toolkit/utils'
 import { initDatabase } from '../database'
 import { registerIpcHandlers } from './ipc'
 
+// WARSHATI_DATA_DIR isolates the database and userData (backups etc.) in a scratch
+// folder so tests and experiments never touch real shop data.
+const dataDirOverride = process.env['WARSHATI_DATA_DIR']
+if (dataDirOverride) {
+  app.setPath('userData', join(dataDirOverride, 'userData'))
+}
+
+// Dev only: the renderer console is not printed to the terminal by default,
+// so forward warnings/errors and process-level failures to stdout.
+function attachDevDiagnostics(win: BrowserWindow): void {
+  win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    // level: 0 verbose, 1 info, 2 warning, 3 error
+    if (level >= 2) {
+      console.log(`[renderer:${level === 3 ? 'error' : 'warn'}] ${message} (${sourceId}:${line})`)
+    }
+  })
+  win.webContents.on('render-process-gone', (_event, details) => {
+    console.error(`[main] render-process-gone: ${details.reason} (exit ${details.exitCode})`)
+  })
+  win.on('unresponsive', () => {
+    console.error('[main] window unresponsive')
+  })
+}
+
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -22,6 +46,8 @@ function createWindow(): void {
     }
   })
 
+  if (is.dev) attachDevDiagnostics(mainWindow)
+
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
   })
@@ -39,12 +65,23 @@ function createWindow(): void {
   }
 }
 
+if (is.dev) {
+  process.on('uncaughtException', (err) => {
+    console.error('[main] uncaughtException:', err)
+  })
+  process.on('unhandledRejection', (reason) => {
+    console.error('[main] unhandledRejection:', reason)
+  })
+}
+
 // This method will be called when Electron has finished initialization
 app.whenReady().then(() => {
-  // Initialize Database in userData
-  const dbPath = is.dev
-    ? join(process.cwd(), 'data', 'warshati.db')
-    : join(app.getPath('userData'), 'warshati.db')
+  // Initialize Database: override dir > dev (cwd/data) > userData
+  const dbPath = dataDirOverride
+    ? join(dataDirOverride, 'data', 'warshati.db')
+    : is.dev
+      ? join(process.cwd(), 'data', 'warshati.db')
+      : join(app.getPath('userData'), 'warshati.db')
 
   try {
     initDatabase(dbPath)
