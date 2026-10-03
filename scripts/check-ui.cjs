@@ -13,6 +13,8 @@ const ROOT = path.join(__dirname, '..', 'src', 'renderer')
 const MAX_LINES = 400
 const SIZE_EXEMPT = new Set(['i18n.ts'])
 const SIZE_EXEMPT_DIRS = ['locales']
+// The printed label is always black on white, whatever the theme
+const COLOR_EXEMPT_FILES = new Set(['BarcodeLabel.tsx', 'barcode-svg.ts'])
 
 const PALETTE =
   '(white|black|slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)'
@@ -42,13 +44,14 @@ function check(file) {
 
   if (!sizeExempt && lines.length > MAX_LINES) problems.push(`${rel}: ${lines.length} lines (max ${MAX_LINES})`)
   if (isFont) return
+  const colorExempt = COLOR_EXEMPT_FILES.has(path.basename(file))
 
   lines.forEach((line, i) => {
     if (line.includes('allow-raw-color')) return
     const where = `${rel}:${i + 1}`
-    const color = line.match(COLOR_UTIL)
+    const color = colorExempt ? null : line.match(COLOR_UTIL)
     if (color) problems.push(`${where}: raw colour class "${color[0]}"`)
-    const raw = line.match(RAW_COLOR)
+    const raw = colorExempt ? null : line.match(RAW_COLOR)
     if (raw && !/^\s*(\/\/|\*|\/\*)/.test(line)) problems.push(`${where}: raw colour literal "${raw[0]}"`)
     const v4 = line.match(V4)
     if (v4) problems.push(`${where}: Tailwind v4-only class "${v4[0]}"`)
