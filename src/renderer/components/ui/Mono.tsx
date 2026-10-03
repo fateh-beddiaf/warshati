@@ -9,9 +9,14 @@ import { cn } from '../../lib/utils'
  * numbers use the `tabular` class (tabular-nums) instead.
  */
 export const Mono = React.forwardRef<
-  HTMLSpanElement,
-  React.HTMLAttributes<HTMLSpanElement> & { spaced?: boolean }
->(({ className, spaced = false, ...props }, ref) => (
-  <span ref={ref} dir="ltr" className={cn('font-mono tabular', spaced && 'tracking-wider', className)} {...props} />
+  HTMLElement,
+  React.HTMLAttributes<HTMLElement> & { spaced?: boolean; as?: 'span' | 'strong' | 'div' }
+>(({ className, spaced = false, as: Tag = 'span', ...props }, ref) => (
+  <Tag
+    ref={ref as React.Ref<never>}
+    dir="ltr"
+    className={cn('font-mono tabular', spaced && 'tracking-wider', className)}
+    {...props}
+  />
 ))
 Mono.displayName = 'Mono'

@@ -29,7 +29,7 @@ export function DetailsHeader({ ticketDetails }: { ticketDetails: TicketFullDeta
           </div>
           <DialogDescription className="text-xs">
             {t.ticketDetails.ticketCode}{' '}
-            <Mono className="text-sm font-bold text-foreground">
+            <Mono as="strong" className="text-sm font-bold text-foreground">
               {ticket.barcode_code}
             </Mono>
           </DialogDescription>
