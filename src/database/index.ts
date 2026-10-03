@@ -49,13 +49,23 @@ export function initDatabase(customPath?: string): Database.Database {
   }
 
   const db = new Database(dbPath)
-  // Enable WAL mode for high performance and durability
-  db.pragma('journal_mode = WAL')
-  db.pragma('foreign_keys = ON')
+  try {
+    // Enable WAL mode for high performance and durability
+    db.pragma('journal_mode = WAL')
+    db.pragma('foreign_keys = ON')
 
-  // Run schema & seed
-  initializeSchema(db)
-  seedInitialData(db)
+    // Run schema & seed
+    initializeSchema(db)
+    seedInitialData(db)
+  } catch (err) {
+    // Never leak an open handle (it would keep the file locked on Windows)
+    try {
+      db.close()
+    } catch {
+      // ignore
+    }
+    throw err
+  }
 
   dbInstance = db
   return dbInstance
