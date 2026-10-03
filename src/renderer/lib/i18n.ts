@@ -230,7 +230,7 @@ export const ar = {
     }
   },
   print: {
-    modalTitle: 'معاينة وطباعة الملصق (40×20mm)',
+    modalTitle: 'معاينة وطباعة الملصق (…40×20mm⁩)',
     modalSubtitle: 'معاينة الملصق بدقة قبل إرساله إلى طابعة الملصقات الحرارية',
     actualSizeToggle: 'الحجم الفعلي (1:1)',
     zoomedToggle: 'معاينة مكبّرة',

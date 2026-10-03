@@ -2,7 +2,7 @@ import * as React from 'react'
 import { motion } from 'framer-motion'
 import { Printer, Smartphone } from 'lucide-react'
 import { useI18n } from '../../lib/i18n'
-import { cn, formatCurrency, formatDate } from '../../lib/utils'
+import { cn, formatCurrency, formatDateParts } from '../../lib/utils'
 import { listItemProps } from '../../lib/motion'
 import { Button } from '../../components/ui/Button'
 import { TableCell } from '../../components/ui/Table'
@@ -18,7 +18,8 @@ interface TicketRowProps {
 }
 
 export function TicketRow({ ticket, index, onOpen, onPrint }: TicketRowProps): React.JSX.Element {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
+  const createdAt = formatDateParts(ticket.created_at, language)
   const isOverdue = ticket.status === 'ready' && !!ticket.is_overdue
 
   return (
@@ -114,7 +115,10 @@ export function TicketRow({ ticket, index, onOpen, onPrint }: TicketRowProps): R
       </TableCell>
 
       {/* Created date */}
-      <TableCell className="min-w-[5.5rem] max-w-[6.5rem] whitespace-normal px-2.5 text-xs text-muted-foreground">{formatDate(ticket.created_at)}</TableCell>
+      <TableCell className="px-2.5 text-xs text-muted-foreground">
+        <div className="tabular font-medium text-foreground/80">{createdAt.date}</div>
+        <div className="tabular">{createdAt.time}</div>
+      </TableCell>
 
       {/* Reprint barcode */}
       <TableCell className="px-2.5 text-center" onClick={(e) => e.stopPropagation()}>
