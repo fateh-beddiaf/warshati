@@ -276,7 +276,7 @@ export function NewTicketScreen({ onTicketCreated }: NewTicketScreenProps): Reac
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form data-testid="new-ticket-form" onSubmit={handleSubmit} className="space-y-6">
         {/* 1. Customer Section */}
         <Card>
           <CardHeader>

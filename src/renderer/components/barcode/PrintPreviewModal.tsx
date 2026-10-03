@@ -137,6 +137,7 @@ export function PrintPreviewModal({
 
                 <button
                   type="button"
+                  data-testid="print-close"
                   onClick={onClose}
                   className="rounded-lg p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
                 >

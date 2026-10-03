@@ -142,7 +142,7 @@ function AppContent(): React.JSX.Element {
       <AnimatePresence mode="wait">
         {activeTab === 'tickets' && (
           <motion.div
-            key={`tickets-${listRefreshKey}`}
+            key="tickets"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -152,6 +152,7 @@ function AppContent(): React.JSX.Element {
               onNewTicketClick={() => setActiveTab('new-ticket')}
               onOpenTicketDetails={handleOpenTicketDetails}
               onPrintTicket={handlePrintTicket}
+              refreshKey={listRefreshKey}
             />
           </motion.div>
         )}
