@@ -30,6 +30,8 @@ const api = {
   createTicket: (dto: CreateTicketDTO) => ipcRenderer.invoke('tickets:create', dto),
   recordPayment: (ticketId: number, amount: number) =>
     ipcRenderer.invoke('tickets:recordPayment', ticketId, amount),
+  setPartsCost: (ticketId: number, cost: number | null) =>
+    ipcRenderer.invoke('tickets:setPartsCost', ticketId, cost),
   updateTicketStatus: (dto: import('../shared/types').UpdateTicketStatusDTO) =>
     ipcRenderer.invoke('tickets:updateStatus', dto),
   getTicketsList: (searchQuery?: string, statusFilter?: string) =>
@@ -75,10 +77,10 @@ const api = {
 
   // Settings & Reference CRUD: Repair Categories
   getRepairCategories: () => ipcRenderer.invoke('settings:categories:get'),
-  addRepairCategory: (name: string, defaultSplitPercentage: number) =>
-    ipcRenderer.invoke('settings:categories:add', name, defaultSplitPercentage),
-  updateRepairCategory: (id: number, name: string, defaultSplitPercentage: number) =>
-    ipcRenderer.invoke('settings:categories:update', id, name, defaultSplitPercentage),
+  addRepairCategory: (name: string, defaultSplitPercentage: number, requiresPartsCost?: boolean) =>
+    ipcRenderer.invoke('settings:categories:add', name, defaultSplitPercentage, requiresPartsCost),
+  updateRepairCategory: (id: number, name: string, defaultSplitPercentage: number, requiresPartsCost?: boolean) =>
+    ipcRenderer.invoke('settings:categories:update', id, name, defaultSplitPercentage, requiresPartsCost),
   checkRepairCategoryUsage: (id: number) => ipcRenderer.invoke('settings:categories:checkUsage', id),
   deleteRepairCategory: (id: number) => ipcRenderer.invoke('settings:categories:delete', id),
 

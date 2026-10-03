@@ -3,7 +3,7 @@ import type { CreateTicketDTO, TicketListItem, UpdateTicketStatusDTO, TicketFull
 import { findOrCreateCustomer } from './customers'
 import { calculateRemaining, generateBarcodeCode } from '../helpers'
 import { generateShortLabel } from '../../shared/device-utils'
-import { calculateProfitSplit } from '../../shared/profit'
+import { calculateProfitSplit, roundMoney } from '../../shared/profit'
 import { getOverdueThresholdDays } from './settings'
 
 function validatePaymentAmounts(priceValue: unknown, amountPaidValue: unknown): { price: number; amountPaid: number } {
@@ -23,6 +23,40 @@ function validatePaymentAmounts(priceValue: unknown, amountPaidValue: unknown): 
   return { price, amountPaid }
 }
 
+/** NULL/undefined/'' = not entered yet; otherwise a finite number >= 0 (rounded to 2 decimals). */
+export function normalizePartsCost(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
+  const cost = typeof value === 'string' ? Number(value.trim()) : value
+  if (typeof cost !== 'number' || !Number.isFinite(cost) || cost < 0) {
+    throw new Error('تكلفة القطع يجب أن تكون رقماً صالحاً أكبر من أو يساوي صفر.')
+  }
+  return roundMoney(cost)
+}
+
+interface ProfitContext {
+  isPartner: boolean
+  categorySplitPercentage: number
+  requiresPartsCost: boolean
+}
+
+/** Category + technician facts the profit calculation needs for a ticket. */
+function getProfitContext(
+  db: Database.Database,
+  ticket: { repair_category_id: number; technician_id: number }
+): ProfitContext {
+  const category = db
+    .prepare(`SELECT default_split_percentage, requires_parts_cost FROM RepairCategory WHERE id = ?`)
+    .get(ticket.repair_category_id) as { default_split_percentage: number; requires_parts_cost: number } | undefined
+  const technician = db
+    .prepare(`SELECT is_partner FROM Technician WHERE id = ?`)
+    .get(ticket.technician_id) as { is_partner: number } | undefined
+  return {
+    isPartner: Boolean(technician?.is_partner),
+    categorySplitPercentage: category?.default_split_percentage ?? 50.0,
+    requiresPartsCost: Boolean(category?.requires_parts_cost)
+  }
+}
+
 export function createTicket(db: Database.Database, dto: CreateTicketDTO): { ticketId: number; barcode: string } {
   const transaction = db.transaction(() => {
     // 1. Validate financial values before any data is persisted.
@@ -30,6 +64,8 @@ export function createTicket(db: Database.Database, dto: CreateTicketDTO): { tic
     const amountRemaining = calculateRemaining(price, amountPaid)
     // A partial payment is a debt, whatever the form said (same rule as updateTicketStatus)
     const paymentType = amountRemaining > 0 ? 'credit' : dto.ticket.payment_type
+    // Optional: leaving it empty is allowed (the UI warns); a given value must be a valid amount
+    const partsCost = normalizePartsCost(dto.ticket.parts_cost)
 
     // 2. Resolve stable reference identities and preserve their current names as ticket snapshots.
     const technician = db
@@ -91,8 +127,9 @@ export function createTicket(db: Database.Database, dto: CreateTicketDTO): { tic
         amount_remaining,
         status,
         my_share,
-        partner_share
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)
+        partner_share,
+        parts_cost
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?)
     `)
 
     const ticketResult = insertTicket.run(
@@ -106,7 +143,8 @@ export function createTicket(db: Database.Database, dto: CreateTicketDTO): { tic
       paymentType,
       amountPaid,
       amountRemaining,
-      status
+      status,
+      partsCost
     )
 
     const ticketId = Number(ticketResult.lastInsertRowid)
@@ -178,6 +216,61 @@ export function recordPayment(db: Database.Database, ticketId: number, amount: n
 }
 
 /**
+ * Sets (or clears, with null) the parts cost of a ticket in ANY status.
+ * Only touches parts_cost and, for a delivered ticket, the frozen profit shares: they are recomputed
+ * on the net profit with the percentage frozen at delivery (split_percentage_applied), never the
+ * category's current one. Status, payments (amount_paid / amount_remaining) and StatusLog are untouched:
+ * the customer always pays the price. A loss (cost > price) is accepted here; the UI asks for confirmation.
+ */
+export function setPartsCost(db: Database.Database, ticketId: number, cost: unknown): Ticket {
+  const transaction = db.transaction(() => {
+    const ticket = db.prepare(`
+      SELECT t.*, tech.is_partner AS technician_is_partner
+      FROM Ticket t
+      JOIN Technician tech ON tech.id = t.technician_id
+      WHERE t.id = ?
+    `).get(ticketId) as Ticket | undefined
+    if (!ticket) throw new Error(`التذكرة رقم ${ticketId} غير موجودة في النظام.`)
+
+    const partsCost = normalizePartsCost(cost)
+
+    if (ticket.status === 'delivered') {
+      const context = getProfitContext(db, ticket)
+      const split = calculateProfitSplit({
+        price: ticket.price,
+        partsCost,
+        requiresPartsCost: context.requiresPartsCost,
+        isPartner: Boolean(ticket.technician_is_partner),
+        categorySplitPercentage: context.categorySplitPercentage,
+        // frozen at delivery; tickets without one (price 0 / legacy) fall back to the category's current percentage
+        appliedSplitPercentage: ticket.split_percentage_applied ?? null
+      })
+      db.prepare(`
+        UPDATE Ticket
+        SET parts_cost = ?, my_share = ?, partner_share = ?, split_percentage_applied = ?
+        WHERE id = ?
+      `).run(
+        partsCost,
+        split.myShare,
+        split.partnerShare,
+        split.isPartnerExclusive ? null : split.myPercentage,
+        ticketId
+      )
+    } else {
+      db.prepare(`UPDATE Ticket SET parts_cost = ? WHERE id = ?`).run(partsCost, ticketId)
+    }
+
+    return db.prepare(`
+      SELECT t.*, tech.is_partner AS technician_is_partner
+      FROM Ticket t
+      JOIN Technician tech ON tech.id = t.technician_id
+      WHERE t.id = ?
+    `).get(ticketId) as Ticket
+  })
+  return transaction()
+}
+
+/**
  * Validates and updates a ticket's status.
  * Strictly enforces allowed transitions:
  *   - in_progress -> ready
@@ -185,7 +278,8 @@ export function recordPayment(db: Database.Database, ticketId: number, amount: n
  *   - ready -> in_progress (revert)
  *   - delivered -> ready (revert)
  * Updates financial fields if paymentUpdate is provided,
- * calculates and stores my_share and partner_share atomically when status becomes 'delivered',
+ * calculates and stores my_share, partner_share and split_percentage_applied atomically (on the net
+ * profit: price - parts_cost) when status becomes 'delivered',
  * and atomically logs the transition into StatusLog.
  */
 export function updateTicketStatus(
@@ -248,28 +342,27 @@ export function updateTicketStatus(
       newPaymentType = 'credit'
     }
 
-    // Calculate profit shares when transitioning to delivered
-    let myShare: number | null = currentTicket.my_share ?? null
-    let partnerShare: number | null = currentTicket.partner_share ?? null
+    // Calculate profit shares when transitioning to delivered (on the NET profit: price - parts cost)
+    let myShare: number | null = null
+    let partnerShare: number | null = null
+    let splitPercentageApplied: number | null = null
 
     if (newStatus === 'delivered') {
-      const category = db
-        .prepare(`SELECT default_split_percentage FROM RepairCategory WHERE id = ?`)
-        .get(currentTicket.repair_category_id) as { default_split_percentage: number } | undefined
-
+      const context = getProfitContext(db, currentTicket)
       const splitResult = calculateProfitSplit({
         price: currentTicket.price,
+        partsCost: currentTicket.parts_cost ?? null,
+        requiresPartsCost: context.requiresPartsCost,
         isPartner: Boolean(currentTicket.technician_is_partner),
-        categorySplitPercentage: category?.default_split_percentage ?? 50.0
+        categorySplitPercentage: context.categorySplitPercentage
       })
 
       myShare = splitResult.myShare
       partnerShare = splitResult.partnerShare
-    } else {
-      // If reverted away from delivered, clear frozen shares
-      myShare = null
-      partnerShare = null
+      // Freeze my percentage so a later cost edit does not follow category changes (partner: always 100%)
+      splitPercentageApplied = splitResult.isPartnerExclusive ? null : splitResult.myPercentage
     }
+    // else: reverted away from delivered (or never delivered): the frozen shares and percentage are cleared
 
     // 1. Update Ticket
     db.prepare(`
@@ -279,9 +372,19 @@ export function updateTicketStatus(
           amount_remaining = ?,
           payment_type = ?,
           my_share = ?,
-          partner_share = ?
+          partner_share = ?,
+          split_percentage_applied = ?
       WHERE id = ?
-    `).run(newStatus, newAmountPaid, newAmountRemaining, newPaymentType, myShare, partnerShare, dto.ticketId)
+    `).run(
+      newStatus,
+      newAmountPaid,
+      newAmountRemaining,
+      newPaymentType,
+      myShare,
+      partnerShare,
+      splitPercentageApplied,
+      dto.ticketId
+    )
 
     // 2. Record in StatusLog
     db.prepare(`
@@ -329,6 +432,7 @@ export function getTicketsList(
       t.created_at,
       t.my_share,
       t.partner_share,
+      (rc.requires_parts_cost = 1 AND t.parts_cost IS NULL) AS parts_cost_missing,
       (
         SELECT timestamp 
         FROM StatusLog 
@@ -381,6 +485,7 @@ export function getTicketsList(
 
     return {
       ...row,
+      parts_cost_missing: Boolean(row.parts_cost_missing),
       is_overdue,
       overdue_days
     }
@@ -403,7 +508,12 @@ export function getTicketById(db: Database.Database, ticketId: number): TicketFu
   if (!customer || !device) {
     throw new Error('بيانات التذكرة ناقصة (الزبون/الجهاز)، لا يمكن عرضها.')
   }
-  const category = (db.prepare(`SELECT * FROM RepairCategory WHERE id = ?`).get(ticket.repair_category_id) as import('../../shared/types').RepairCategory | undefined) || null
+  const categoryRow = db.prepare(`SELECT * FROM RepairCategory WHERE id = ?`).get(ticket.repair_category_id) as
+    | (Omit<import('../../shared/types').RepairCategory, 'requires_parts_cost'> & { requires_parts_cost: number })
+    | undefined
+  const category: import('../../shared/types').RepairCategory | null = categoryRow
+    ? { ...categoryRow, requires_parts_cost: Boolean(categoryRow.requires_parts_cost) }
+    : null
 
   const accessories = db.prepare(`
     SELECT a.id, a.name

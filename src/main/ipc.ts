@@ -26,6 +26,15 @@ export function registerIpcHandlers(): void {
     }
   })
 
+  ipcMain.handle('tickets:setPartsCost', async (_event, ticketId: number, cost: number | null) => {
+    try {
+      return { success: true, data: dbService.setPartsCost(ticketId, cost) }
+    } catch (error: unknown) {
+      console.error('Failed to set parts cost:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to set parts cost' }
+    }
+  })
+
   ipcMain.handle('tickets:updateStatus', async (_event, dto: import('../shared/types').UpdateTicketStatusDTO) => {
     try {
       const result = dbService.updateTicketStatus(dto)
@@ -358,18 +367,18 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:categories:add', async (_event, name: string, defaultSplitPercentage: number) => {
+  ipcMain.handle('settings:categories:add', async (_event, name: string, defaultSplitPercentage: number, requiresPartsCost?: boolean) => {
     try {
-      const data = dbService.addRepairCategory(name, defaultSplitPercentage)
+      const data = dbService.addRepairCategory(name, defaultSplitPercentage, requiresPartsCost)
       return { success: true, data }
     } catch (error: unknown) {
       return { success: false, error: error instanceof Error ? error.message : 'Failed to add repair category' }
     }
   })
 
-  ipcMain.handle('settings:categories:update', async (_event, id: number, name: string, defaultSplitPercentage: number) => {
+  ipcMain.handle('settings:categories:update', async (_event, id: number, name: string, defaultSplitPercentage: number, requiresPartsCost?: boolean) => {
     try {
-      dbService.updateRepairCategory(id, name, defaultSplitPercentage)
+      dbService.updateRepairCategory(id, name, defaultSplitPercentage, requiresPartsCost)
       return { success: true }
     } catch (error: unknown) {
       return { success: false, error: error instanceof Error ? error.message : 'Failed to update repair category' }

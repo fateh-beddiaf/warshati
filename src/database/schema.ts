@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3'
+import { calculateProfitSplit } from '../shared/profit'
 
 export function initializeSchema(db: Database.Database): void {
   db.exec(`
@@ -16,7 +17,8 @@ export function initializeSchema(db: Database.Database): void {
     CREATE TABLE IF NOT EXISTS RepairCategory (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
-      default_split_percentage REAL NOT NULL DEFAULT 50.0
+      default_split_percentage REAL NOT NULL DEFAULT 50.0,
+      requires_parts_cost INTEGER NOT NULL DEFAULT 0 CHECK(requires_parts_cost IN (0, 1))
     );
 
     -- Technician Table
@@ -63,6 +65,8 @@ export function initializeSchema(db: Database.Database): void {
       status TEXT NOT NULL DEFAULT 'in_progress' CHECK(status IN ('in_progress', 'ready', 'delivered')),
       my_share REAL DEFAULT NULL,
       partner_share REAL DEFAULT NULL,
+      parts_cost REAL DEFAULT NULL CHECK(parts_cost IS NULL OR parts_cost >= 0),
+      split_percentage_applied REAL DEFAULT NULL,
       FOREIGN KEY (customer_id) REFERENCES Customer(id),
       FOREIGN KEY (repair_category_id) REFERENCES RepairCategory(id),
       FOREIGN KEY (technician_id) REFERENCES Technician(id) ON DELETE RESTRICT
@@ -171,6 +175,7 @@ function runMigrations(db: Database.Database): void {
   const ticketColumns = getColumnNames(db, 'Ticket')
   const deviceColumns = getColumnNames(db, 'TicketDevice')
   const technicianColumns = getColumnNames(db, 'Technician')
+  const categoryColumns = getColumnNames(db, 'RepairCategory')
 
   const needsLegacyIdentityMigration =
     !ticketColumns.includes('technician_id') ||
@@ -178,9 +183,14 @@ function runMigrations(db: Database.Database): void {
     !deviceColumns.includes('model_id') ||
     !technicianColumns.includes('is_partner')
   const needsProfitMigration = !ticketColumns.includes('my_share') || !ticketColumns.includes('partner_share')
+  const needsPartsCostMigration =
+    !ticketColumns.includes('parts_cost') ||
+    !ticketColumns.includes('split_percentage_applied') ||
+    !categoryColumns.includes('requires_parts_cost')
 
-  if (!needsLegacyIdentityMigration && !needsProfitMigration) return
+  if (!needsLegacyIdentityMigration && !needsProfitMigration && !needsPartsCostMigration) return
 
+  // One transaction for every step: a failure leaves the database exactly as it was.
   const migrateLegacySchema = db.transaction(() => {
     if (!ticketColumns.includes('my_share')) {
       db.prepare(`ALTER TABLE Ticket ADD COLUMN my_share REAL DEFAULT NULL`).run()
@@ -188,60 +198,117 @@ function runMigrations(db: Database.Database): void {
     if (!ticketColumns.includes('partner_share')) {
       db.prepare(`ALTER TABLE Ticket ADD COLUMN partner_share REAL DEFAULT NULL`).run()
     }
-    if (!needsLegacyIdentityMigration) return
-
-    if (!technicianColumns.includes('is_partner')) {
-      db.prepare(`ALTER TABLE Technician ADD COLUMN is_partner INTEGER NOT NULL DEFAULT 0`).run()
-    }
-    if (!ticketColumns.includes('technician_id')) {
-      db.prepare(`ALTER TABLE Ticket ADD COLUMN technician_id INTEGER`).run()
-    }
-    if (!deviceColumns.includes('brand_id')) {
-      db.prepare(`ALTER TABLE TicketDevice ADD COLUMN brand_id INTEGER`).run()
-    }
-    if (!deviceColumns.includes('model_id')) {
-      db.prepare(`ALTER TABLE TicketDevice ADD COLUMN model_id INTEGER`).run()
-    }
-
-    const canonicalPartner = db.prepare(`SELECT id FROM Technician WHERE name = ?`).all('الشريك') as { id: number }[]
-    if (canonicalPartner.length !== 1) {
-      throw new Error('تعذر تحديد الفني الشريك الوحيد بالاسم التاريخي "الشريك". راجع بيانات الفنيين يدوياً قبل الترحيل.')
-    }
-
-    db.prepare(`UPDATE Technician SET is_partner = CASE WHEN id = ? THEN 1 ELSE 0 END`).run(canonicalPartner[0].id)
-
-    const unmatched = describeUnmatchedRows(db)
-    if (unmatched.length > 0) {
-      throw new Error(`تعذر ترحيل هويات السجلات القديمة بسبب تطابقات غير دقيقة: ${unmatched.join(' | ')}. لم تُطبَّق أي تغييرات؛ راجع هذه السجلات يدوياً ثم أعد التشغيل.`)
-    }
-
-    db.prepare(`
-      UPDATE Ticket
-      SET technician_id = (SELECT id FROM Technician WHERE name = Ticket.technician)
-    `).run()
-    db.prepare(`
-      UPDATE TicketDevice
-      SET brand_id = (SELECT id FROM Brand WHERE name = TicketDevice.brand)
-    `).run()
-    db.prepare(`
-      UPDATE TicketDevice
-      SET model_id = (
-        SELECT m.id
-        FROM Model m
-        JOIN Brand b ON b.id = m.brand_id
-        WHERE b.name = TicketDevice.brand AND m.name = TicketDevice.model
-      )
-    `).run()
-
-    const incompleteCount = db.prepare(`
-      SELECT
-        (SELECT COUNT(*) FROM Ticket WHERE technician_id IS NULL) +
-        (SELECT COUNT(*) FROM TicketDevice WHERE brand_id IS NULL OR model_id IS NULL) AS count
-    `).get() as { count: number }
-    if (incompleteCount.count > 0) {
-      throw new Error('تعذر إكمال ترحيل هويات السجلات القديمة. لم تُطبَّق أي تغييرات؛ راجع البيانات يدوياً.')
-    }
+    if (needsLegacyIdentityMigration) migrateLegacyIdentities(db, ticketColumns, deviceColumns, technicianColumns)
+    if (needsPartsCostMigration) migratePartsCost(db, ticketColumns, categoryColumns)
   })
 
   migrateLegacySchema()
+}
+
+/** T002: stable technician / brand / model identities for databases from the original app. */
+function migrateLegacyIdentities(
+  db: Database.Database,
+  ticketColumns: string[],
+  deviceColumns: string[],
+  technicianColumns: string[]
+): void {
+  if (!technicianColumns.includes('is_partner')) {
+    db.prepare(`ALTER TABLE Technician ADD COLUMN is_partner INTEGER NOT NULL DEFAULT 0`).run()
+  }
+  if (!ticketColumns.includes('technician_id')) {
+    db.prepare(`ALTER TABLE Ticket ADD COLUMN technician_id INTEGER`).run()
+  }
+  if (!deviceColumns.includes('brand_id')) {
+    db.prepare(`ALTER TABLE TicketDevice ADD COLUMN brand_id INTEGER`).run()
+  }
+  if (!deviceColumns.includes('model_id')) {
+    db.prepare(`ALTER TABLE TicketDevice ADD COLUMN model_id INTEGER`).run()
+  }
+
+  const canonicalPartner = db.prepare(`SELECT id FROM Technician WHERE name = ?`).all('الشريك') as { id: number }[]
+  if (canonicalPartner.length !== 1) {
+    throw new Error('تعذر تحديد الفني الشريك الوحيد بالاسم التاريخي "الشريك". راجع بيانات الفنيين يدوياً قبل الترحيل.')
+  }
+
+  db.prepare(`UPDATE Technician SET is_partner = CASE WHEN id = ? THEN 1 ELSE 0 END`).run(canonicalPartner[0].id)
+
+  const unmatched = describeUnmatchedRows(db)
+  if (unmatched.length > 0) {
+    throw new Error(`تعذر ترحيل هويات السجلات القديمة بسبب تطابقات غير دقيقة: ${unmatched.join(' | ')}. لم تُطبَّق أي تغييرات؛ راجع هذه السجلات يدوياً ثم أعد التشغيل.`)
+  }
+
+  db.prepare(`
+    UPDATE Ticket
+    SET technician_id = (SELECT id FROM Technician WHERE name = Ticket.technician)
+  `).run()
+  db.prepare(`
+    UPDATE TicketDevice
+    SET brand_id = (SELECT id FROM Brand WHERE name = TicketDevice.brand)
+  `).run()
+  db.prepare(`
+    UPDATE TicketDevice
+    SET model_id = (
+      SELECT m.id
+      FROM Model m
+      JOIN Brand b ON b.id = m.brand_id
+      WHERE b.name = TicketDevice.brand AND m.name = TicketDevice.model
+    )
+  `).run()
+
+  const incompleteCount = db.prepare(`
+    SELECT
+      (SELECT COUNT(*) FROM Ticket WHERE technician_id IS NULL) +
+      (SELECT COUNT(*) FROM TicketDevice WHERE brand_id IS NULL OR model_id IS NULL) AS count
+  `).get() as { count: number }
+  if (incompleteCount.count > 0) {
+    throw new Error('تعذر إكمال ترحيل هويات السجلات القديمة. لم تُطبَّق أي تغييرات؛ راجع البيانات يدوياً.')
+  }
+}
+
+/**
+ * T004: parts cost.
+ *  - RepairCategory.requires_parts_cost (0 for every existing category: the user opts in from Settings)
+ *  - Ticket.parts_cost (NULL = not entered yet)
+ *  - Ticket.split_percentage_applied, back-filled for tickets already delivered: before this change
+ *    the shares were my_share = price x my%, so my% = my_share / price x 100. The value is rounded
+ *    to the simplest precision that reproduces the stored my_share exactly. Partner tickets and
+ *    tickets with price 0 get NULL (documented fallback: a later cost edit on such a ticket uses
+ *    the category's current percentage; the partner always takes 100%).
+ * Runs only when a column is missing, so a second launch changes nothing.
+ */
+function migratePartsCost(db: Database.Database, ticketColumns: string[], categoryColumns: string[]): void {
+  if (!categoryColumns.includes('requires_parts_cost')) {
+    db.prepare(
+      `ALTER TABLE RepairCategory ADD COLUMN requires_parts_cost INTEGER NOT NULL DEFAULT 0 CHECK(requires_parts_cost IN (0, 1))`
+    ).run()
+  }
+  if (!ticketColumns.includes('parts_cost')) {
+    db.prepare(`ALTER TABLE Ticket ADD COLUMN parts_cost REAL DEFAULT NULL CHECK(parts_cost IS NULL OR parts_cost >= 0)`).run()
+  }
+  if (ticketColumns.includes('split_percentage_applied')) return
+
+  db.prepare(`ALTER TABLE Ticket ADD COLUMN split_percentage_applied REAL DEFAULT NULL`).run()
+
+  const delivered = db.prepare(`
+    SELECT t.id AS id, t.price AS price, t.my_share AS my_share
+    FROM Ticket t
+    JOIN Technician tech ON tech.id = t.technician_id
+    WHERE t.status = 'delivered'
+      AND tech.is_partner = 0
+      AND t.price > 0
+      AND t.my_share IS NOT NULL
+      AND t.partner_share IS NOT NULL
+  `).all() as { id: number; price: number; my_share: number }[]
+
+  const setApplied = db.prepare(`UPDATE Ticket SET split_percentage_applied = ? WHERE id = ?`)
+  for (const row of delivered) {
+    const exact = Math.max(0, Math.min(100, (row.my_share / row.price) * 100))
+    const candidates = [Math.round(exact * 100) / 100, Math.round(exact * 10000) / 10000, exact]
+    const applied =
+      candidates.find(
+        (pct) =>
+          calculateProfitSplit({ price: row.price, isPartner: false, appliedSplitPercentage: pct }).myShare === row.my_share
+      ) ?? candidates[1]
+    setApplied.run(applied, row.id)
+  }
 }

@@ -102,6 +102,9 @@ export const dbService = {
   recordPayment: (ticketId: number, amount: number): Ticket => {
     return ticketQueries.recordPayment(getDatabase(), ticketId, amount)
   },
+  setPartsCost: (ticketId: number, cost: number | null): Ticket => {
+    return ticketQueries.setPartsCost(getDatabase(), ticketId, cost)
+  },
   getTicketsList: (searchQuery?: string, statusFilter?: string): TicketListItem[] => {
     return ticketQueries.getTicketsList(getDatabase(), searchQuery, statusFilter)
   },
@@ -181,11 +184,20 @@ export const dbService = {
   getRepairCategories: (): import('../shared/types').RepairCategory[] => {
     return metadataQueries.getRepairCategories(getDatabase())
   },
-  addRepairCategory: (name: string, defaultSplitPercentage: number): import('../shared/types').RepairCategory => {
-    return metadataQueries.addRepairCategory(getDatabase(), name, defaultSplitPercentage)
+  addRepairCategory: (
+    name: string,
+    defaultSplitPercentage: number,
+    requiresPartsCost?: boolean
+  ): import('../shared/types').RepairCategory => {
+    return metadataQueries.addRepairCategory(getDatabase(), name, defaultSplitPercentage, requiresPartsCost)
   },
-  updateRepairCategory: (id: number, name: string, defaultSplitPercentage: number): void => {
-    metadataQueries.updateRepairCategory(getDatabase(), id, name, defaultSplitPercentage)
+  updateRepairCategory: (
+    id: number,
+    name: string,
+    defaultSplitPercentage: number,
+    requiresPartsCost?: boolean
+  ): void => {
+    metadataQueries.updateRepairCategory(getDatabase(), id, name, defaultSplitPercentage, requiresPartsCost)
   },
   checkRepairCategoryUsage: (id: number) => {
     return metadataQueries.checkRepairCategoryUsage(getDatabase(), id)

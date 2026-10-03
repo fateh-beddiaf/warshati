@@ -6,7 +6,7 @@ import type {
   CategoryReportSummary,
   TicketListItem
 } from '../../shared/types'
-import { calculateProfitSplit } from '../../shared/profit'
+import { calculateProfitSplit, roundMoney } from '../../shared/profit'
 import { parseLocalDateString } from '../../shared/date-utils'
 
 interface DateRange {
@@ -119,7 +119,10 @@ export function getFinancialReport(
       rc.id AS repair_category_id,
       rc.name AS category_name,
       rc.default_split_percentage AS category_split_percentage,
+      rc.requires_parts_cost AS category_requires_parts_cost,
       t.price,
+      t.parts_cost,
+      t.split_percentage_applied,
       t.payment_type,
       t.amount_paid,
       t.amount_remaining,
@@ -155,6 +158,9 @@ export function getFinancialReport(
 
   const rows = (empty ? [] : db.prepare(query).all(...params)) as (TicketListItem & {
     category_split_percentage?: number
+    category_requires_parts_cost?: number | null
+    parts_cost?: number | null
+    split_percentage_applied?: number | null
     delivered_at?: string | null
   })[]
 
@@ -183,6 +189,10 @@ export function getFinancialReport(
 
   // Aggregation variables
   let totalRevenue = 0
+  let totalPartsCost = 0
+  let totalNetProfit = 0
+  let provisionalTicketsCount = 0
+  let lossTicketsCount = 0
   let totalMyShare = 0
   let totalPartnerShare = 0
   let totalPaid = 0
@@ -204,17 +214,26 @@ export function getFinancialReport(
     totalPaid += Number(row.amount_paid) || 0
     totalOutstandingDebt += Number(row.amount_remaining) || 0
 
-    // If delivered but shares were not frozen (e.g. legacy data), compute them
+    // Net profit, provisional and loss flags always come from the pure function. The shares are the
+    // frozen ones; a delivered ticket without them (legacy data) is computed with the frozen
+    // percentage when there is one, else the category's current percentage.
+    const split = calculateProfitSplit({
+      price,
+      partsCost: row.parts_cost ?? null,
+      requiresPartsCost: Boolean(row.category_requires_parts_cost),
+      isPartner: Boolean(row.technician_is_partner),
+      categorySplitPercentage: row.category_split_percentage ?? 50.0,
+      appliedSplitPercentage: row.split_percentage_applied ?? null
+    })
     if (ticketMyShare === null || ticketMyShare === undefined || ticketPartnerShare === null || ticketPartnerShare === undefined) {
-      const split = calculateProfitSplit({
-        price,
-        isPartner: Boolean(row.technician_is_partner),
-        categorySplitPercentage: row.category_split_percentage ?? 50.0
-      })
       ticketMyShare = split.myShare
       ticketPartnerShare = split.partnerShare
     }
 
+    totalPartsCost += split.partsCost
+    totalNetProfit += split.netProfit
+    if (split.isProvisional) provisionalTicketsCount++
+    if (split.isLoss) lossTicketsCount++
     totalMyShare += ticketMyShare
     totalPartnerShare += ticketPartnerShare
 
@@ -226,11 +245,15 @@ export function getFinancialReport(
       isPartner: Boolean(row.technician_is_partner),
       ticketsCount: 0,
       totalRevenue: 0,
+      partsCost: 0,
+      netProfit: 0,
       myShare: 0,
       partnerShare: 0
     }
     existingTech.ticketsCount += 1
     existingTech.totalRevenue += price
+    existingTech.partsCost += split.partsCost
+    existingTech.netProfit += split.netProfit
     existingTech.myShare += ticketMyShare
     existingTech.partnerShare += ticketPartnerShare
     techMap.set(techKey, existingTech)
@@ -243,41 +266,62 @@ export function getFinancialReport(
       splitPercentage: row.category_split_percentage ?? 50.0,
       ticketsCount: 0,
       totalRevenue: 0,
+      partsCost: 0,
+      netProfit: 0,
       myShare: 0,
       partnerShare: 0
     }
     existingCat.ticketsCount += 1
     existingCat.totalRevenue += price
+    existingCat.partsCost += split.partsCost
+    existingCat.netProfit += split.netProfit
     existingCat.myShare += ticketMyShare
     existingCat.partnerShare += ticketPartnerShare
     catMap.set(catId, existingCat)
 
+    // The raw cost / frozen percentage stay out of the list payload: it only needs the derived values
+    const {
+      parts_cost: _partsCost,
+      split_percentage_applied: _applied,
+      category_requires_parts_cost: _requires,
+      ...publicRow
+    } = row
     enrichedTickets.push({
-      ...row,
+      ...publicRow,
       my_share: ticketMyShare,
-      partner_share: ticketPartnerShare
+      partner_share: ticketPartnerShare,
+      net_profit: split.netProfit,
+      is_provisional: split.isProvisional,
+      is_loss: split.isLoss,
+      parts_cost_missing: split.isProvisional
     })
   }
 
   // Round all aggregate numbers cleanly
-  totalRevenue = Math.round(totalRevenue * 100) / 100
-  totalMyShare = Math.round(totalMyShare * 100) / 100
-  totalPartnerShare = Math.round(totalPartnerShare * 100) / 100
-  totalPaid = Math.round(totalPaid * 100) / 100
-  totalOutstandingDebt = Math.round(totalOutstandingDebt * 100) / 100
+  totalRevenue = roundMoney(totalRevenue)
+  totalPartsCost = roundMoney(totalPartsCost)
+  totalNetProfit = roundMoney(totalNetProfit)
+  totalMyShare = roundMoney(totalMyShare)
+  totalPartnerShare = roundMoney(totalPartnerShare)
+  totalPaid = roundMoney(totalPaid)
+  totalOutstandingDebt = roundMoney(totalOutstandingDebt)
 
   const technicianBreakdown = Array.from(techMap.values()).map((t) => ({
     ...t,
-    totalRevenue: Math.round(t.totalRevenue * 100) / 100,
-    myShare: Math.round(t.myShare * 100) / 100,
-    partnerShare: Math.round(t.partnerShare * 100) / 100
+    totalRevenue: roundMoney(t.totalRevenue),
+    partsCost: roundMoney(t.partsCost),
+    netProfit: roundMoney(t.netProfit),
+    myShare: roundMoney(t.myShare),
+    partnerShare: roundMoney(t.partnerShare)
   }))
 
   const categoryBreakdown = Array.from(catMap.values()).map((c) => ({
     ...c,
-    totalRevenue: Math.round(c.totalRevenue * 100) / 100,
-    myShare: Math.round(c.myShare * 100) / 100,
-    partnerShare: Math.round(c.partnerShare * 100) / 100
+    totalRevenue: roundMoney(c.totalRevenue),
+    partsCost: roundMoney(c.partsCost),
+    netProfit: roundMoney(c.netProfit),
+    myShare: roundMoney(c.myShare),
+    partnerShare: roundMoney(c.partnerShare)
   }))
 
   return {
@@ -285,11 +329,15 @@ export function getFinancialReport(
     startDate,
     endDate,
     totalRevenue,
+    totalPartsCost,
+    totalNetProfit,
     totalMyShare,
     totalPartnerShare,
     totalPaid,
     totalOutstandingDebt,
     completedTicketsCount,
+    provisionalTicketsCount,
+    lossTicketsCount,
     inProgressTicketsCount,
     readyTicketsCount,
     technicianBreakdown,

@@ -23,6 +23,10 @@ export interface Ticket {
   amount_paid: number
   amount_remaining: number
   status: TicketStatus
+  /** NULL = not entered yet; 0 = explicitly no cost. Shown to the owner only (never printed). */
+  parts_cost?: number | null
+  /** My percentage frozen at delivery (non-partner tickets); NULL before delivery / for the partner */
+  split_percentage_applied?: number | null
   my_share?: number | null
   partner_share?: number | null
 }
@@ -51,6 +55,8 @@ export interface RepairCategory {
   id: number
   name: string
   default_split_percentage: number
+  /** Tickets of this category should have a parts cost (the user decides in Settings) */
+  requires_parts_cost: boolean
 }
 
 export interface StatusLog {
@@ -104,6 +110,8 @@ export interface CreateTicketDTO {
     payment_type: PaymentType
     amount_paid: number
     technician_id: number
+    /** Parts cost; omitted/null = not entered yet */
+    parts_cost?: number | null
   }
   accessory_ids?: number[]
 }
@@ -139,6 +147,14 @@ export interface TicketListItem {
   created_at: string
   my_share?: number | null
   partner_share?: number | null
+  /** The category requires a parts cost and none was entered yet (the amount itself is never in lists) */
+  parts_cost_missing?: boolean
+  /** Net profit (price - cost); only filled by the financial report */
+  net_profit?: number
+  /** Report only: delivered with a cost still missing (profits not final) */
+  is_provisional?: boolean
+  /** Report only: cost exceeds the price */
+  is_loss?: boolean
   accessories?: string[]
   ready_at?: string | null
   is_overdue?: boolean
@@ -191,6 +207,8 @@ export interface TechnicianReportSummary {
   isPartner: boolean
   ticketsCount: number
   totalRevenue: number
+  partsCost: number
+  netProfit: number
   myShare: number
   partnerShare: number
 }
@@ -201,6 +219,8 @@ export interface CategoryReportSummary {
   splitPercentage: number
   ticketsCount: number
   totalRevenue: number
+  partsCost: number
+  netProfit: number
   myShare: number
   partnerShare: number
 }
@@ -210,11 +230,19 @@ export interface FinancialReportResult {
   startDate: string
   endDate: string
   totalRevenue: number
+  /** Sum of the parts costs of the delivered tickets in the period */
+  totalPartsCost: number
+  /** Revenue minus parts costs: the amount actually shared (myShare + partnerShare) */
+  totalNetProfit: number
   totalMyShare: number
   totalPartnerShare: number
   totalPaid: number
   totalOutstandingDebt: number
   completedTicketsCount: number
+  /** Delivered tickets whose category requires a cost that was not entered: profits not final */
+  provisionalTicketsCount: number
+  /** Delivered tickets sold at a loss (cost > price) */
+  lossTicketsCount: number
   inProgressTicketsCount: number
   readyTicketsCount: number
   technicianBreakdown: TechnicianReportSummary[]
