@@ -396,8 +396,13 @@ export function getTicketById(db: Database.Database, ticketId: number): TicketFu
   `).get(ticketId) as Ticket | undefined
   if (!ticket) return null
 
-  const customer = db.prepare(`SELECT * FROM Customer WHERE id = ?`).get(ticket.customer_id) as import('../../shared/types').Customer
-  const device = db.prepare(`SELECT * FROM TicketDevice WHERE ticket_id = ?`).get(ticket.id) as import('../../shared/types').TicketDevice
+  const customer = db.prepare(`SELECT * FROM Customer WHERE id = ?`).get(ticket.customer_id) as import('../../shared/types').Customer | undefined
+  const device = db.prepare(`SELECT * FROM TicketDevice WHERE ticket_id = ?`).get(ticket.id) as import('../../shared/types').TicketDevice | undefined
+  // The UI dereferences customer.name / device.brand directly: fail with a clear message
+  // (surfaced as { success:false, error } by the IPC layer) instead of handing it undefined.
+  if (!customer || !device) {
+    throw new Error('بيانات التذكرة ناقصة (الزبون/الجهاز)، لا يمكن عرضها.')
+  }
   const category = (db.prepare(`SELECT * FROM RepairCategory WHERE id = ?`).get(ticket.repair_category_id) as import('../../shared/types').RepairCategory | undefined) || null
 
   const accessories = db.prepare(`

@@ -41,6 +41,9 @@ function AppContent(): React.JSX.Element {
         setSelectedTicketDetails(res.data)
         setIsTicketDetailsOpen(true)
         setScanAlert(null)
+      } else if (!res.success && res.error) {
+        setScanAlert(res.error)
+        setTimeout(() => setScanAlert(null), 4000)
       } else {
         setScanAlert(`${t.scanner.ticketNotFound}: ${scannedBarcode}`)
         setTimeout(() => setScanAlert(null), 4000)
@@ -67,6 +70,9 @@ function AppContent(): React.JSX.Element {
       if (res.success && res.data) {
         setSelectedTicketDetails(res.data)
         setIsTicketDetailsOpen(true)
+      } else if (!res.success && res.error) {
+        setScanAlert(res.error)
+        setTimeout(() => setScanAlert(null), 4000)
       }
     } catch (err) {
       console.error('Failed to open ticket details:', err)
