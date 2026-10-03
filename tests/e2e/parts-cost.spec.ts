@@ -434,3 +434,21 @@ test('(f) the cost never reaches the label: print preview from the new-ticket ba
   await l.page.getByTestId('print-close').click()
   await l.page.getByTestId('print-submit').waitFor({ state: 'hidden' })
 })
+
+// ---------------------------------------------------------------------------------------------
+test('(d) reports: the ledger with its net-profit column still fits at 1280 and 1440 (no horizontal scroll)', async () => {
+  await go('reports')
+  await l.page.getByTestId('period-all_time').click()
+  for (const width of [1280, 1440]) {
+    await l.app.evaluate(({ BrowserWindow }, w) => BrowserWindow.getAllWindows()[0].setSize(w, 800), width)
+    await expect(l.page.locator('tbody tr').first()).toBeVisible()
+    await expect
+      .poll(() =>
+        l.page.evaluate(() => {
+          const wrap = document.querySelector('table')!.parentElement!
+          return wrap.scrollWidth <= wrap.clientWidth && document.documentElement.scrollWidth <= document.documentElement.clientWidth
+        })
+      )
+      .toBe(true)
+  }
+})

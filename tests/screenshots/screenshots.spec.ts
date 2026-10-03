@@ -194,6 +194,13 @@ for (const theme of THEMES) {
           await page.getByTestId(`settings-tab-${tab}`).click()
           await shot(page, `settings-${tab}`, theme, lang, 600)
         }
+        // The add / edit dialog of a category that requires a parts cost (switch on + example with a cost)
+        await page.getByTestId('settings-tab-categories').click()
+        await page.getByTestId('settings-category-edit').first().click()
+        await page.getByTestId('settings-category-dialog').waitFor()
+        await shot(page, 'settings-category-dialog', theme, lang, 500)
+        await page.keyboard.press('Escape')
+        await page.getByTestId('settings-category-dialog').waitFor({ state: 'hidden' })
 
         // --- Dialogs
         await nav(page, 'tickets')
