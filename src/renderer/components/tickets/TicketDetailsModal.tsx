@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useI18n } from '../../lib/i18n'
 import { Button } from '../ui/Button'
@@ -62,6 +62,25 @@ export function TicketDetailsModal({
   const [confirmBarcode, setConfirmBarcode] = useState('')
   const [deleting, setDeleting] = useState(false)
 
+  // The modal stays mounted while closed, so every piece of internal state is reset whenever it
+  // closes/opens or a different ticket is displayed. `sessionRef` also lets in-flight async
+  // handlers notice they belong to a previous ticket and skip touching the new one's state.
+  const displayedTicketId = ticketDetails?.ticket.id ?? null
+  const sessionRef = useRef(0)
+  useEffect(() => {
+    sessionRef.current += 1
+    setLoading(false)
+    setErrorMessage(null)
+    setSuccessMessage(null)
+    setIsDeliveryDialogOpen(false)
+    setSettlementType('full')
+    setCustomAdditionalPaid('')
+    setIsDeleteDialogOpen(false)
+    setDeleteStep(1)
+    setConfirmBarcode('')
+    setDeleting(false)
+  }, [isOpen, displayedTicketId])
+
   const openDeleteDialog = (): void => {
     setDeleteStep(1)
     setConfirmBarcode('')
@@ -71,21 +90,25 @@ export function TicketDetailsModal({
 
   const handleDeleteTicket = async (): Promise<void> => {
     if (!ticketDetails) return
+    const session = sessionRef.current
+    const isCurrent = (): boolean => sessionRef.current === session
     setDeleting(true)
     setErrorMessage(null)
     try {
       const res = await window.api.deleteTicket(ticketDetails.ticket.id)
       if (res.success) {
-        setIsDeleteDialogOpen(false)
-        onClose()
+        if (isCurrent()) {
+          setIsDeleteDialogOpen(false)
+          onClose()
+        }
         onStatusUpdated?.()
-      } else {
+      } else if (isCurrent()) {
         setErrorMessage(res.error || t.deleteTicket.deleteError)
       }
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : t.deleteTicket.deleteError)
+      if (isCurrent()) setErrorMessage(err instanceof Error ? err.message : t.deleteTicket.deleteError)
     } finally {
-      setDeleting(false)
+      if (isCurrent()) setDeleting(false)
     }
   }
 
@@ -152,6 +175,8 @@ export function TicketDetailsModal({
   }
 
   const handleUpdateStatus = async (newStatus: TicketStatus, paymentUpdate?: { amount_paid?: number; payment_type?: PaymentType }): Promise<void> => {
+    const session = sessionRef.current
+    const isCurrent = (): boolean => sessionRef.current === session
     setLoading(true)
     setErrorMessage(null)
     setSuccessMessage(null)
@@ -165,19 +190,21 @@ export function TicketDetailsModal({
 
       const res = await window.api.updateTicketStatus(dto)
       if (res.success) {
-        setSuccessMessage(t.lifecycle.statusUpdateSuccess)
-        setIsDeliveryDialogOpen(false)
+        if (isCurrent()) {
+          setSuccessMessage(t.lifecycle.statusUpdateSuccess)
+          setIsDeliveryDialogOpen(false)
+        }
         if (onStatusUpdated) {
           onStatusUpdated()
         }
-      } else {
+      } else if (isCurrent()) {
         setErrorMessage(res.error || 'فشل في تحديث الحالة')
       }
     } catch (err) {
       console.error('Failed to update status:', err)
-      setErrorMessage(err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الحالة')
+      if (isCurrent()) setErrorMessage(err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الحالة')
     } finally {
-      setLoading(false)
+      if (isCurrent()) setLoading(false)
     }
   }
 
@@ -196,8 +223,16 @@ export function TicketDetailsModal({
           payment_type: 'credit'
         }
       } else if (settlementType === 'partial') {
-        const additional = Number(customAdditionalPaid) || 0
-        const newTotalPaid = Math.min(ticket.price, ticket.amount_paid + additional)
+        // Empty means "nothing extra"; anything non-numeric or negative is rejected so the paid
+        // amount can never drop below what was already paid.
+        const raw = customAdditionalPaid.trim()
+        const additional = raw === '' ? 0 : Number(raw)
+        if (!Number.isFinite(additional) || additional < 0) {
+          setSuccessMessage(null)
+          setErrorMessage(t.lifecycle.invalidAdditionalAmount)
+          return
+        }
+        const newTotalPaid = Math.max(ticket.amount_paid, Math.min(ticket.price, ticket.amount_paid + additional))
         paymentUpdate = {
           amount_paid: newTotalPaid,
           payment_type: newTotalPaid >= ticket.price ? 'cash' : 'credit'
@@ -253,13 +288,13 @@ export function TicketDetailsModal({
             <CardContent className="space-y-5 pt-5 overflow-y-auto flex-1">
               {/* Error or Success alerts */}
               {errorMessage && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs font-semibold flex items-center gap-2">
+                <div data-testid="details-error" className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs font-semibold flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0" />
                   <span>{errorMessage}</span>
                 </div>
               )}
               {successMessage && (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2">
+                <div data-testid="details-success" className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-emerald-600 flex-shrink-0" />
                   <span>{successMessage}</span>
                 </div>
@@ -445,6 +480,7 @@ export function TicketDetailsModal({
                           <input
                             type="radio"
                             name="settlement"
+                            data-testid="settle-full"
                             checked={settlementType === 'full'}
                             onChange={() => setSettlementType('full')}
                             className="h-4 w-4 text-blue-600"
@@ -462,6 +498,7 @@ export function TicketDetailsModal({
                           <input
                             type="radio"
                             name="settlement"
+                            data-testid="settle-credit"
                             checked={settlementType === 'credit'}
                             onChange={() => setSettlementType('credit')}
                             className="h-4 w-4 text-blue-600"
@@ -479,6 +516,7 @@ export function TicketDetailsModal({
                           <input
                             type="radio"
                             name="settlement"
+                            data-testid="settle-partial"
                             checked={settlementType === 'partial'}
                             onChange={() => setSettlementType('partial')}
                             className="h-4 w-4 text-blue-600"
@@ -492,6 +530,7 @@ export function TicketDetailsModal({
                                   min="0"
                                   max={ticket.amount_remaining}
                                   step="100"
+                                  data-testid="settle-partial-amount"
                                   value={customAdditionalPaid}
                                   onChange={(e) => setCustomAdditionalPaid(e.target.value)}
                                   placeholder="أدخل المبلغ الإضافي المدفوع..."
@@ -705,6 +744,7 @@ export function TicketDetailsModal({
                 <Button
                   type="button"
                   variant="outline"
+                  data-testid="details-delete"
                   onClick={openDeleteDialog}
                   className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 hover:border-red-300 font-semibold"
                 >
@@ -850,6 +890,7 @@ export function TicketDetailsModal({
                           <Input
                             type="text"
                             dir="ltr"
+                            data-testid="delete-confirm-input"
                             value={confirmBarcode}
                             onChange={(e) => setConfirmBarcode(e.target.value)}
                             placeholder={t.deleteTicket.step3Placeholder}
@@ -871,6 +912,7 @@ export function TicketDetailsModal({
                       type="button"
                       variant="outline"
                       disabled={deleting}
+                      data-testid="delete-back"
                       onClick={() => {
                         if (deleteStep > 1) {
                           setDeleteStep((prev) => (prev - 1) as 1 | 2 | 3)
@@ -885,6 +927,7 @@ export function TicketDetailsModal({
                     {deleteStep < 3 ? (
                       <Button
                         type="button"
+                        data-testid="delete-next"
                         onClick={() => setDeleteStep((prev) => (prev + 1) as 1 | 2 | 3)}
                         className="bg-red-600 hover:bg-red-700 text-white font-bold"
                       >
