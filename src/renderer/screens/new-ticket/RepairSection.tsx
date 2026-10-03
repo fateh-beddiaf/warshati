@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Wrench } from 'lucide-react'
 import { useI18n } from '../../lib/i18n'
 import { SegmentedControl } from '../../components/ui/SegmentedControl'
+import { MaskedAmountInput } from '../../components/parts-cost/MaskedAmountInput'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/Select'
 import { Field } from './Field'
 import { SectionCard } from './SectionCard'
@@ -49,6 +50,20 @@ export function RepairSection({ form }: { form: NewTicketForm }): React.JSX.Elem
             onChange={(v) => form.setTechnicianId(Number(v))}
           />
         </Field>
+
+        {/* Shown only for categories that require a parts cost. Masked: the customer may see the screen. */}
+        {form.requiresPartsCost && (
+          <Field label={t.ui.partsCost.newTicket.label} hint={t.ui.partsCost.newTicket.optional} className="md:col-span-1">
+            <MaskedAmountInput
+              testId="parts-cost-input"
+              ariaLabel={t.ui.partsCost.newTicket.label}
+              placeholder={t.ui.partsCost.newTicket.placeholder}
+              value={form.partsCost}
+              onChange={form.setPartsCost}
+              error={form.showErrors && form.costInvalid}
+            />
+          </Field>
+        )}
       </div>
     </SectionCard>
   )

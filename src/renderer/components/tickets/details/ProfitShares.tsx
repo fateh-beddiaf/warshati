@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { PieChart, Sparkles } from 'lucide-react'
 import { useI18n } from '../../../lib/i18n'
-import { formatCurrency } from '../../../lib/utils'
+import { cn, formatCurrency } from '../../../lib/utils'
 import { AnimatedNumber } from '../../AnimatedNumber'
 import type { DisplayedProfitSplit } from './profitSplit'
 
@@ -12,9 +12,11 @@ interface ShareCardProps {
   caption: string
   tone: 'owner' | 'partner'
   testId: string
+  /** The cost exceeds the price: the share is negative and shown in the danger colour */
+  loss?: boolean
 }
 
-function ShareCard({ label, percentage, amount, caption, tone, testId }: ShareCardProps): React.JSX.Element {
+function ShareCard({ label, percentage, amount, caption, tone, testId, loss }: ShareCardProps): React.JSX.Element {
   const owner = tone === 'owner'
   return (
     <div
@@ -37,7 +39,13 @@ function ShareCard({ label, percentage, amount, caption, tone, testId }: ShareCa
           {percentage}%
         </span>
       </div>
-      <p className={owner ? 'tabular text-3xl font-extrabold leading-tight text-primary' : 'tabular text-3xl font-extrabold leading-tight text-primary-to'}>
+      <p
+        data-testid={`${testId}-amount`}
+        className={cn(
+          'tabular text-3xl font-extrabold leading-tight',
+          loss ? 'text-danger' : owner ? 'text-primary' : 'text-primary-to'
+        )}
+      >
         <AnimatedNumber value={amount} format={formatCurrency} />
       </p>
       <p className="tabular text-xs text-muted-foreground">{caption}</p>
@@ -49,9 +57,10 @@ function ShareCard({ label, percentage, amount, caption, tone, testId }: ShareCa
  * The financially sensitive moment of closing a ticket: both shares shown LARGE before the
  * final confirmation (frontend-design rule for the delivery screen).
  */
-export function ProfitShares({ split, price }: { split: DisplayedProfitSplit; price: number }): React.JSX.Element {
+export function ProfitShares({ split }: { split: DisplayedProfitSplit }): React.JSX.Element {
   const { t } = useI18n()
-  const caption = t.ui.details.shareCaption.replace('{total}', formatCurrency(price))
+  // The shares are taken from the NET profit (price - parts cost)
+  const caption = t.ui.partsCost.details.sharesCaption.replace('{net}', formatCurrency(split.netProfit))
 
   return (
     <section data-testid="profit-shares" className="space-y-3 rounded-xl border border-border bg-muted/40 p-4">
@@ -81,6 +90,7 @@ export function ProfitShares({ split, price }: { split: DisplayedProfitSplit; pr
           percentage={split.myPercentage}
           amount={split.myShare}
           caption={caption}
+          loss={split.isLoss}
         />
         <ShareCard
           testId="share-partner"
@@ -89,6 +99,7 @@ export function ProfitShares({ split, price }: { split: DisplayedProfitSplit; pr
           percentage={split.partnerPercentage}
           amount={split.partnerShare}
           caption={caption}
+          loss={split.isLoss}
         />
       </div>
     </section>

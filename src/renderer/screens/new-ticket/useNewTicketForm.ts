@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useI18n } from '../../lib/i18n'
 import type { AutocompleteOption } from '../../components/ui/Autocomplete'
 import { generateShortLabel } from '../../../shared/device-utils'
+import { isCostLoss, parseCostInput } from '../../../shared/parts-cost'
 import type { AppMetadata, Brand, Customer, CreateTicketDTO, Model, PaymentType } from '../../../shared/types'
 
 /** Runs customer search ~250ms after the query stops changing; stale responses are dropped. */
@@ -44,7 +45,7 @@ export function useNewTicketForm() {
   const [existingCustomers, setExistingCustomers] = useState<Customer[]>([])
   const [phoneCandidates, setPhoneCandidates] = useState<Customer[]>([])
   const [loading, setLoading] = useState(false)
-  const [successInfo, setSuccessInfo] = useState<{ barcode: string; ticketId: number } | null>(null)
+  const [successInfo, setSuccessInfo] = useState<{ barcode: string; ticketId: number; withoutCost: boolean } | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   // After a failed submit the missing required fields are highlighted
   const [showErrors, setShowErrors] = useState(false)
@@ -68,6 +69,9 @@ export function useNewTicketForm() {
   const [paymentType, setPaymentType] = useState<PaymentType>('cash')
   const [technicianId, setTechnicianId] = useState<number | null>(null)
   const [selectedAccessoryIds, setSelectedAccessoryIds] = useState<number[]>([])
+  // Parts cost: text as typed (masked in the UI). Only meaningful when the category requires one.
+  const [partsCost, setPartsCost] = useState<string>('')
+  const [confirmLossOpen, setConfirmLossOpen] = useState(false)
 
   // Load initial metadata and customers list
   useEffect(() => {
@@ -103,6 +107,13 @@ export function useNewTicketForm() {
       setShortLabel(generated)
     }
   }, [brand, model, isShortLabelEdited])
+
+  // Does the chosen category require a parts cost? (the field is shown only then)
+  const requiresPartsCost = Boolean(
+    metadata?.repairCategories.find((c) => c.id === categoryId)?.requires_parts_cost
+  )
+  const parsedCost = requiresPartsCost ? parseCostInput(partsCost) : ({ kind: 'empty' } as const)
+  const costInvalid = parsedCost.kind === 'invalid'
 
   // Compute remaining amount
   const numPrice = Number(price) || 0
@@ -216,6 +227,8 @@ export function useNewTicketForm() {
     setAmountPaid('')
     setPaymentType('cash')
     setSelectedAccessoryIds([])
+    setPartsCost('')
+    setConfirmLossOpen(false)
     setSuccessInfo(null)
     setErrorMessage(null)
     setShowErrors(false)
@@ -231,8 +244,25 @@ export function useNewTicketForm() {
       setErrorMessage(t.newTicket.requiredFieldsError)
       return
     }
+    if (costInvalid) {
+      setShowErrors(true)
+      setErrorMessage(t.ui.partsCost.field.invalid)
+      return
+    }
     setShowErrors(false)
 
+    // A cost above the price is a loss: allowed, but only after an explicit confirmation
+    if (parsedCost.kind === 'ok' && isCostLoss(parsedCost.value, numPrice)) {
+      setConfirmLossOpen(true)
+      return
+    }
+    await submitTicket()
+  }
+
+  /** Builds the DTO and saves. Validation (and the loss confirmation) happened before. */
+  const submitTicket = async (): Promise<void> => {
+    if (!categoryId || !technicianId) return
+    setConfirmLossOpen(false)
     setLoading(true)
 
     const dto: CreateTicketDTO = {
@@ -254,7 +284,9 @@ export function useNewTicketForm() {
         price: numPrice,
         payment_type: effectivePaymentType,
         amount_paid: numPaid,
-        technician_id: technicianId
+        technician_id: technicianId,
+        // empty = not entered yet (NULL), never 0: the ticket stays flagged until the cost is added
+        parts_cost: parsedCost.kind === 'ok' ? parsedCost.value : null
       },
       accessory_ids: selectedAccessoryIds
     }
@@ -264,7 +296,8 @@ export function useNewTicketForm() {
       if (res.success && res.data) {
         setSuccessInfo({
           barcode: res.data.barcode,
-          ticketId: res.data.ticketId
+          ticketId: res.data.ticketId,
+          withoutCost: requiresPartsCost && parsedCost.kind === 'empty'
         })
       } else {
         setErrorMessage(res.error || t.newTicket.errorTitle)
@@ -331,8 +364,16 @@ export function useNewTicketForm() {
     numPaid,
     calculatedRemaining,
     effectivePaymentType,
+    // parts cost
+    requiresPartsCost,
+    partsCost,
+    setPartsCost,
+    costInvalid,
+    confirmLossOpen,
+    setConfirmLossOpen,
     // actions
     handleSubmit,
+    submitTicket,
     resetForm
   }
 }

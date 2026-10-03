@@ -6,6 +6,7 @@ import { Badge } from '../../../components/ui/Badge'
 import { listItemProps } from '../../../lib/motion'
 import type { RepairCategory } from '../../../../shared/types'
 import { RowActions } from '../shared/RowActions'
+import { CategoryCostSwitch } from './CategoryCostSwitch'
 
 /** Keeps the shown split inside 0..100 even if a stored value is malformed. */
 export function clampSplit(value: number): number {
@@ -17,9 +18,11 @@ interface CategoryCardProps {
   index: number
   onEdit: (category: RepairCategory) => void
   onDelete: (category: RepairCategory) => void
+  /** Immediately saves the "requires a parts cost" switch of this category */
+  onToggleRequiresCost: (category: RepairCategory, requires: boolean) => void
 }
 
-export function CategoryCard({ category, index, onEdit, onDelete }: CategoryCardProps): React.JSX.Element {
+export function CategoryCard({ category, index, onEdit, onDelete, onToggleRequiresCost }: CategoryCardProps): React.JSX.Element {
   const { t } = useI18n()
   const mine = clampSplit(category.default_split_percentage)
   const partner = 100 - mine
@@ -38,6 +41,11 @@ export function CategoryCard({ category, index, onEdit, onDelete }: CategoryCard
                 <Badge variant="success" className="tabular-nums">
                   {t.settings.categories.partnerShare.replace('{percent}', String(partner))}
                 </Badge>
+                {category.requires_parts_cost && (
+                  <Badge variant="warning" data-testid="settings-category-cost-badge">
+                    {t.ui.partsCost.settings.badge}
+                  </Badge>
+                )}
               </div>
             </div>
             <RowActions onEdit={() => onEdit(category)} onDelete={() => onDelete(category)} testIdPrefix="settings-category" />
@@ -56,6 +64,14 @@ export function CategoryCard({ category, index, onEdit, onDelete }: CategoryCard
                 {t.profit.partnerShareLabel}: <span className="tabular-nums">{partner}%</span>
               </span>
             </div>
+          </div>
+
+          <div className="mt-4 border-t border-border pt-3">
+            <CategoryCostSwitch
+              compact
+              checked={category.requires_parts_cost}
+              onCheckedChange={(checked) => onToggleRequiresCost(category, checked)}
+            />
           </div>
         </CardContent>
       </Card>

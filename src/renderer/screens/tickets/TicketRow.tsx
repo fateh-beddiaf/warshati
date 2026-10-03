@@ -1,12 +1,13 @@
 import * as React from 'react'
 import { motion } from 'framer-motion'
-import { Printer, Smartphone } from 'lucide-react'
+import { CircleDollarSign, Printer, Smartphone } from 'lucide-react'
 import { useI18n } from '../../lib/i18n'
 import { cn, formatCurrency, formatDateParts } from '../../lib/utils'
 import { listItemProps } from '../../lib/motion'
 import { Button } from '../../components/ui/Button'
 import { TableCell } from '../../components/ui/Table'
 import { StatusBadge } from '../../components/tickets/StatusBadge'
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/Tooltip'
 import type { TicketListItem } from '../../../shared/types'
 import { Mono } from '../../components/ui/Mono'
 
@@ -80,7 +81,25 @@ export function TicketRow({ ticket, index, onOpen, onPrint }: TicketRowProps): R
       {/* Price + remaining */}
       <TableCell className="px-2">
         <div className="flex flex-col items-start gap-1">
-          <span className="font-bold text-foreground tabular">{formatCurrency(ticket.price)}</span>
+          <span className="flex items-center gap-1.5">
+            <span className="font-bold text-foreground tabular">{formatCurrency(ticket.price)}</span>
+            {/* Cost still missing: an icon only (never the amount) */}
+            {ticket.parts_cost_missing && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    data-testid="row-missing-cost"
+                    role="img"
+                    aria-label={t.ui.partsCost.tickets.missingAria}
+                    className="inline-flex text-warning"
+                  >
+                    <CircleDollarSign className="h-4 w-4" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{t.ui.partsCost.tickets.missingTooltip}</TooltipContent>
+              </Tooltip>
+            )}
+          </span>
           {ticket.amount_remaining > 0 ? (
             <span className="rounded border border-warning/25 bg-warning-soft px-2 py-0.5 text-xs font-bold text-warning-soft-foreground tabular">
               {formatCurrency(ticket.amount_remaining)}

@@ -4,7 +4,7 @@ import type { TicketListItem } from '../../../shared/types'
 /** Delay between the last keystroke in the search box and the list query */
 export const SEARCH_DEBOUNCE_MS = 250
 
-export type StatusFilter = 'all' | 'in_progress' | 'ready' | 'overdue' | 'delivered'
+export type StatusFilter = 'all' | 'in_progress' | 'ready' | 'overdue' | 'delivered' | 'missing_cost'
 
 export interface TicketsListState {
   tickets: TicketListItem[]
@@ -42,9 +42,10 @@ export function useTicketsList(refreshKey: number): TicketsListState {
     const requestId = ++latestRequestRef.current
     setLoading(true)
     try {
+      // 'overdue' and 'missing_cost' are derived filters: fetch the matching statuses, narrow here
       const ticketsRes = await window.api.getTicketsList(
         debouncedQuery,
-        statusFilter === 'overdue' ? 'ready' : statusFilter
+        statusFilter === 'overdue' ? 'ready' : statusFilter === 'missing_cost' ? 'all' : statusFilter
       )
 
       // Ignore out-of-order responses (fast typing / quick filter switches)
@@ -53,6 +54,8 @@ export function useTicketsList(refreshKey: number): TicketsListState {
       if (ticketsRes.success && ticketsRes.data) {
         if (statusFilter === 'overdue') {
           setTickets(ticketsRes.data.filter((t) => t.is_overdue))
+        } else if (statusFilter === 'missing_cost') {
+          setTickets(ticketsRes.data.filter((t) => t.parts_cost_missing))
         } else {
           setTickets(ticketsRes.data)
         }

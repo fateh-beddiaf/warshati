@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { CheckCircle, CreditCard } from 'lucide-react'
+import { AlertTriangle, CheckCircle, CreditCard, TrendingDown } from 'lucide-react'
 import { useI18n } from '../../../lib/i18n'
 import { cn, formatCurrency } from '../../../lib/utils'
 import { Button } from '../../ui/Button'
@@ -91,7 +91,31 @@ export function DeliveryDialog({
           </div>
         </DialogHeader>
 
-        <ProfitShares split={state.profitSplit} price={ticket.price} />
+        <ProfitShares split={state.profitSplit} />
+
+        {state.profitSplit.isProvisional && (
+          <div
+            role="status"
+            data-testid="delivery-provisional-warning"
+            className="flex items-start gap-2.5 rounded-xl border border-warning/30 bg-warning-soft p-3 text-warning-soft-foreground"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="space-y-0.5 text-xs">
+              <p className="font-bold">{t.ui.partsCost.details.deliveryProvisionalTitle}</p>
+              <p>{t.ui.partsCost.details.deliveryProvisionalBody}</p>
+            </div>
+          </div>
+        )}
+        {state.profitSplit.isLoss && (
+          <div
+            role="status"
+            data-testid="delivery-loss-note"
+            className="flex items-start gap-2.5 rounded-xl border border-danger/30 bg-danger-soft p-3 text-xs font-semibold text-danger-soft-foreground"
+          >
+            <TrendingDown className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{t.ui.partsCost.details.deliveryLossNote}</span>
+          </div>
+        )}
 
         {ticket.amount_remaining > 0 ? (
           <div className="space-y-3">

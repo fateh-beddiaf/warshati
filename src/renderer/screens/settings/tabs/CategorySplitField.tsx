@@ -6,20 +6,27 @@ import { clampSplit } from './CategoryCard'
 
 /** Reference ticket price used for the live split preview. */
 const PREVIEW_PRICE = 10000
+/** Reference parts cost used by the preview while the category requires a parts cost. */
+const PREVIEW_COST = 6000
 
 const fmt = (n: number): string => formatAmount(n)
 
 interface CategorySplitFieldProps {
   value: number
   onChange: (value: number) => void
+  /** The category requires a parts cost: the preview splits the NET profit of an example with a cost */
+  requiresPartsCost?: boolean
 }
 
 /** Owner/partner split slider with a live preview for a 10,000 ticket. */
-export function CategorySplitField({ value, onChange }: CategorySplitFieldProps): React.JSX.Element {
+export function CategorySplitField({ value, onChange, requiresPartsCost = false }: CategorySplitFieldProps): React.JSX.Element {
   const { t } = useI18n()
   const id = React.useId()
   const owner = clampSplit(value)
   const partner = 100 - owner
+  const cost = requiresPartsCost ? PREVIEW_COST : 0
+  const net = PREVIEW_PRICE - cost
+  const costText = t.ui.partsCost.settings
 
   return (
     <div className="space-y-3">
@@ -44,16 +51,26 @@ export function CategorySplitField({ value, onChange }: CategorySplitFieldProps)
         className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary"
       />
       <div className="space-y-1 rounded-lg border border-border bg-muted/50 p-3 text-xs">
-        <span className="block font-bold text-muted-foreground">{t.settings.categories.preview}</span>
+        <span className="block font-bold text-muted-foreground">
+          {requiresPartsCost ? costText.previewTitle : t.settings.categories.preview}
+        </span>
+        {requiresPartsCost && (
+          <span data-testid="settings-category-preview-line" className="block tabular-nums text-foreground">
+            {costText.previewLine
+              .replace('{price}', `${fmt(PREVIEW_PRICE)} ${t.common.currency}`)
+              .replace('{cost}', `${fmt(cost)} ${t.common.currency}`)
+              .replace('{net}', `${fmt(net)} ${t.common.currency}`)}
+          </span>
+        )}
         <div className="flex flex-wrap justify-between gap-2 font-bold tabular-nums">
-          <span className="text-primary">
+          <span className="text-primary" data-testid="settings-category-preview-owner">
             {t.ui.settings.categories.previewOwner
-              .replace('{amount}', fmt(PREVIEW_PRICE * (owner / 100)))
+              .replace('{amount}', fmt(net * (owner / 100)))
               .replace('{currency}', t.common.currency)}
           </span>
-          <span className="text-success-soft-foreground">
+          <span className="text-success-soft-foreground" data-testid="settings-category-preview-partner">
             {t.ui.settings.categories.previewPartner
-              .replace('{amount}', fmt(PREVIEW_PRICE * (partner / 100)))
+              .replace('{amount}', fmt(net * (partner / 100)))
               .replace('{currency}', t.common.currency)}
           </span>
         </div>

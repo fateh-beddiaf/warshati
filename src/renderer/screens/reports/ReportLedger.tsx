@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { FileSpreadsheet, FileX } from 'lucide-react'
+import { FileSpreadsheet, FileX, Hourglass, TrendingDown } from 'lucide-react'
 import { useI18n } from '../../lib/i18n'
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
@@ -14,7 +14,7 @@ import {
   TableRow
 } from '../../components/ui/Table'
 import { StatusBadge } from '../../components/tickets/StatusBadge'
-import { formatCurrency, formatDate } from '../../lib/utils'
+import { cn, formatCurrency, formatDate } from '../../lib/utils'
 import type { TicketListItem } from '../../../shared/types'
 import { Mono } from '../../components/ui/Mono'
 
@@ -57,6 +57,7 @@ export function ReportLedger({ tickets, initialLoading, onOpenTicketDetails }: R
               <TableHead className="px-3">{t.reports.table.category}</TableHead>
               <TableHead className="px-3">{t.reports.table.technician}</TableHead>
               <TableHead className="px-3">{t.reports.table.price}</TableHead>
+              <TableHead className="px-3">{t.ui.partsCost.reports.netColumn}</TableHead>
               <TableHead className="px-3 text-primary">{t.reports.table.myShare}</TableHead>
               <TableHead className="px-3 text-primary-to">{t.reports.table.partnerShare}</TableHead>
               <TableHead className="px-3">{t.reports.table.paymentStatus}</TableHead>
@@ -101,10 +102,31 @@ export function ReportLedger({ tickets, initialLoading, onOpenTicketDetails }: R
                 <TableCell className="px-3 py-3 text-xs font-extrabold tabular text-foreground">
                   {formatCurrency(tItem.price)}
                 </TableCell>
-                <TableCell className="px-3 py-3 text-xs font-extrabold tabular text-primary">
+                <TableCell className="px-3 py-3 text-xs font-extrabold tabular" data-testid="ledger-net">
+                  <span className={cn('block', tItem.is_loss ? 'text-danger' : 'text-foreground')}>
+                    {formatCurrency(tItem.net_profit ?? tItem.price)}
+                  </span>
+                  {tItem.is_provisional && (
+                    <Badge variant="warning" data-testid="ledger-provisional" className="mt-1 gap-1 px-1.5 py-0 text-[10px]">
+                      <Hourglass className="h-3 w-3" />
+                      {t.ui.partsCost.reports.provisionalBadge}
+                    </Badge>
+                  )}
+                  {tItem.is_loss && (
+                    <Badge variant="destructive" data-testid="ledger-loss" className="mt-1 gap-1 px-1.5 py-0 text-[10px]">
+                      <TrendingDown className="h-3 w-3" />
+                      {t.ui.partsCost.reports.lossBadge}
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell
+                  className={cn('px-3 py-3 text-xs font-extrabold tabular', (tItem.my_share ?? 0) < 0 ? 'text-danger' : 'text-primary')}
+                >
                   {formatCurrency(tItem.my_share ?? 0)}
                 </TableCell>
-                <TableCell className="px-3 py-3 text-xs font-extrabold tabular text-primary-to">
+                <TableCell
+                  className={cn('px-3 py-3 text-xs font-extrabold tabular', (tItem.partner_share ?? 0) < 0 ? 'text-danger' : 'text-primary-to')}
+                >
                   {formatCurrency(tItem.partner_share ?? 0)}
                 </TableCell>
                 <TableCell className="px-3 py-3">

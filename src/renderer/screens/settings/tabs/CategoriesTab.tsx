@@ -16,6 +16,7 @@ import { DeleteConfirmDialog } from '../shared/DeleteConfirmDialog'
 import { ListSkeleton } from '../shared/ListSkeleton'
 import { CategoryCard } from './CategoryCard'
 import { CategorySplitField } from './CategorySplitField'
+import { CategoryCostSwitch } from './CategoryCostSwitch'
 
 const DEFAULT_SPLIT = 50
 
@@ -23,6 +24,7 @@ export function CategoriesTab({ data, loading, reload, notify }: SettingsTabProp
   const { t } = useI18n()
   const form = useEntityForm<RepairCategory>()
   const [split, setSplit] = useState<number>(DEFAULT_SPLIT)
+  const [requiresCost, setRequiresCost] = useState(false)
   const m = t.ui.settings.msg
 
   const del = useDeleteFlow<RepairCategory>({
@@ -37,10 +39,27 @@ export function CategoriesTab({ data, loading, reload, notify }: SettingsTabProp
   const openCreate = (): void => {
     form.openCreate()
     setSplit(DEFAULT_SPLIT)
+    setRequiresCost(false)
   }
   const openEdit = (cat: RepairCategory): void => {
     form.openEdit(cat)
     setSplit(cat.default_split_percentage)
+    setRequiresCost(cat.requires_parts_cost)
+  }
+
+  /** The switch on a card saves immediately (name and split stay as they are). */
+  const toggleRequiresCost = async (cat: RepairCategory, requires: boolean): Promise<void> => {
+    try {
+      const res = await window.api.updateRepairCategory(cat.id, cat.name, cat.default_split_percentage, requires)
+      if (res.success) {
+        notify('success', requires ? t.ui.partsCost.settings.enabledToast : t.ui.partsCost.settings.disabledToast)
+        await reload()
+      } else {
+        notify('error', res.error || t.ui.partsCost.settings.toggleFailed)
+      }
+    } catch (err) {
+      notify('error', err instanceof Error ? err.message : t.ui.settings.unexpectedError)
+    }
   }
 
   const handleSave = async (): Promise<void> => {
@@ -49,8 +68,8 @@ export function CategoriesTab({ data, loading, reload, notify }: SettingsTabProp
     form.setSaving(true)
     await runSave({
       isEditing: !!form.editing,
-      update: () => window.api.updateRepairCategory(form.editing!.id, name, split),
-      add: () => window.api.addRepairCategory(name, split),
+      update: () => window.api.updateRepairCategory(form.editing!.id, name, split, requiresCost),
+      add: () => window.api.addRepairCategory(name, split, requiresCost),
       messages: {
         added: m.categoryAdded,
         updated: m.categoryUpdated,
@@ -62,6 +81,7 @@ export function CategoriesTab({ data, loading, reload, notify }: SettingsTabProp
       onSettled: () => {
         form.finish()
         setSplit(DEFAULT_SPLIT)
+        setRequiresCost(false)
         return reload()
       },
       onThrown: () => form.setSaving(false)
@@ -77,6 +97,8 @@ export function CategoriesTab({ data, loading, reload, notify }: SettingsTabProp
         onAdd={openCreate}
         addTestId="settings-category-add"
       />
+
+      <p className="-mt-2 text-xs leading-relaxed text-muted-foreground">{t.ui.partsCost.settings.tabNote}</p>
 
       {loading ? (
         <ListSkeleton count={4} itemClassName="h-36" />
@@ -94,7 +116,14 @@ export function CategoriesTab({ data, loading, reload, notify }: SettingsTabProp
           className="grid grid-cols-1 gap-4 md:grid-cols-2"
         >
           {data.categories.map((cat, i) => (
-            <CategoryCard key={cat.id} category={cat} index={i} onEdit={openEdit} onDelete={del.request} />
+            <CategoryCard
+              key={cat.id}
+              category={cat}
+              index={i}
+              onEdit={openEdit}
+              onDelete={del.request}
+              onToggleRequiresCost={toggleRequiresCost}
+            />
           ))}
         </motion.div>
       )}
@@ -112,7 +141,12 @@ export function CategoriesTab({ data, loading, reload, notify }: SettingsTabProp
         saving={form.saving}
         testId="settings-category-dialog"
       >
-        <CategorySplitField value={split} onChange={setSplit} />
+        <CategorySplitField value={split} onChange={setSplit} requiresPartsCost={requiresCost} />
+        <CategoryCostSwitch
+          checked={requiresCost}
+          onCheckedChange={setRequiresCost}
+          testId="settings-category-dialog-requires-cost"
+        />
       </NameFormDialog>
 
       <DeleteConfirmDialog

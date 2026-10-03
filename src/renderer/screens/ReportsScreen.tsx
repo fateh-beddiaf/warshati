@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useState } from 'react'
-import { AlertTriangle, RefreshCw, TrendingUp } from 'lucide-react'
+import { AlertTriangle, Hourglass, RefreshCw, TrendingUp } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useI18n } from '../lib/i18n'
 import { Button } from '../components/ui/Button'
@@ -29,11 +29,18 @@ export function ReportsScreen({ onOpenTicketDetails }: ReportsScreenProps): Reac
   const [technicianFilter, setTechnicianFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
 
+  const [onlyProvisional, setOnlyProvisional] = useState(false)
+
   const filters = { period, startDate, endDate, technicianFilter, categoryFilter }
   const { report, metadata, loading, loadError, deliveredTickets, reload } = useReportData(filters)
 
   // First load: skeletons instead of zeros. After an error the empty states are shown, not skeletons.
   const initialLoading = loading && !report && !loadError
+
+  // Delivered without their parts cost: the profit of those tickets is not final
+  const provisionalCount = report?.provisionalTicketsCount ?? 0
+  const showOnlyProvisional = onlyProvisional && provisionalCount > 0
+  const ledgerTickets = showOnlyProvisional ? deliveredTickets.filter((tk) => tk.is_provisional) : deliveredTickets
 
   return (
     <div className="space-y-6">
@@ -72,11 +79,36 @@ export function ReportsScreen({ onOpenTicketDetails }: ReportsScreenProps): Reac
         </motion.div>
       )}
 
+      {provisionalCount > 0 && (
+        <motion.div
+          {...fadeIn}
+          role="status"
+          data-testid="report-provisional-alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/25 bg-warning-soft p-3 text-xs font-semibold text-warning-soft-foreground"
+        >
+          <span className="flex items-center gap-2">
+            <Hourglass className="h-4 w-4 shrink-0" />
+            <span>{t.ui.partsCost.reports.provisionalAlert.replace('{count}', String(provisionalCount))}</span>
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            data-testid="report-provisional-toggle"
+            aria-pressed={showOnlyProvisional}
+            onClick={() => setOnlyProvisional(!showOnlyProvisional)}
+            className="border-warning/30 text-xs font-bold text-warning-soft-foreground hover:bg-warning-soft"
+          >
+            {showOnlyProvisional ? t.ui.partsCost.reports.showAllDelivered : t.ui.partsCost.reports.showProvisional}
+          </Button>
+        </motion.div>
+      )}
+
       <ReportStatCards report={report} initialLoading={initialLoading} />
       <ShareSplitBar report={report} />
       <ReportBreakdowns report={report} initialLoading={initialLoading} />
       <ReportLedger
-        tickets={deliveredTickets}
+        tickets={ledgerTickets}
         initialLoading={initialLoading}
         onOpenTicketDetails={onOpenTicketDetails}
       />
