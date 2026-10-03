@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useEffect, useRef } from 'react'
-import JsBarcode from 'jsbarcode'
+import { drawBarcode } from './barcode-svg'
 
 export interface BarcodeLabelProps {
   barcode: string
@@ -8,7 +8,6 @@ export interface BarcodeLabelProps {
   shortLabel: string
   customerPhone?: string
   scaleMode?: 'actual' | 'zoomed'
-  onSvgGenerated?: (svgString: string) => void
   className?: string
 }
 
@@ -18,34 +17,25 @@ export function BarcodeLabel({
   shortLabel,
   customerPhone,
   scaleMode = 'zoomed',
-  onSvgGenerated,
   className = ''
 }: BarcodeLabelProps): React.JSX.Element {
   const svgRef = useRef<SVGSVGElement | null>(null)
 
   useEffect(() => {
-    if (svgRef.current && barcode) {
-      try {
-        JsBarcode(svgRef.current, barcode, {
-          format: 'CODE128',
-          displayValue: false, // We render custom high-contrast text below
-          width: scaleMode === 'actual' ? 1.05 : 1.6,
-          height: scaleMode === 'actual' ? 20 : 34,
-          margin: 0,
-          background: '#ffffff',
-          lineColor: '#000000'
-        })
-
-        if (onSvgGenerated && svgRef.current) {
-          const serializer = new XMLSerializer()
-          const svgStr = serializer.serializeToString(svgRef.current)
-          onSvgGenerated(svgStr)
-        }
-      } catch (err) {
-        console.error('Failed to render barcode:', err)
-      }
+    const svg = svgRef.current
+    if (!svg) return
+    // Never leave the previous ticket's bars on screen if drawing fails or there is no value
+    svg.replaceChildren()
+    svg.removeAttribute('data-barcode')
+    if (!barcode) return
+    try {
+      drawBarcode(svg, barcode, scaleMode)
+    } catch (err) {
+      svg.replaceChildren()
+      svg.removeAttribute('data-barcode')
+      console.warn('Failed to render barcode:', err)
     }
-  }, [barcode, scaleMode, onSvgGenerated])
+  }, [barcode, scaleMode])
 
   if (scaleMode === 'actual') {
     // Exact 40mm x 20mm physical millimeter dimensions
@@ -67,7 +57,7 @@ export function BarcodeLabel({
 
         {/* Center: Barcode & Code */}
         <div className="flex flex-col items-center justify-center my-[0.2mm] flex-1">
-          <svg ref={svgRef} className="w-full max-h-[8mm]" />
+          <svg ref={svgRef} data-testid="barcode-svg" className="w-full max-h-[8mm]" />
           <span className="font-mono font-bold text-[6px] tracking-wider text-black mt-[0.2mm] leading-none">
             {barcode}
           </span>
@@ -105,7 +95,7 @@ export function BarcodeLabel({
 
       {/* Center: Barcode & Code */}
       <div className="flex flex-col items-center justify-center my-1 flex-1">
-        <svg ref={svgRef} className="w-full max-h-[44px]" />
+        <svg ref={svgRef} data-testid="barcode-svg" className="w-full max-h-[44px]" />
         <span className="font-mono font-black text-xs tracking-widest text-black mt-1">
           {barcode}
         </span>

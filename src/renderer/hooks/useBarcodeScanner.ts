@@ -1,108 +1,148 @@
 import { useEffect, useRef, useCallback } from 'react'
+import { classifyKey, ScanBuffer } from '../../shared/scanner'
 
 export interface BarcodeScannerOptions {
   onScan: (barcode: string) => void
-  maxIntervalMs?: number // Max time between keystrokes typical of HID scanners (default: 60ms)
+  maxIntervalMs?: number // Max average time between keystrokes typical of HID scanners (default: 60ms)
   minLength?: number // Minimum barcode length (default: 6)
-  prefix?: string // Optional required prefix (e.g. 'WSH')
+  prefix?: string // Required prefix of a scan (default: 'WSH', the prefix of every ticket barcode)
+}
+
+type FieldEl = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+
+interface FieldSnapshot {
+  el: FieldEl
+  value: string
+  selStart: number | null
+  selEnd: number | null
+}
+
+function isFieldEl(el: Element | null): el is FieldEl {
+  if (!el) return false
+  const tag = el.tagName.toUpperCase()
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+}
+
+function snapshotField(el: FieldEl): FieldSnapshot {
+  let selStart: number | null = null
+  let selEnd: number | null = null
+  try {
+    if (!(el instanceof HTMLSelectElement)) {
+      selStart = el.selectionStart
+      selEnd = el.selectionEnd
+    }
+  } catch {
+    // some input types (number, email, ...) throw on selection access
+  }
+  return { el, value: el.value, selStart, selEnd }
 }
 
 /**
- * Dual-Approach Global Keyboard Listener for Henex / HID Barcode Scanners.
+ * Puts a field back to `value` in a way React controlled inputs notice: the native prototype
+ * setter bypasses React's value tracker, and the dispatched event makes React run onChange so
+ * its state syncs with the DOM.
+ */
+function restoreField(snap: FieldSnapshot, value: string): void {
+  const { el } = snap
+  if (!el.isConnected) return
+  if (el.value !== value) {
+    const proto =
+      el instanceof HTMLTextAreaElement
+        ? HTMLTextAreaElement.prototype
+        : el instanceof HTMLSelectElement
+          ? HTMLSelectElement.prototype
+          : HTMLInputElement.prototype
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set
+    if (setter) setter.call(el, value)
+    else el.value = value
+    el.dispatchEvent(new Event(el instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }))
+  }
+  if (!(el instanceof HTMLSelectElement) && snap.selStart !== null && snap.selEnd !== null && value === snap.value) {
+    try {
+      el.setSelectionRange(snap.selStart, snap.selEnd)
+    } catch {
+      // unsupported for this input type
+    }
+  }
+}
+
+/**
+ * Global keyboard listener for Henex / HID keyboard-wedge barcode scanners.
  *
- * Layer 1: Active Element Inspection.
- * - If focus is inside a standard user input (input, textarea, select, contenteditable)
- *   that is NOT explicitly marked as a dedicated barcode field (data-barcode-input="true"),
- *   we ignore the keystrokes completely so user typing is NEVER hijacked or misinterpreted.
+ * The scanner "types" the code very fast (a few ms per key) and ends with Enter. This hook works
+ * app-wide, REGARDLESS of where focus is:
  *
- * Layer 2: Rapid Burst Timing & Structural Pattern Verification.
- * - Hardware scanners emit keystrokes in ultra-fast bursts (< 50ms per key) followed by 'Enter'.
- * - When global conditions are met, the buffer is validated for timing, length, and optional prefix,
- *   and dispatched to `onScan`.
+ * - The buffer is built from `event.code` (physical key), so it is independent of the keyboard
+ *   layout (Arabic / AZERTY). See classifyKey in src/shared/scanner.ts.
+ * - When a burst arrives at scanner speed, starts with the prefix (WSH), and ends with Enter, it is
+ *   intercepted (preventDefault + stopPropagation: no form submit, no Enter side effects) and
+ *   passed to `onScan`.
+ * - If focus was inside an input / textarea / select, the characters of the burst were already
+ *   typed into it (keydown fires before the character is inserted and we can only know it was a
+ *   scan at the final Enter). So the value the field had BEFORE the burst began is snapshotted at
+ *   the first character of every burst and restored on a confirmed scan.
+ * - Exception: a field marked data-barcode-input="true" is waiting for a barcode (header search,
+ *   delete-confirmation). A scan is NOT intercepted there: the field receives the code (rewritten
+ *   from the physical keys so an Arabic/AZERTY layout cannot garble it), Enter keeps its normal
+ *   behaviour (e.g. submitting the header form) and `onScan` is not called.
+ * - Normal human typing is never touched: keys are never prevented, and nothing is restored unless
+ *   a complete scanner-speed, WSH-prefixed burst ended with Enter.
  */
 export function useBarcodeScanner({
   onScan,
   maxIntervalMs = 60,
   minLength = 6,
-  prefix = ''
+  prefix = 'WSH'
 }: BarcodeScannerOptions): void {
-  const bufferRef = useRef<string>('')
-  const lastKeyTimeRef = useRef<number>(0)
-  const intervalsRef = useRef<number[]>([])
+  const bufferRef = useRef<ScanBuffer>(new ScanBuffer())
+  const snapshotRef = useRef<FieldSnapshot | null>(null)
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      const activeEl = document.activeElement as HTMLElement | null
+      const k = classifyKey(e)
+      if (k.kind === 'modifier') return
 
-      // --- Layer 1: Active Element Check ---
-      if (activeEl) {
-        const tagName = activeEl.tagName.toUpperCase()
-        const isInput = tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || activeEl.isContentEditable
-        const isDedicatedBarcodeInput = activeEl.getAttribute('data-barcode-input') === 'true'
+      const activeEl = document.activeElement
+      const field = isFieldEl(activeEl) ? activeEl : null
+      const isBarcodeInput = field?.getAttribute('data-barcode-input') === 'true'
 
-        // If user is typing inside a regular text field, completely bypass global scanner logic
-        if (isInput && !isDedicatedBarcodeInput) {
-          bufferRef.current = ''
-          intervalsRef.current = []
-          return
+      if (k.kind === 'char') {
+        const startedBurst = bufferRef.current.push(k.char, performance.now())
+        if (startedBurst) {
+          // keydown runs before the character is inserted, so this is the pre-burst value
+          snapshotRef.current = field ? snapshotField(field) : null
         }
-      }
-
-      // --- Layer 2: Timing & Burst Collection ---
-      const now = Date.now()
-
-      if (e.key === 'Enter') {
-        const scannedText = bufferRef.current.trim()
-        const intervals = intervalsRef.current
-
-        if (scannedText.length >= minLength) {
-          // Verify timing: average interval between characters must be very fast (< maxIntervalMs)
-          const avgInterval = intervals.length > 0
-            ? intervals.reduce((a, b) => a + b, 0) / intervals.length
-            : 0
-
-          const matchesPrefix = prefix ? scannedText.startsWith(prefix) : true
-
-          // Accept if burst was fast OR if user submitted inside a dedicated barcode input
-          const isDedicatedBarcodeInput = activeEl?.getAttribute('data-barcode-input') === 'true'
-          const isScannerSpeed = avgInterval > 0 && avgInterval <= maxIntervalMs
-
-          if (matchesPrefix && (isScannerSpeed || isDedicatedBarcodeInput)) {
-            e.preventDefault()
-            e.stopPropagation()
-            onScan(scannedText)
-          }
-        }
-
-        // Reset buffer after Enter
-        bufferRef.current = ''
-        intervalsRef.current = []
         return
       }
 
-      // Collect single printable characters
-      if (e.key.length === 1) {
-        const timeSinceLastKey = now - lastKeyTimeRef.current
+      if (k.kind === 'enter') {
+        const scanned = bufferRef.current.complete({ maxIntervalMs, minLength, prefix }, isBarcodeInput)
+        const snap = snapshotRef.current
+        snapshotRef.current = null
+        if (scanned === null) return
 
-        // If more than 120ms elapsed since last keystroke, reset buffer for a new scan burst
-        if (timeSinceLastKey > 120 && bufferRef.current.length > 0) {
-          bufferRef.current = ''
-          intervalsRef.current = []
+        if (isBarcodeInput && field) {
+          // The field consumes the code itself: hand it the layout-independent text, let Enter through
+          restoreField(snapshotField(field), scanned)
+          return
         }
 
-        if (bufferRef.current.length > 0) {
-          intervalsRef.current.push(timeSinceLastKey)
-        }
-
-        bufferRef.current += e.key
-        lastKeyTimeRef.current = now
+        e.preventDefault()
+        e.stopPropagation()
+        if (snap) restoreField(snap, snap.value)
+        onScan(scanned)
+        return
       }
+
+      // Any other key (Backspace, arrows, Tab, shortcuts, events without key/code) breaks a burst
+      bufferRef.current.reset()
+      snapshotRef.current = null
     },
     [onScan, maxIntervalMs, minLength, prefix]
   )
 
   useEffect(() => {
-    // Listen in capture phase to catch events cleanly
+    // Capture phase on window: runs before any component handler can see the event
     window.addEventListener('keydown', handleKeyDown, true)
     return () => {
       window.removeEventListener('keydown', handleKeyDown, true)

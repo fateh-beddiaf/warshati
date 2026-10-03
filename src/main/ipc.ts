@@ -17,6 +17,15 @@ export function registerIpcHandlers(): void {
     }
   })
 
+  ipcMain.handle('tickets:recordPayment', async (_event, ticketId: number, amount: number) => {
+    try {
+      return { success: true, data: dbService.recordPayment(ticketId, amount) }
+    } catch (error: unknown) {
+      console.error('Failed to record payment:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to record payment' }
+    }
+  })
+
   ipcMain.handle('tickets:updateStatus', async (_event, dto: import('../shared/types').UpdateTicketStatusDTO) => {
     try {
       const result = dbService.updateTicketStatus(dto)

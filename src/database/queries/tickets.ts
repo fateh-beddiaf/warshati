@@ -28,6 +28,8 @@ export function createTicket(db: Database.Database, dto: CreateTicketDTO): { tic
     // 1. Validate financial values before any data is persisted.
     const { price, amountPaid } = validatePaymentAmounts(dto.ticket.price, dto.ticket.amount_paid)
     const amountRemaining = calculateRemaining(price, amountPaid)
+    // A partial payment is a debt, whatever the form said (same rule as updateTicketStatus)
+    const paymentType = amountRemaining > 0 ? 'credit' : dto.ticket.payment_type
 
     // 2. Resolve stable reference identities and preserve their current names as ticket snapshots.
     const technician = db
@@ -101,7 +103,7 @@ export function createTicket(db: Database.Database, dto: CreateTicketDTO): { tic
       technician.id,
       dto.ticket.repair_category_id,
       price,
-      dto.ticket.payment_type,
+      paymentType,
       amountPaid,
       amountRemaining,
       status
@@ -137,6 +139,41 @@ export function createTicket(db: Database.Database, dto: CreateTicketDTO): { tic
     return { ticketId, barcode }
   })
 
+  return transaction()
+}
+
+/**
+ * Records a debt payment on an existing ticket (typically after delivery).
+ * Only touches amount_paid / amount_remaining / payment_type: no status change, no profit
+ * shares, no delivery date and no StatusLog entry. Fully paid tickets become 'cash'.
+ */
+export function recordPayment(db: Database.Database, ticketId: number, amount: number): Ticket {
+  const transaction = db.transaction(() => {
+    const ticket = db.prepare(`SELECT * FROM Ticket WHERE id = ?`).get(ticketId) as Ticket | undefined
+    if (!ticket) throw new Error(`التذكرة رقم ${ticketId} غير موجودة في النظام.`)
+
+    const value = Number(amount)
+    if (!Number.isFinite(value) || value <= 0) {
+      throw new Error('مبلغ الدفعة يجب أن يكون رقماً أكبر من صفر.')
+    }
+    const remaining = calculateRemaining(ticket.price, ticket.amount_paid)
+    if (remaining <= 0) throw new Error('هذه التذكرة مسددة بالكامل، لا يوجد باقٍ.')
+    if (value > remaining) {
+      throw new Error('مبلغ الدفعة لا يمكن أن يتجاوز المبلغ المتبقي على التذكرة.')
+    }
+
+    const newPaid = ticket.amount_paid + value
+    const newRemaining = calculateRemaining(ticket.price, newPaid)
+    const newType = newRemaining === 0 ? 'cash' : 'credit'
+
+    db.prepare(`UPDATE Ticket SET amount_paid = ?, amount_remaining = ?, payment_type = ? WHERE id = ?`).run(
+      newPaid,
+      newRemaining,
+      newType,
+      ticketId
+    )
+    return db.prepare(`SELECT * FROM Ticket WHERE id = ?`).get(ticketId) as Ticket
+  })
   return transaction()
 }
 
@@ -359,8 +396,13 @@ export function getTicketById(db: Database.Database, ticketId: number): TicketFu
   `).get(ticketId) as Ticket | undefined
   if (!ticket) return null
 
-  const customer = db.prepare(`SELECT * FROM Customer WHERE id = ?`).get(ticket.customer_id) as import('../../shared/types').Customer
-  const device = db.prepare(`SELECT * FROM TicketDevice WHERE ticket_id = ?`).get(ticket.id) as import('../../shared/types').TicketDevice
+  const customer = db.prepare(`SELECT * FROM Customer WHERE id = ?`).get(ticket.customer_id) as import('../../shared/types').Customer | undefined
+  const device = db.prepare(`SELECT * FROM TicketDevice WHERE ticket_id = ?`).get(ticket.id) as import('../../shared/types').TicketDevice | undefined
+  // The UI dereferences customer.name / device.brand directly: fail with a clear message
+  // (surfaced as { success:false, error } by the IPC layer) instead of handing it undefined.
+  if (!customer || !device) {
+    throw new Error('بيانات التذكرة ناقصة (الزبون/الجهاز)، لا يمكن عرضها.')
+  }
   const category = (db.prepare(`SELECT * FROM RepairCategory WHERE id = ?`).get(ticket.repair_category_id) as import('../../shared/types').RepairCategory | undefined) || null
 
   const accessories = db.prepare(`

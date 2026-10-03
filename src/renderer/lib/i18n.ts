@@ -52,6 +52,7 @@ export const ar = {
     notesPlaceholder: 'أي ملاحظات خاصة بالزبون...',
     newCustomerBadge: 'زبون جديد',
     existingCustomerBadge: 'زبون مسجل',
+    phoneMatches: 'زبائن مسجلون بنفس الرقم:',
 
     deviceSection: 'بيانات الجهاز',
     brand: 'الماركة',
@@ -106,6 +107,16 @@ export const ar = {
     confirmDeliveryButton: 'تأكيد التسليم وحفظ السجل',
     updatingStatus: 'جاري تحديث الحالة...',
     statusUpdateSuccess: 'تم تحديث حالة التذكرة وحفظ السجل بنجاح',
+    invalidAdditionalAmount: 'المبلغ الإضافي المدفوع غير صالح: أدخل رقماً أكبر من أو يساوي صفر.',
+    recordPaymentTitle: 'تسجيل دفعة على الدين',
+    recordPaymentLabel: 'مبلغ الدفعة (د.ج):',
+    recordPaymentPlaceholder: 'أدخل مبلغ الدفعة...',
+    recordPaymentButton: 'تسجيل الدفعة',
+    recordPaymentSaving: 'جاري تسجيل الدفعة...',
+    recordPaymentSuccess: 'تم تسجيل الدفعة بنجاح',
+    recordPaymentInvalid: 'مبلغ الدفعة يجب أن يكون رقماً أكبر من صفر.',
+    recordPaymentTooMuch: 'مبلغ الدفعة لا يمكن أن يتجاوز المبلغ المتبقي ({remaining}).',
+    recordPaymentFailed: 'فشل تسجيل الدفعة',
     overdueWarningTitle: 'تنبيه: جهاز متأخر عن الاستلام',
     overdueWarningDesc: 'هذا الجهاز جاهز منذ {days} أيام ولم يستلمه الزبون بعد.',
     overdueBadge: 'متأخر {days} أيام',
@@ -167,7 +178,8 @@ export const ar = {
       date: 'تاريخ التسليم / الإنشاء'
     },
     emptyReports: 'لا توجد بيانات مالية مسجلة لهذه الفترة',
-    emptyReportsSubtitle: 'قم بتغيير نطاق التاريخ أو تسليم تذاكر لعرض تقاريرها المالية'
+    emptyReportsSubtitle: 'قم بتغيير نطاق التاريخ أو تسليم تذاكر لعرض تقاريرها المالية',
+    loadError: 'تعذّر تحميل التقرير المالي. حاول مرة أخرى أو غيّر نطاق التاريخ.'
   },
   ticketsList: {
     title: 'قائمة تذاكر الصيانة',
@@ -207,6 +219,7 @@ export const ar = {
     printingButton: 'جاري الإرسال للطابعة...',
     printSuccess: 'تم إرسال الملصق للطباعة بنجاح',
     printError: 'فشل في إرسال أمر الطباعة',
+    barcodeError: 'تعذّر إنشاء رمز الباركود لهذه التذكرة، تم تعطيل الطباعة.',
     reprintButton: 'إعادة طباعة الملصق',
     previewBadge: 'أبعاد الملصق 40×20 ملم'
   },
@@ -407,6 +420,7 @@ export const en: typeof ar = {
     notesPlaceholder: 'Any specific notes about the customer...',
     newCustomerBadge: 'New Customer',
     existingCustomerBadge: 'Registered Customer',
+    phoneMatches: 'Registered customers with this number:',
 
     deviceSection: 'Device Information',
     brand: 'Brand',
@@ -461,6 +475,16 @@ export const en: typeof ar = {
     confirmDeliveryButton: 'Confirm Delivery & Save Audit Log',
     updatingStatus: 'Updating Status...',
     statusUpdateSuccess: 'Ticket status updated and audit log saved successfully',
+    invalidAdditionalAmount: 'The additional amount paid is invalid: enter a number greater than or equal to zero.',
+    recordPaymentTitle: 'Record a debt payment',
+    recordPaymentLabel: 'Payment amount (DZD):',
+    recordPaymentPlaceholder: 'Enter payment amount...',
+    recordPaymentButton: 'Record payment',
+    recordPaymentSaving: 'Recording payment...',
+    recordPaymentSuccess: 'Payment recorded successfully',
+    recordPaymentInvalid: 'The payment amount must be a number greater than zero.',
+    recordPaymentTooMuch: 'The payment cannot exceed the remaining balance ({remaining}).',
+    recordPaymentFailed: 'Failed to record the payment',
     overdueWarningTitle: 'Alert: Overdue Ready Device',
     overdueWarningDesc: 'This device has been ready for {days} days and has not been picked up yet.',
     overdueBadge: 'Overdue {days} days',
@@ -522,7 +546,8 @@ export const en: typeof ar = {
       date: 'Delivered / Created Date'
     },
     emptyReports: 'No financial records found for this period',
-    emptyReportsSubtitle: 'Change date range filter or deliver tickets to view financial reports'
+    emptyReportsSubtitle: 'Change date range filter or deliver tickets to view financial reports',
+    loadError: 'Could not load the financial report. Try again or change the date range.'
   },
   ticketsList: {
     title: 'Repair Tickets List',
@@ -562,6 +587,7 @@ export const en: typeof ar = {
     printingButton: 'Sending to Printer...',
     printSuccess: 'Label successfully sent to printer',
     printError: 'Failed to send print command',
+    barcodeError: 'Could not generate the barcode for this ticket, printing is disabled.',
     reprintButton: 'Reprint Label',
     previewBadge: 'Sticker Dimensions 40×20 mm'
   },

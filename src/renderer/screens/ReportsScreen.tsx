@@ -1,10 +1,11 @@
 import * as React from 'react'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useI18n } from '../lib/i18n'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Badge } from '../components/ui/Badge'
 import { formatCurrency, formatDate } from '../lib/utils'
+import { toLocalDateString, startOfMonthLocalString } from '../../shared/date-utils'
 import type {
   FinancialReportResult,
   ReportPeriod,
@@ -31,19 +32,17 @@ export function ReportsScreen({ onOpenTicketDetails }: ReportsScreenProps): Reac
   const { t } = useI18n()
   const [period, setPeriod] = useState<ReportPeriod>('this_month')
 
-  const [startDate, setStartDate] = useState<string>(() => {
-    const d = new Date()
-    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]
-  })
-  const [endDate, setEndDate] = useState<string>(() => {
-    return new Date().toISOString().split('T')[0]
-  })
+  // Local calendar dates (toISOString would shift the day around local midnight)
+  const [startDate, setStartDate] = useState<string>(() => startOfMonthLocalString(new Date()))
+  const [endDate, setEndDate] = useState<string>(() => toLocalDateString(new Date()))
   const [technicianFilter, setTechnicianFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
 
   const [report, setReport] = useState<FinancialReportResult | null>(null)
   const [metadata, setMetadata] = useState<AppMetadata | null>(null)
   const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const latestRequestRef = useRef(0)
 
   // Fetch Metadata for filters
   useEffect(() => {
@@ -62,6 +61,7 @@ export function ReportsScreen({ onOpenTicketDetails }: ReportsScreenProps): Reac
 
   // Fetch Report Data
   const loadReport = useCallback(async (): Promise<void> => {
+    const requestId = ++latestRequestRef.current
     setLoading(true)
     try {
       const filterDTO: ReportFilterDTO = {
@@ -73,15 +73,31 @@ export function ReportsScreen({ onOpenTicketDetails }: ReportsScreenProps): Reac
       }
 
       const res = await window.api.getFinancialReport(filterDTO)
+      // Ignore out-of-order responses (quick filter switches)
+      if (requestId !== latestRequestRef.current) return
       if (res.success && res.data) {
         setReport(res.data)
+        setLoadError(null)
+      } else {
+        // Don't keep showing the previous period's numbers next to an error
+        setReport(null)
+        setLoadError(res.error || t.reports.loadError)
       }
     } catch (err) {
       console.error('Failed to load financial report:', err)
+      if (requestId !== latestRequestRef.current) return
+      setReport(null)
+      setLoadError(t.reports.loadError)
     } finally {
-      setLoading(false)
+      if (requestId === latestRequestRef.current) setLoading(false)
     }
-  }, [period, startDate, endDate, technicianFilter, categoryFilter])
+  }, [period, startDate, endDate, technicianFilter, categoryFilter, t])
+
+  // The ledger only lists delivered tickets: derive them once per report, not per use
+  const deliveredTickets = useMemo(
+    () => (report?.tickets ?? []).filter((tk) => tk.status === 'delivered'),
+    [report]
+  )
 
   useEffect(() => {
     loadReport()
@@ -198,7 +214,7 @@ export function ReportsScreen({ onOpenTicketDetails }: ReportsScreenProps): Reac
                   className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
                 >
                   <option value="all">{t.reports.allTechnicians}</option>
-                  {metadata?.technicians.map((technician) => (
+                  {metadata?.technicians?.map((technician) => (
                       <option key={technician.id} value={String(technician.id)}>
                         {technician.name}
                       </option>
@@ -250,6 +266,17 @@ export function ReportsScreen({ onOpenTicketDetails }: ReportsScreenProps): Reac
           )}
         </CardContent>
       </Card>
+
+      {/* Report load error (replaces silently showing stale data) */}
+      {loadError && (
+        <div
+          data-testid="report-error"
+          role="alert"
+          className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs font-semibold"
+        >
+          {loadError}
+        </div>
+      )}
 
       {/* 4 Main KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -475,13 +502,13 @@ export function ReportsScreen({ onOpenTicketDetails }: ReportsScreenProps): Reac
               <span>{t.reports.ticketsLedgerSection}</span>
             </CardTitle>
             <span className="text-xs text-slate-500 font-semibold font-mono">
-              {report?.tickets?.filter((t) => t.status === 'delivered').length || 0} تذكرة مسلّمة
+              {deliveredTickets.length} تذكرة مسلّمة
             </span>
           </div>
         </CardHeader>
 
         <CardContent className="p-0 overflow-x-auto">
-          {report?.tickets && report.tickets.filter((t) => t.status === 'delivered').length > 0 ? (
+          {deliveredTickets.length > 0 ? (
             <table className="w-full text-xs text-start border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-100/70 text-slate-600 font-bold">
@@ -498,9 +525,7 @@ export function ReportsScreen({ onOpenTicketDetails }: ReportsScreenProps): Reac
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {report.tickets
-                  .filter((t) => t.status === 'delivered')
-                  .map((tItem) => (
+                {deliveredTickets.map((tItem) => (
                     <tr
                       key={tItem.id}
                       onClick={() => onOpenTicketDetails && onOpenTicketDetails(tItem.id)}

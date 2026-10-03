@@ -5,6 +5,8 @@ import type { CreateTicketDTO, ReportFilterDTO } from '../shared/types'
 const api = {
   // Tickets
   createTicket: (dto: CreateTicketDTO) => ipcRenderer.invoke('tickets:create', dto),
+  recordPayment: (ticketId: number, amount: number) =>
+    ipcRenderer.invoke('tickets:recordPayment', ticketId, amount),
   updateTicketStatus: (dto: import('../shared/types').UpdateTicketStatusDTO) =>
     ipcRenderer.invoke('tickets:updateStatus', dto),
   getTicketsList: (searchQuery?: string, statusFilter?: string) =>

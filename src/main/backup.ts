@@ -1,14 +1,11 @@
 import { dialog, BrowserWindow, app } from 'electron'
-import { existsSync, statSync, copyFileSync, unlinkSync, mkdirSync } from 'fs'
+import { existsSync, statSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
-import Database from 'better-sqlite3'
-import { getDatabase, closeDatabase, initDatabase, getDatabasePath } from '../database'
+import { getDatabase, getDatabasePath } from '../database'
+import { importDatabaseFromFile, type SafetyBackupCreator } from './backup-core'
 import type { DatabaseInfo } from '../shared/types'
 
-export type SafetyBackupCreator = (
-  database: Database.Database,
-  destinationPath: string
-) => Promise<unknown>
+export type { SafetyBackupCreator }
 
 export interface ImportDatabaseBackupOptions {
   createSafetyBackup?: SafetyBackupCreator
@@ -135,101 +132,26 @@ export async function importDatabaseBackup(
       return { success: false, error: 'الملف المحدد غير موجود' }
     }
 
-    // 1. Sanity Check on the imported file
-    let tempDb: Database.Database | null = null
-    try {
-      tempDb = new Database(sourcePath, { readonly: true, fileMustExist: true })
-      const tables = tempDb
-        .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name IN ('Ticket', 'Customer', 'RepairCategory', 'Brand')`)
-        .all() as { name: string }[]
-
-      if (tables.length < 4) {
-        tempDb.close()
-        return {
-          success: false,
-          error: 'الملف المحدد ليس قاعدة بيانات صالحة لتطبيق ورشتي (جداول النظام الأساسية مفقودة).'
-        }
-      }
-      tempDb.close()
-      tempDb = null
-    } catch (sanityErr) {
-      if (tempDb) {
-        try {
-          tempDb.close()
-        } catch {
-          // ignore
-        }
-      }
-      return {
-        success: false,
-        error: `فشل التحقق من سلامة الملف: ${sanityErr instanceof Error ? sanityErr.message : 'ملف غير صالح'}`
-      }
-    }
-
-    // 2. Pre-import safety backup. Import must never continue if this fails.
     const activeDbPath = getDatabasePath()
-    let safetyBackupPath = ''
+    let backupDir = dirname(activeDbPath)
     try {
-      let backupDir = dirname(activeDbPath)
-      try {
-        if (app && app.getPath) {
-          backupDir = app.getPath('userData')
-        }
-      } catch {
-        // use active dir in tests or fallback
+      if (app && app.getPath) {
+        backupDir = app.getPath('userData')
       }
-      safetyBackupPath = join(backupDir, 'auto-backup-before-import.db')
-
-      const currentDb = getDatabase()
-      try {
-        currentDb.pragma('wal_checkpoint(TRUNCATE)')
-      } catch {
-        // ignore
-      }
-      const createSafetyBackup: SafetyBackupCreator = options.createSafetyBackup || ((database, destinationPath) => database.backup(destinationPath))
-      await createSafetyBackup(currentDb, safetyBackupPath)
-      console.log(`[Safety Backup] Pre-import backup created at: ${safetyBackupPath}`)
-    } catch (safetyErr) {
-      console.error('Failed to create required pre-import safety backup:', safetyErr)
-      return {
-        success: false,
-        error: `تعذر إنشاء النسخة الاحتياطية الإلزامية قبل الاستيراد؛ لم يبدأ الاستيراد. ${safetyErr instanceof Error ? safetyErr.message : ''}`.trim()
-      }
+    } catch {
+      // use active dir in tests or fallback
     }
 
-    // 3. Close active database connection
-    closeDatabase()
-
-    // 4. Overwrite active database file
-    copyFileSync(sourcePath, activeDbPath)
-
-    // Remove WAL & SHM files to ensure clean state
-    const walPath = `${activeDbPath}-wal`
-    const shmPath = `${activeDbPath}-shm`
-    if (existsSync(walPath)) {
-      try {
-        unlinkSync(walPath)
-      } catch {
-        // ignore
-      }
+    const result = await importDatabaseFromFile(sourcePath, activeDbPath, {
+      safetyBackupPath: join(backupDir, 'auto-backup-before-import.db'),
+      createSafetyBackup: options.createSafetyBackup
+    })
+    if (!result.success) {
+      console.error('Failed to import database:', result.error)
+      return { success: false, error: result.error }
     }
-    if (existsSync(shmPath)) {
-      try {
-        unlinkSync(shmPath)
-      } catch {
-        // ignore
-      }
-    }
-
-    // 5. Re-open and verify database
-    const reopenedDb = initDatabase(activeDbPath)
-    reopenedDb.pragma('wal_checkpoint(TRUNCATE)')
-
-    return {
-      success: true,
-      filePath: sourcePath,
-      safetyBackupPath
-    }
+    console.log(`[Safety Backup] Pre-import backup created at: ${result.safetyBackupPath}`)
+    return { success: true, filePath: sourcePath, safetyBackupPath: result.safetyBackupPath }
   } catch (err) {
     console.error('Failed to import database:', err)
     return {

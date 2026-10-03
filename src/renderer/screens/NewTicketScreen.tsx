@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useI18n } from '../lib/i18n'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
@@ -25,11 +25,35 @@ interface NewTicketScreenProps {
   onTicketCreated: (ticketId: number) => void
 }
 
+/** Runs customer search ~250ms after the query stops changing; stale responses are dropped. */
+function useDebouncedCustomerSearch(query: string, onResults: (customers: Customer[]) => void): void {
+  useEffect(() => {
+    let cancelled = false
+    const timer = setTimeout(
+      async () => {
+        try {
+          const res = await window.api.searchCustomers(query)
+          if (!cancelled && res.success && res.data) onResults(res.data)
+        } catch (err) {
+          console.error('Customer search failed:', err)
+        }
+      },
+      query ? 250 : 0
+    )
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+    // onResults is a state setter (stable)
+  }, [query])
+}
+
 export function NewTicketScreen({ onTicketCreated }: NewTicketScreenProps): React.JSX.Element {
   const { t } = useI18n()
   const [metadata, setMetadata] = useState<AppMetadata | null>(null)
 
   const [existingCustomers, setExistingCustomers] = useState<Customer[]>([])
+  const [phoneCandidates, setPhoneCandidates] = useState<Customer[]>([])
   const [loading, setLoading] = useState(false)
   const [successInfo, setSuccessInfo] = useState<{ barcode: string; ticketId: number } | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -70,16 +94,18 @@ export function NewTicketScreen({ onTicketCreated }: NewTicketScreenProps): Reac
           }
         }
 
-        const custRes = await window.api.searchCustomers('')
-        if (custRes.success && custRes.data) {
-          setExistingCustomers(custRes.data)
-        }
       } catch (err) {
         console.error('Failed to load initial data:', err)
       }
     }
     loadData()
   }, [])
+
+  // Customer searches re-query while typing (debounced) so older customers can be found too:
+  // the name field feeds the name autocomplete, the phone field feeds the phone-match suggestions.
+  useDebouncedCustomerSearch(customerName.trim(), setExistingCustomers)
+  const phoneQuery = customerPhone.replace(/\s+/g, '').length >= 4 ? customerPhone.trim() : ''
+  useDebouncedCustomerSearch(phoneQuery, setPhoneCandidates)
 
   // Auto-generate short_label when brand or model changes if not manually overridden
   useEffect(() => {
@@ -93,32 +119,43 @@ export function NewTicketScreen({ onTicketCreated }: NewTicketScreenProps): Reac
   const numPrice = Number(price) || 0
   const numPaid = Number(amountPaid) || 0
   const calculatedRemaining = Math.max(0, numPrice - numPaid)
+  // A partial payment is always a debt (the backend enforces the same rule)
+  const effectivePaymentType: PaymentType = calculatedRemaining > 0 ? 'credit' : paymentType
 
-  // Filtered models based on selected brand
-  const selectedBrandObj = metadata?.brands.find((b) => b.id === brandId)
-  const availableModels = metadata?.models.filter((m) =>
-    selectedBrandObj ? m.brand_id === selectedBrandObj.id : true
-  ) || []
+  // Option lists are memoised: Autocomplete re-syncs on every new `options` array, so rebuilding
+  // them on each keystroke would re-run its effects for nothing. `id` gives each option a unique
+  // React key (the same model name can exist under two brands).
+  const brandOptions = useMemo<AutocompleteOption[]>(
+    () => (metadata?.brands ?? []).map((b) => ({ id: `brand-${b.id}`, value: b.name, label: b.name, data: b })),
+    [metadata]
+  )
 
-  // Customer options for search
-  const customerOptions: AutocompleteOption[] = existingCustomers.map((c) => ({
-    value: c.id,
-    label: c.name,
-    sublabel: c.phone,
-    data: c
-  }))
+  const modelOptions = useMemo<AutocompleteOption[]>(
+    () =>
+      (metadata?.models ?? [])
+        .filter((m) => (brandId === null ? true : m.brand_id === brandId))
+        .map((m) => ({ id: `model-${m.id}`, value: m.name, label: m.name, data: m })),
+    [metadata, brandId]
+  )
 
-  const brandOptions: AutocompleteOption[] = (metadata?.brands || []).map((b) => ({
-    value: b.name,
-    label: b.name,
-    data: b
-  }))
+  const customerOptions = useMemo<AutocompleteOption[]>(
+    () =>
+      existingCustomers.map((c) => ({
+        id: `customer-${c.id}`,
+        value: c.id,
+        label: c.name,
+        sublabel: c.phone,
+        data: c
+      })),
+    [existingCustomers]
+  )
 
-  const modelOptions: AutocompleteOption[] = availableModels.map((m) => ({
-    value: m.name,
-    label: m.name,
-    data: m
-  }))
+  // Registered customers whose phone matches what is being typed (offered as a suggestion)
+  const phoneMatches = useMemo<Customer[]>(() => {
+    const digits = customerPhone.replace(/\s+/g, '')
+    if (customerId !== undefined || digits.length < 4) return []
+    return phoneCandidates.filter((c) => c.phone.replace(/\s+/g, '').includes(digits)).slice(0, 5)
+  }, [phoneCandidates, customerPhone, customerId])
 
   const handleCustomerSelect = (_val: string, option?: AutocompleteOption): void => {
     if (option && option.data) {
@@ -186,7 +223,7 @@ export function NewTicketScreen({ onTicketCreated }: NewTicketScreenProps): Reac
       ticket: {
         repair_category_id: Number(categoryId),
         price: numPrice,
-        payment_type: paymentType,
+        payment_type: effectivePaymentType,
         amount_paid: numPaid,
         technician_id: technicianId
       },
@@ -321,10 +358,31 @@ export function NewTicketScreen({ onTicketCreated }: NewTicketScreenProps): Reac
                   type="text"
                   dir="ltr"
                   value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  onChange={(e) => {
+                    setCustomerPhone(e.target.value)
+                    // The form no longer describes the previously selected customer
+                    setCustomerId(undefined)
+                  }}
                   placeholder={t.newTicket.phonePlaceholder}
                   className="text-start font-mono"
                 />
+                {phoneMatches.length > 0 && (
+                  <div className="mt-1.5 space-y-1" data-testid="phone-matches">
+                    <p className="text-[11px] font-semibold text-slate-500">{t.newTicket.phoneMatches}</p>
+                    {phoneMatches.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        data-testid="phone-match"
+                        onClick={() => handleCustomerSelect(String(c.id), { id: `customer-${c.id}`, value: c.id, label: c.name, data: c })}
+                        className="flex w-full items-center justify-between rounded-md border border-slate-200 px-3 py-1.5 text-start text-xs hover:bg-slate-100"
+                      >
+                        <span className="font-semibold text-slate-800">{c.name}</span>
+                        <span className="font-mono text-slate-500" dir="ltr">{c.phone}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -556,7 +614,7 @@ export function NewTicketScreen({ onTicketCreated }: NewTicketScreenProps): Reac
                     type="radio"
                     name="paymentType"
                     value="cash"
-                    checked={paymentType === 'cash'}
+                    checked={effectivePaymentType === 'cash'}
                     onChange={() => setPaymentType('cash')}
                     className="h-4 w-4 text-blue-600"
                   />
@@ -568,7 +626,7 @@ export function NewTicketScreen({ onTicketCreated }: NewTicketScreenProps): Reac
                     type="radio"
                     name="paymentType"
                     value="credit"
-                    checked={paymentType === 'credit'}
+                    checked={effectivePaymentType === 'credit'}
                     onChange={() => setPaymentType('credit')}
                     className="h-4 w-4 text-blue-600"
                   />
