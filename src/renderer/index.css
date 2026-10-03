@@ -1,60 +1,239 @@
+/* Self-hosted font (the app is offline-only): Arabic + Latin subsets, no CDN. */
+@import '@fontsource/ibm-plex-sans-arabic/arabic-400.css';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-500.css';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-600.css';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-700.css';
+@import '@fontsource/ibm-plex-sans-arabic/latin-400.css';
+@import '@fontsource/ibm-plex-sans-arabic/latin-500.css';
+@import '@fontsource/ibm-plex-sans-arabic/latin-600.css';
+@import '@fontsource/ibm-plex-sans-arabic/latin-700.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Design tokens. Every colour is an HSL triplet ("H S% L%") so Tailwind can add
+ * alpha (`bg-primary/10`). Screens must use these tokens only — no raw palette
+ * colours (`bg-white`, `text-slate-900`, ...). The printed barcode label is the
+ * single exception (always black on white, see components/barcode).
+ *
+ * Semantic groups follow one pattern:
+ *   --x                solid colour (badges, dots, icons, charts)
+ *   --x-foreground     text/icon on the solid colour
+ *   --x-soft           tinted surface (alerts, chips, status cells)
+ *   --x-soft-foreground readable text on the tinted surface
+ */
 :root {
-  --background: 210 40% 98%;
-  --foreground: 222.2 84% 4.9%;
+  color-scheme: light;
+
+  --background: 220 24% 96.5%;
+  --foreground: 224 32% 12%;
 
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: 224 32% 12%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
+  --popover-foreground: 224 32% 12%;
 
-  --primary: 217 91% 60%;
-  --primary-foreground: 210 40% 98%;
-  --primary-hover: 217 91% 52%;
+  --primary: 230 78% 52%;
+  --primary-foreground: 0 0% 100%;
+  --primary-hover: 230 78% 45%;
+  --primary-to: 252 80% 58%;
 
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 220 20% 93%;
+  --secondary-foreground: 224 30% 20%;
 
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  --muted: 220 20% 94%;
+  --muted-foreground: 220 11% 38%;
 
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
+  --accent: 228 85% 95%;
+  --accent-foreground: 230 60% 30%;
 
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive: 350 76% 48%;
+  --destructive-foreground: 0 0% 100%;
 
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 217 91% 60%;
+  --border: 220 16% 87%;
+  --input: 220 16% 82%;
+  --ring: 230 78% 52%;
 
-  --radius: 0.625rem;
+  --success: 160 90% 24%;
+  --success-foreground: 0 0% 100%;
+  --success-soft: 152 68% 93%;
+  --success-soft-foreground: 162 90% 18%;
+
+  --warning: 30 92% 35%;
+  --warning-foreground: 0 0% 100%;
+  --warning-soft: 43 100% 92%;
+  --warning-soft-foreground: 28 90% 24%;
+
+  --danger: 350 76% 48%;
+  --danger-foreground: 0 0% 100%;
+  --danger-soft: 350 100% 95%;
+  --danger-soft-foreground: 350 75% 32%;
+
+  /* Ticket lifecycle */
+  --status-in-progress: 30 92% 35%;
+  --status-in-progress-foreground: 0 0% 100%;
+  --status-in-progress-soft: 45 100% 91%;
+  --status-in-progress-soft-foreground: 28 90% 25%;
+
+  --status-ready: 160 90% 24%;
+  --status-ready-foreground: 0 0% 100%;
+  --status-ready-soft: 152 68% 92%;
+  --status-ready-soft-foreground: 162 90% 17%;
+
+  --status-delivered: 218 18% 42%;
+  --status-delivered-foreground: 0 0% 100%;
+  --status-delivered-soft: 216 24% 92%;
+  --status-delivered-soft-foreground: 220 26% 24%;
+
+  --status-overdue: 350 76% 48%;
+  --status-overdue-foreground: 0 0% 100%;
+  --status-overdue-soft: 350 100% 94%;
+  --status-overdue-soft-foreground: 350 80% 30%;
+
+  /* Sidebar stays dark in both modes */
+  --sidebar: 226 40% 11%;
+  --sidebar-foreground: 220 20% 90%;
+  --sidebar-muted: 222 14% 62%;
+  --sidebar-border: 226 28% 20%;
+  --sidebar-accent: 226 32% 18%;
+
+  --shadow-color: 224 40% 20%;
+  --scrollbar: 218 16% 76%;
+  --scrollbar-hover: 218 14% 60%;
+
+  --radius: 0.75rem;
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Cairo', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  user-select: none;
-  -webkit-font-smoothing: antialiased;
+.dark {
+  color-scheme: dark;
+
+  --background: 226 24% 9%;
+  --foreground: 220 22% 94%;
+
+  --card: 226 20% 13%;
+  --card-foreground: 220 22% 94%;
+
+  --popover: 226 20% 15%;
+  --popover-foreground: 220 22% 94%;
+
+  --primary: 228 90% 66%;
+  --primary-foreground: 226 40% 8%;
+  --primary-hover: 228 90% 72%;
+  --primary-to: 258 85% 70%;
+
+  --secondary: 226 16% 19%;
+  --secondary-foreground: 220 20% 90%;
+
+  --muted: 226 16% 17%;
+  --muted-foreground: 220 12% 68%;
+
+  --accent: 228 34% 22%;
+  --accent-foreground: 226 90% 88%;
+
+  --destructive: 350 84% 62%;
+  --destructive-foreground: 226 40% 8%;
+
+  --border: 226 14% 22%;
+  --input: 226 14% 27%;
+  --ring: 228 90% 66%;
+
+  --success: 158 70% 45%;
+  --success-foreground: 160 60% 8%;
+  --success-soft: 160 45% 15%;
+  --success-soft-foreground: 152 70% 78%;
+
+  --warning: 38 95% 55%;
+  --warning-foreground: 30 60% 8%;
+  --warning-soft: 36 50% 15%;
+  --warning-soft-foreground: 42 95% 76%;
+
+  --danger: 350 84% 62%;
+  --danger-foreground: 350 60% 8%;
+  --danger-soft: 350 45% 17%;
+  --danger-soft-foreground: 350 100% 85%;
+
+  --status-in-progress: 40 95% 55%;
+  --status-in-progress-foreground: 30 60% 8%;
+  --status-in-progress-soft: 38 50% 15%;
+  --status-in-progress-soft-foreground: 42 95% 76%;
+
+  --status-ready: 158 70% 45%;
+  --status-ready-foreground: 160 60% 8%;
+  --status-ready-soft: 160 45% 15%;
+  --status-ready-soft-foreground: 152 70% 78%;
+
+  --status-delivered: 216 22% 62%;
+  --status-delivered-foreground: 226 40% 8%;
+  --status-delivered-soft: 222 18% 20%;
+  --status-delivered-soft-foreground: 216 30% 82%;
+
+  --status-overdue: 350 84% 62%;
+  --status-overdue-foreground: 350 60% 8%;
+  --status-overdue-soft: 350 45% 17%;
+  --status-overdue-soft-foreground: 350 100% 85%;
+
+  --sidebar: 226 30% 7%;
+  --sidebar-foreground: 220 20% 90%;
+  --sidebar-muted: 222 12% 62%;
+  --sidebar-border: 226 20% 15%;
+  --sidebar-accent: 226 24% 15%;
+
+  --shadow-color: 230 60% 2%;
+  --scrollbar: 226 12% 28%;
+  --scrollbar-hover: 226 12% 40%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    background-color: hsl(var(--background));
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* Prices, barcodes and counters use clear, aligned Latin digits */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 /* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: hsl(var(--scrollbar));
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: hsl(var(--scrollbar-hover));
+}
+
+/* tailwindcss-animate (dialogs, menus, tooltips) is CSS based, so honour
+   the OS reduced-motion preference here; Framer Motion uses <MotionConfig>. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
