@@ -92,7 +92,7 @@ function validateAndPrepareCopy(tempPath: string, prepare: (db: Database.Databas
       const integrity = db.pragma('integrity_check', { simple: true })
       if (integrity !== 'ok') throw new Error(`integrity_check: ${String(integrity)}`)
     } catch (err) {
-      throw new Error(`الملف المحدد ليس قاعدة بيانات SQLite صالحة (${errMsg(err)}).`)
+      throw new Error(`الملف المحدد ليس قاعدة بيانات SQLite صالحة (${errMsg(err)}).`, { cause: err })
     }
 
     const existing = new Set(
@@ -107,7 +107,7 @@ function validateAndPrepareCopy(tempPath: string, prepare: (db: Database.Databas
     try {
       prepare(db)
     } catch (err) {
-      throw new Error(`فشل ترحيل قاعدة البيانات المستوردة إلى النسخة الحالية: ${errMsg(err)}`)
+      throw new Error(`فشل ترحيل قاعدة البيانات المستوردة إلى النسخة الحالية: ${errMsg(err)}`, { cause: err })
     }
 
     // Fold everything into the main file so the temp copy is self-contained
