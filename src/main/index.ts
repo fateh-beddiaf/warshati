@@ -1,8 +1,9 @@
-import { app, shell, BrowserWindow, dialog } from 'electron'
+import { app, BrowserWindow, dialog } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { initDatabase } from '../database'
 import { registerIpcHandlers } from './ipc'
+import { applySecurityPolicy } from './security'
 import { applyThemePreference, loadThemePreference, registerThemeHandlers } from './theme'
 import {
   THEME_ARG_PREFERENCE,
@@ -50,7 +51,8 @@ function createWindow(preference: ThemePreference, resolved: ResolvedTheme): voi
     title: 'ورشتي — إدارة محل تصليح الهواتف',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
+      // The preload only uses contextBridge/ipcRenderer and process.argv, all available in the sandbox
+      sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
       // Read synchronously by the preload to set <html class="dark"> before the first paint
@@ -62,11 +64,6 @@ function createWindow(preference: ThemePreference, resolved: ResolvedTheme): voi
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
-  })
-
-  mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
-    return { action: 'deny' }
   })
 
   // Load renderer URL in dev, or local index.html in production
@@ -106,6 +103,9 @@ app.whenReady().then(() => {
     app.quit()
     return
   }
+
+  // Navigation lock, no new windows, no permissions (every window, see security.ts)
+  applySecurityPolicy()
 
   // Register IPC handlers
   registerIpcHandlers()
