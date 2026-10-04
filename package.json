@@ -1,8 +1,15 @@
 {
   "name": "warshati",
-  "version": "1.0.0",
-  "description": "تطبيق إدارة محل تصليح الهواتف - ورشتي",
+  "productName": "Warshati",
+  "version": "0.9.0",
+  "private": true,
+  "description": "Offline desktop app for running a phone repair shop: repair tickets, barcode labels, debts and profit sharing.",
+  "author": "Fateh Beddiaf",
+  "license": "SEE LICENSE IN LICENSE",
   "main": "./out/main/index.js",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
@@ -74,8 +81,5 @@
     "better-sqlite3@11.10.0": true,
     "esbuild@0.25.12": true,
     "esbuild@0.28.2": true
-  },
-  "engines": {
-    "node": ">=22.12.0"
   }
 }
