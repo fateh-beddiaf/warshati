@@ -60,6 +60,6 @@ try {
   console.log(`[install-native] better-sqlite3 prebuilt binary for Electron ${electronVersion} (${process.arch}) ready`)
 } catch {
   console.warn('[install-native] no prebuilt binary could be downloaded, rebuilding better-sqlite3 from source...')
-  const builderBin = require.resolve('electron-builder/install-app-deps.js', { paths: [ROOT] })
-  execFileSync(process.execPath, [builderBin], { cwd: ROOT, stdio: 'inherit' })
+  const builderCli = require.resolve('electron-builder/cli.js', { paths: [ROOT] })
+  execFileSync(process.execPath, [builderCli, 'install-app-deps'], { cwd: ROOT, stdio: 'inherit' })
 }
