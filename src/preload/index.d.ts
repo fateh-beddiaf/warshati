@@ -117,9 +117,7 @@ export interface IElectronAPI {
     data?: { preference: import('../shared/theme').ThemePreference; resolved: import('../shared/theme').ResolvedTheme }
     error?: string
   }>
-  setTheme: (
-    preference: import('../shared/theme').ThemePreference
-  ) => Promise<{
+  setTheme: (preference: import('../shared/theme').ThemePreference) => Promise<{
     success: boolean
     data?: { preference: import('../shared/theme').ThemePreference; resolved: import('../shared/theme').ResolvedTheme }
     error?: string
