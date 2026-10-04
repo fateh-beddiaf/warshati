@@ -13,6 +13,7 @@ import {
   assertString,
   assertUpdateTicketStatusDTO
 } from './ipc-validate'
+import { listPrinters } from './printers'
 
 export function registerIpcHandlers(): void {
   // Tickets
@@ -169,8 +170,7 @@ export function registerIpcHandlers(): void {
   // Printer
   ipcMain.handle('printer:getPrinters', async (event) => {
     try {
-      const printers = await event.sender.getPrintersAsync()
-      return { success: true, data: printers }
+      return { success: true, data: await listPrinters(event.sender) }
     } catch (error: unknown) {
       console.error('Failed to get printers:', error)
       return {

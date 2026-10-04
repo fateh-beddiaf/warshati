@@ -6,18 +6,13 @@ import type {
   AppMetadata,
   TicketFullDetails,
   PrintLabelData,
+  PrinterInfo,
   Ticket,
   ReportFilterDTO,
   FinancialReportResult
 } from '../shared/types'
 
-export interface PrinterInfo {
-  name: string
-  displayName?: string
-  description?: string
-  status?: number
-  isDefault?: boolean
-}
+export type { PrinterInfo }
 
 export interface IElectronAPI {
   createTicket: (
