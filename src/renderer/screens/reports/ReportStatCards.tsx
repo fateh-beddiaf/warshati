@@ -72,7 +72,10 @@ function StatCard({
   return (
     <motion.div variants={listItem}>
       <Card className="relative h-full overflow-hidden">
-        <div aria-hidden className={cn('pointer-events-none absolute inset-0 bg-gradient-to-br to-transparent', styles.glow)} />
+        <div
+          aria-hidden
+          className={cn('pointer-events-none absolute inset-0 bg-gradient-to-br to-transparent', styles.glow)}
+        />
         <div aria-hidden className={cn('absolute inset-x-0 top-0 h-1', styles.bar)} />
         <CardContent className="relative p-5">
           <div className="flex items-center justify-between gap-2 pt-1">
@@ -189,9 +192,7 @@ export function ReportStatCards({ report, initialLoading }: ReportStatCardsProps
         valueClassName={shareClass(report?.totalPartnerShare || 0, 'text-primary-to')}
         skeleton={initialLoading}
         footerStart={<span>{t.reports.kpi.partnerTotalShareDesc}</span>}
-        footerEnd={
-          <span className="font-bold tabular text-primary-to">{pct(report?.totalPartnerShare || 0)}</span>
-        }
+        footerEnd={<span className="font-bold tabular text-primary-to">{pct(report?.totalPartnerShare || 0)}</span>}
       />
       <StatCard
         testId="stat-debt"

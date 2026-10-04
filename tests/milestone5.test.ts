@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3'
 import { join } from 'path'
-import { existsSync, unlinkSync, mkdirSync } from 'fs'
+import { existsSync, mkdtempSync, rmSync } from 'fs'
+import { tmpdir } from 'os'
 import { initializeSchema } from '../src/database/schema'
 import { seedInitialData } from '../src/database/seed'
 import { createTicket } from '../src/database/queries/tickets'
@@ -100,9 +101,10 @@ async function runMilestone5Tests(): Promise<void> {
   let brandDeleteBlocked = false
   try {
     deleteBrand(db, samsungBrand.id)
-  } catch (err: any) {
+  } catch (err) {
     brandDeleteBlocked = true
-    assert(err.message.includes('لا يمكن الحذف'), `Descriptive Arabic guard message: "${err.message}"`)
+    const message = (err as Error).message
+    assert(message.includes('لا يمكن الحذف'), `Descriptive Arabic guard message: "${message}"`)
   }
   assert(brandDeleteBlocked, 'Attempting to delete used brand threw error as required')
 
@@ -124,7 +126,7 @@ async function runMilestone5Tests(): Promise<void> {
   let modelDeleteBlocked = false
   try {
     deleteModel(db, a54Model.id)
-  } catch (err: any) {
+  } catch {
     modelDeleteBlocked = true
   }
   assert(modelDeleteBlocked, 'Attempting to delete used model was strictly prevented')
@@ -158,7 +160,7 @@ async function runMilestone5Tests(): Promise<void> {
   let accDeleteBlocked = false
   try {
     deleteAccessory(db, 1)
-  } catch (err: any) {
+  } catch {
     accDeleteBlocked = true
   }
   assert(accDeleteBlocked, 'Attempting to delete used accessory was strictly prevented')
@@ -166,11 +168,17 @@ async function runMilestone5Tests(): Promise<void> {
   // 1.4 Repair Categories CRUD & Guard
   console.log('\n[1.4] Repair Categories CRUD & Usage Guard:')
   const newCat = addRepairCategory(db, 'تبديل كاميرا خلفية', 65)
-  assert(newCat.id > 0 && newCat.name === 'تبديل كاميرا خلفية' && newCat.default_split_percentage === 65, 'Added Repair Category with 65% split')
+  assert(
+    newCat.id > 0 && newCat.name === 'تبديل كاميرا خلفية' && newCat.default_split_percentage === 65,
+    'Added Repair Category with 65% split'
+  )
 
   updateRepairCategory(db, newCat.id, 'صيانة الكاميرات والعدسات', 70)
   const updatedCat = getRepairCategories(db).find((c) => c.id === newCat.id)
-  assert(updatedCat?.name === 'صيانة الكاميرات والعدسات' && updatedCat?.default_split_percentage === 70, 'Updated category name and split')
+  assert(
+    updatedCat?.name === 'صيانة الكاميرات والعدسات' && updatedCat?.default_split_percentage === 70,
+    'Updated category name and split'
+  )
 
   deleteRepairCategory(db, newCat.id)
   assert(getRepairCategories(db).find((c) => c.id === newCat.id) === undefined, 'Unused category deleted')
@@ -199,24 +207,16 @@ async function runMilestone5Tests(): Promise<void> {
   const meUsage = checkTechnicianUsage(db, techMe.id)
   assert(meUsage.canDelete === false, 'Technician "أنا" cannot be deleted (used in tickets)')
 
-
   // =========================================================================
   // SECTION 2: Database Backup & Restore Flow (.db)
   // =========================================================================
   console.log('\n--- Section 2: Database Backup & Full Restore Verification ---')
 
-  const tempDir = join(process.cwd(), 'data', 'test-temp')
-  if (!existsSync(tempDir)) mkdirSync(tempDir, { recursive: true })
+  const tempDir = mkdtempSync(join(tmpdir(), 'warshati-milestone5-'))
 
   const originalDbPath = join(tempDir, 'original.db')
   const backupDbPath = join(tempDir, 'exported-backup.db')
   const safetyBackupPath = join(tempDir, 'auto-backup-before-import.db')
-
-  // Clean previous test files if any
-  const cleanFiles = [originalDbPath, backupDbPath, safetyBackupPath, `${originalDbPath}-wal`, `${originalDbPath}-shm`]
-  cleanFiles.forEach((p) => {
-    if (existsSync(p)) try { unlinkSync(p) } catch {}
-  })
 
   // Setup real database file
   const fileDb = new Database(originalDbPath)
@@ -267,12 +267,14 @@ async function runMilestone5Tests(): Promise<void> {
   const restoredDb = new Database(originalDbPath)
   const restoredCustomer = restoredDb
     .prepare(`SELECT * FROM Customer WHERE name = 'زبون النسخ الاحتياطي الأصلي'`)
-    .get() as any
+    .get() as { id: number; phone: string } | undefined
 
   assert(restoredCustomer !== undefined, 'Restored Customer found in database')
-  assert(restoredCustomer.phone === '0555001122', 'Customer phone verified')
+  assert(restoredCustomer!.phone === '0555001122', 'Customer phone verified')
 
-  const restoredTickets = restoredDb.prepare(`SELECT * FROM Ticket WHERE customer_id = ?`).all(restoredCustomer.id) as any[]
+  const restoredTickets = restoredDb
+    .prepare(`SELECT * FROM Ticket WHERE customer_id = ?`)
+    .all(restoredCustomer!.id) as { price: number; barcode_code: string }[]
   assert(restoredTickets.length === 1, 'Restored ticket count is exactly 1')
   assert(restoredTickets[0].price === 15000, 'Restored ticket price matches 15000 DZD')
   assert(restoredTickets[0].barcode_code === createdTicket.barcode, 'Restored barcode code matches perfectly')
@@ -280,23 +282,21 @@ async function runMilestone5Tests(): Promise<void> {
   restoredDb.close()
 
   // Clean test files
-  cleanFiles.forEach((p) => {
-    if (existsSync(p)) try { unlinkSync(p) } catch {}
-  })
-
+  rmSync(tempDir, { recursive: true, force: true })
 
   // =========================================================================
   // SECTION 3: Bilingual (i18n) Symmetry Verification
   // =========================================================================
   console.log('\n--- Section 3: i18n Dictionary Symmetry Verification ---')
 
-  function checkSymmetry(arObj: any, enObj: any, path = ''): void {
+  type Dictionary = Record<string, unknown>
+  function checkSymmetry(arObj: Dictionary, enObj: Dictionary, path = ''): void {
     for (const key of Object.keys(arObj)) {
       const currentPath = path ? `${path}.${key}` : key
       assert(key in enObj, `English dictionary contains key: ${currentPath}`)
 
       if (typeof arObj[key] === 'object' && arObj[key] !== null) {
-        checkSymmetry(arObj[key], enObj[key], currentPath)
+        checkSymmetry(arObj[key] as Dictionary, enObj[key] as Dictionary, currentPath)
       }
     }
   }
@@ -304,7 +304,9 @@ async function runMilestone5Tests(): Promise<void> {
   checkSymmetry(ar, en)
   console.log('✅ All Arabic and English translation keys are 100% symmetric and fully mapped.')
 
-  console.log('\n🎉 ALL MILESTONE 5 TESTS (SETTINGS CRUD, REFERENCE GUARDS, BACKUP/RESTORE & i18n) PASSED SUCCESSFULLY! 🎉\n')
+  console.log(
+    '\n🎉 ALL MILESTONE 5 TESTS (SETTINGS CRUD, REFERENCE GUARDS, BACKUP/RESTORE & i18n) PASSED SUCCESSFULLY! 🎉\n'
+  )
   process.exit(0)
 }
 

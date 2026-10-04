@@ -94,7 +94,11 @@ export function generateShortLabel(brand: string, model: string): string {
     if (match) {
       code = BRAND_CODE_MAP[match]
     } else {
-      code = trimmedBrand.replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || trimmedBrand.slice(0, 2)
+      code =
+        trimmedBrand
+          .replace(/[^a-zA-Z0-9]/g, '')
+          .slice(0, 2)
+          .toUpperCase() || trimmedBrand.slice(0, 2)
     }
   }
 

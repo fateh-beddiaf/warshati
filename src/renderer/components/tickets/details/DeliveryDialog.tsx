@@ -4,14 +4,7 @@ import { useI18n } from '../../../lib/i18n'
 import { cn, formatCurrency } from '../../../lib/utils'
 import { Button } from '../../ui/Button'
 import { Input } from '../../ui/Input'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '../../ui/Dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../ui/Dialog'
 import { ProfitShares } from './ProfitShares'
 import { FeedbackBanners } from './FeedbackBanners'
 import type { TicketFullDetails } from '../../../../shared/types'

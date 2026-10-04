@@ -24,8 +24,7 @@ interface SeedPack {
 
 function ensureBrandId(db: Database.Database, name: string): number {
   const existing = db.prepare(`SELECT id FROM Brand WHERE lower(name) = lower(?)`).get(name) as
-    | { id: number }
-    | undefined
+    { id: number } | undefined
   if (existing) return existing.id
   return Number(db.prepare(`INSERT INTO Brand (name) VALUES (?)`).run(name).lastInsertRowid)
 }
@@ -75,7 +74,8 @@ const SEED_PACKS: SeedPack[] = [
     apply: (db, previousVersion) => {
       // Pack 1 already ran on this database: a pack-1 brand that is missing now was deleted by
       // the user, so it is not re-added (its missing models are still filled in if it exists).
-      const deletedByUser = previousVersion >= 1 ? new Set(Object.keys(CORE_BRANDS_V1).map((n) => n.toLowerCase())) : new Set<string>()
+      const deletedByUser =
+        previousVersion >= 1 ? new Set(Object.keys(CORE_BRANDS_V1).map((n) => n.toLowerCase())) : new Set<string>()
       addCatalog(db, BRAND_CATALOG_V2, deletedByUser)
     }
   }
@@ -85,8 +85,7 @@ export const LATEST_SEED_VERSION = SEED_PACKS[SEED_PACKS.length - 1].version
 
 function readSeedVersion(db: Database.Database): number {
   const row = db.prepare(`SELECT value FROM Setting WHERE key = ?`).get(SEED_VERSION_KEY) as
-    | { value: string }
-    | undefined
+    { value: string } | undefined
   if (row) {
     const parsed = parseInt(row.value, 10)
     if (!isNaN(parsed)) return parsed

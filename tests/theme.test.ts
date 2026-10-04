@@ -1,9 +1,4 @@
-import {
-  normalizeThemePreference,
-  resolveTheme,
-  THEME_BACKGROUND,
-  DEFAULT_THEME
-} from '../src/shared/theme'
+import { normalizeThemePreference, resolveTheme, THEME_BACKGROUND, DEFAULT_THEME } from '../src/shared/theme'
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {

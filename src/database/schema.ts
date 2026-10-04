@@ -137,27 +137,39 @@ function getColumnNames(db: Database.Database, table: string): string[] {
 }
 
 function describeUnmatchedRows(db: Database.Database): string[] {
-  const unmatchedTechnicians = db.prepare(`
+  const unmatchedTechnicians = db
+    .prepare(
+      `
     SELECT t.id
     FROM Ticket t
     LEFT JOIN Technician tech ON tech.name = t.technician
     WHERE tech.id IS NULL
-  `).all() as { id: number }[]
+  `
+    )
+    .all() as { id: number }[]
 
-  const unmatchedBrands = db.prepare(`
+  const unmatchedBrands = db
+    .prepare(
+      `
     SELECT td.ticket_id
     FROM TicketDevice td
     LEFT JOIN Brand b ON b.name = td.brand
     WHERE b.id IS NULL
-  `).all() as { ticket_id: number }[]
+  `
+    )
+    .all() as { ticket_id: number }[]
 
-  const unmatchedModels = db.prepare(`
+  const unmatchedModels = db
+    .prepare(
+      `
     SELECT td.ticket_id
     FROM TicketDevice td
     LEFT JOIN Brand b ON b.name = td.brand
     LEFT JOIN Model m ON m.brand_id = b.id AND m.name = td.model
     WHERE m.id IS NULL
-  `).all() as { ticket_id: number }[]
+  `
+    )
+    .all() as { ticket_id: number }[]
 
   const messages: string[] = []
   if (unmatchedTechnicians.length > 0) {
@@ -191,7 +203,8 @@ function runMigrations(db: Database.Database): void {
 
   const needsCostRequiredMigration = !ticketColumns.includes('parts_cost_required')
 
-  if (!needsLegacyIdentityMigration && !needsProfitMigration && !needsPartsCostMigration && !needsCostRequiredMigration) return
+  if (!needsLegacyIdentityMigration && !needsProfitMigration && !needsPartsCostMigration && !needsCostRequiredMigration)
+    return
 
   // One transaction for every step: a failure leaves the database exactly as it was.
   const migrateLegacySchema = db.transaction(() => {
@@ -238,18 +251,25 @@ function migrateLegacyIdentities(
 
   const unmatched = describeUnmatchedRows(db)
   if (unmatched.length > 0) {
-    throw new Error(`تعذر ترحيل هويات السجلات القديمة بسبب تطابقات غير دقيقة: ${unmatched.join(' | ')}. لم تُطبَّق أي تغييرات؛ راجع هذه السجلات يدوياً ثم أعد التشغيل.`)
+    throw new Error(
+      `تعذر ترحيل هويات السجلات القديمة بسبب تطابقات غير دقيقة: ${unmatched.join(' | ')}. لم تُطبَّق أي تغييرات؛ راجع هذه السجلات يدوياً ثم أعد التشغيل.`
+    )
   }
 
-  db.prepare(`
+  db.prepare(
+    `
     UPDATE Ticket
     SET technician_id = (SELECT id FROM Technician WHERE name = Ticket.technician)
-  `).run()
-  db.prepare(`
+  `
+  ).run()
+  db.prepare(
+    `
     UPDATE TicketDevice
     SET brand_id = (SELECT id FROM Brand WHERE name = TicketDevice.brand)
-  `).run()
-  db.prepare(`
+  `
+  ).run()
+  db.prepare(
+    `
     UPDATE TicketDevice
     SET model_id = (
       SELECT m.id
@@ -257,13 +277,18 @@ function migrateLegacyIdentities(
       JOIN Brand b ON b.id = m.brand_id
       WHERE b.name = TicketDevice.brand AND m.name = TicketDevice.model
     )
-  `).run()
+  `
+  ).run()
 
-  const incompleteCount = db.prepare(`
+  const incompleteCount = db
+    .prepare(
+      `
     SELECT
       (SELECT COUNT(*) FROM Ticket WHERE technician_id IS NULL) +
       (SELECT COUNT(*) FROM TicketDevice WHERE brand_id IS NULL OR model_id IS NULL) AS count
-  `).get() as { count: number }
+  `
+    )
+    .get() as { count: number }
   if (incompleteCount.count > 0) {
     throw new Error('تعذر إكمال ترحيل هويات السجلات القديمة. لم تُطبَّق أي تغييرات؛ راجع البيانات يدوياً.')
   }
@@ -287,13 +312,17 @@ function migratePartsCost(db: Database.Database, ticketColumns: string[], catego
     ).run()
   }
   if (!ticketColumns.includes('parts_cost')) {
-    db.prepare(`ALTER TABLE Ticket ADD COLUMN parts_cost REAL DEFAULT NULL CHECK(parts_cost IS NULL OR parts_cost >= 0)`).run()
+    db.prepare(
+      `ALTER TABLE Ticket ADD COLUMN parts_cost REAL DEFAULT NULL CHECK(parts_cost IS NULL OR parts_cost >= 0)`
+    ).run()
   }
   if (ticketColumns.includes('split_percentage_applied')) return
 
   db.prepare(`ALTER TABLE Ticket ADD COLUMN split_percentage_applied REAL DEFAULT NULL`).run()
 
-  const delivered = db.prepare(`
+  const delivered = db
+    .prepare(
+      `
     SELECT t.id AS id, t.price AS price, t.my_share AS my_share
     FROM Ticket t
     JOIN Technician tech ON tech.id = t.technician_id
@@ -302,7 +331,9 @@ function migratePartsCost(db: Database.Database, ticketColumns: string[], catego
       AND t.price > 0
       AND t.my_share IS NOT NULL
       AND t.partner_share IS NOT NULL
-  `).all() as { id: number; price: number; my_share: number }[]
+  `
+    )
+    .all() as { id: number; price: number; my_share: number }[]
 
   const setApplied = db.prepare(`UPDATE Ticket SET split_percentage_applied = ? WHERE id = ?`)
   for (const row of delivered) {
@@ -311,7 +342,8 @@ function migratePartsCost(db: Database.Database, ticketColumns: string[], catego
     const applied =
       candidates.find(
         (pct) =>
-          calculateProfitSplit({ price: row.price, isPartner: false, appliedSplitPercentage: pct }).myShare === row.my_share
+          calculateProfitSplit({ price: row.price, isPartner: false, appliedSplitPercentage: pct }).myShare ===
+          row.my_share
       ) ?? candidates[1]
     setApplied.run(applied, row.id)
   }

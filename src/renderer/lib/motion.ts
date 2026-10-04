@@ -1,8 +1,8 @@
 import type { Transition, Variants } from 'framer-motion'
 
 /**
- * Shared Framer Motion presets (see .agents/skills/frontend-design: 150-350ms, spring bounce <= 0.15,
- * no 3D / parallax / looping motion). Screens import these instead of scattering numbers.
+ * Shared Framer Motion presets. The motion budget: 150-350ms, spring bounce <= 0.15,
+ * no 3D / parallax / looping motion. Screens import these instead of scattering numbers.
  * `<MotionConfig reducedMotion="user">` at the app root turns transform animations off for
  * users who prefer reduced motion.
  */

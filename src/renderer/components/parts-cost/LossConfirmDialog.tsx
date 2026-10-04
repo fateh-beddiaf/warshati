@@ -2,14 +2,7 @@ import * as React from 'react'
 import { TrendingDown } from 'lucide-react'
 import { useI18n } from '../../lib/i18n'
 import { Button } from '../ui/Button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '../ui/Dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/Dialog'
 
 interface LossConfirmDialogProps {
   open: boolean
@@ -64,7 +57,13 @@ export function LossConfirmDialog({
           <Button type="button" variant="outline" data-testid="loss-confirm-cancel" onClick={onCancel}>
             {cancelLabel}
           </Button>
-          <Button type="button" variant="destructive" data-testid="loss-confirm-accept" disabled={busy} onClick={onConfirm}>
+          <Button
+            type="button"
+            variant="destructive"
+            data-testid="loss-confirm-accept"
+            disabled={busy}
+            onClick={onConfirm}
+          >
             {confirmLabel}
           </Button>
         </DialogFooter>

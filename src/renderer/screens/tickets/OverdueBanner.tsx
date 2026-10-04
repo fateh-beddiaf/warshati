@@ -22,9 +22,7 @@ export function OverdueBanner({ count, threshold, onShowOverdue }: OverdueBanner
       <div className="flex items-center gap-2.5">
         <AlertTriangle className="h-5 w-5 flex-shrink-0" />
         <p className="text-xs font-bold">
-          {t.ticketsList.overdueAlertCard
-            .replace('{count}', String(count))
-            .replace('{threshold}', String(threshold))}
+          {t.ticketsList.overdueAlertCard.replace('{count}', String(count)).replace('{threshold}', String(threshold))}
         </p>
       </div>
       <Button

@@ -12,7 +12,8 @@ function count(db: Database.Database, sql: string, ...p: unknown[]): number {
 }
 
 async function build(): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  // The legacy source tree is loaded at runtime by path, so it can only be require()d
+  /* eslint-disable @typescript-eslint/no-require-imports */
   const legacy = require(`${legacySrc}/src/database/index.ts`)
   const queries = require(`${legacySrc}/src/database/queries/tickets.ts`)
   const db = legacy.initDatabase(dbPath) as Database.Database
@@ -29,25 +30,42 @@ async function build(): Promise<void> {
       accessory_ids: []
     })
   }
-  console.log('built legacy DB:', count(db, 'SELECT COUNT(*) c FROM Brand'), 'brands,', count(db, 'SELECT COUNT(*) c FROM Ticket'), 'tickets')
+  console.log(
+    'built legacy DB:',
+    count(db, 'SELECT COUNT(*) c FROM Brand'),
+    'brands,',
+    count(db, 'SELECT COUNT(*) c FROM Ticket'),
+    'tickets'
+  )
   legacy.closeDatabase()
 }
 
 async function verify(): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const current = require('../src/database/index.ts')
   const db = current.initDatabase(dbPath) as Database.Database
   const brands = count(db, 'SELECT COUNT(*) c FROM Brand')
   const checks: [string, boolean][] = [
     ['tickets intact (3)', count(db, 'SELECT COUNT(*) c FROM Ticket') === 3],
     ['customers intact (3)', count(db, 'SELECT COUNT(*) c FROM Customer') === 3],
-    ['deleted seeded brand Honor is NOT brought back by pack 2', count(db, `SELECT COUNT(*) c FROM Brand WHERE name = 'Honor'`) === 0],
-    ['Apple (old pack 1) untouched on the legacy DB', count(db, `SELECT COUNT(*) c FROM Brand WHERE name = 'Apple'`) === 1],
-    ['deleted category not resurrected', count(db, `SELECT COUNT(*) c FROM RepairCategory WHERE name = 'صيانة عامة وأخرى'`) === 0],
+    [
+      'deleted seeded brand Honor is NOT brought back by pack 2',
+      count(db, `SELECT COUNT(*) c FROM Brand WHERE name = 'Honor'`) === 0
+    ],
+    [
+      'Apple (old pack 1) untouched on the legacy DB',
+      count(db, `SELECT COUNT(*) c FROM Brand WHERE name = 'Apple'`) === 1
+    ],
+    [
+      'deleted category not resurrected',
+      count(db, `SELECT COUNT(*) c FROM RepairCategory WHERE name = 'صيانة عامة وأخرى'`) === 0
+    ],
     ['user brand "محلي" kept', count(db, `SELECT COUNT(*) c FROM Brand WHERE name = 'محلي'`) === 1],
     ['no duplicate Meizu', count(db, `SELECT COUNT(*) c FROM Brand WHERE lower(name) = 'meizu'`) === 1],
     ['catalog added (24 catalog brands + Apple + محلي, minus deleted Honor)', brands === 26],
-    ['no duplicate brands (case-insensitive)', count(db, `SELECT COUNT(*) c FROM (SELECT lower(name) n FROM Brand GROUP BY n HAVING COUNT(*) > 1)`) === 0],
+    [
+      'no duplicate brands (case-insensitive)',
+      count(db, `SELECT COUNT(*) c FROM (SELECT lower(name) n FROM Brand GROUP BY n HAVING COUNT(*) > 1)`) === 0
+    ],
     ['seed_version stamped', count(db, `SELECT COUNT(*) c FROM Setting WHERE key = 'seed_version'`) === 1]
   ]
   let ok = true

@@ -25,7 +25,8 @@ function useDebouncedCustomerSearch(query: string, onResults: (customers: Custom
       cancelled = true
       clearTimeout(timer)
     }
-    // onResults is a state setter (stable)
+    // onResults is a state setter (stable): listing it would not change when the effect runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query])
 }
 
@@ -45,7 +46,9 @@ export function useNewTicketForm() {
   const [existingCustomers, setExistingCustomers] = useState<Customer[]>([])
   const [phoneCandidates, setPhoneCandidates] = useState<Customer[]>([])
   const [loading, setLoading] = useState(false)
-  const [successInfo, setSuccessInfo] = useState<{ barcode: string; ticketId: number; withoutCost: boolean } | null>(null)
+  const [successInfo, setSuccessInfo] = useState<{ barcode: string; ticketId: number; withoutCost: boolean } | null>(
+    null
+  )
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   // After a failed submit the missing required fields are highlighted
   const [showErrors, setShowErrors] = useState(false)
@@ -109,9 +112,7 @@ export function useNewTicketForm() {
   }, [brand, model, isShortLabelEdited])
 
   // Does the chosen category require a parts cost? (the field is shown only then)
-  const requiresPartsCost = Boolean(
-    metadata?.repairCategories.find((c) => c.id === categoryId)?.requires_parts_cost
-  )
+  const requiresPartsCost = Boolean(metadata?.repairCategories.find((c) => c.id === categoryId)?.requires_parts_cost)
   const parsedCost = requiresPartsCost ? parseCostInput(partsCost) : ({ kind: 'empty' } as const)
   const costInvalid = parsedCost.kind === 'invalid'
 
@@ -207,9 +208,7 @@ export function useNewTicketForm() {
   }
 
   const toggleAccessory = (id: number): void => {
-    setSelectedAccessoryIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    )
+    setSelectedAccessoryIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]))
   }
 
   const resetForm = (): void => {
@@ -239,7 +238,14 @@ export function useNewTicketForm() {
     setErrorMessage(null)
 
     // Validation
-    if (!customerName.trim() || !customerPhone.trim() || !brand.trim() || !model.trim() || !categoryId || !technicianId) {
+    if (
+      !customerName.trim() ||
+      !customerPhone.trim() ||
+      !brand.trim() ||
+      !model.trim() ||
+      !categoryId ||
+      !technicianId
+    ) {
       setShowErrors(true)
       setErrorMessage(t.newTicket.requiredFieldsError)
       return

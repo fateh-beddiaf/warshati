@@ -49,7 +49,13 @@ export function ReportsScreen({ onOpenTicketDetails }: ReportsScreenProps): Reac
         subtitle={t.reports.subtitle}
         icon={<TrendingUp />}
         actions={
-          <Button type="button" variant="outline" onClick={() => reload()} disabled={loading} className="gap-1.5 text-xs">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => reload()}
+            disabled={loading}
+            className="gap-1.5 text-xs"
+          >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>{t.ui.reports.refresh}</span>
           </Button>
@@ -107,11 +113,7 @@ export function ReportsScreen({ onOpenTicketDetails }: ReportsScreenProps): Reac
       <ReportStatCards report={report} initialLoading={initialLoading} />
       <ShareSplitBar report={report} />
       <ReportBreakdowns report={report} initialLoading={initialLoading} />
-      <ReportLedger
-        tickets={ledgerTickets}
-        initialLoading={initialLoading}
-        onOpenTicketDetails={onOpenTicketDetails}
-      />
+      <ReportLedger tickets={ledgerTickets} initialLoading={initialLoading} onOpenTicketDetails={onOpenTicketDetails} />
     </div>
   )
 }

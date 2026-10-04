@@ -10,11 +10,7 @@ export interface KeyLike {
   metaKey?: boolean
 }
 
-export type KeyClass =
-  | { kind: 'char'; char: string }
-  | { kind: 'enter' }
-  | { kind: 'modifier' }
-  | { kind: 'other' }
+export type KeyClass = { kind: 'char'; char: string } | { kind: 'enter' } | { kind: 'modifier' } | { kind: 'other' }
 
 /** A gap longer than this (ms) between two keystrokes starts a new burst. */
 export const BURST_RESET_MS = 120

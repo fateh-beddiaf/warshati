@@ -19,7 +19,11 @@ interface CategorySplitFieldProps {
 }
 
 /** Owner/partner split slider with a live preview for a 10,000 ticket. */
-export function CategorySplitField({ value, onChange, requiresPartsCost = false }: CategorySplitFieldProps): React.JSX.Element {
+export function CategorySplitField({
+  value,
+  onChange,
+  requiresPartsCost = false
+}: CategorySplitFieldProps): React.JSX.Element {
   const { t } = useI18n()
   const id = React.useId()
   const owner = clampSplit(value)
@@ -33,7 +37,9 @@ export function CategorySplitField({ value, onChange, requiresPartsCost = false 
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor={id}>{t.settings.categories.splitPercentage}</Label>
         <span className="text-sm font-bold tabular-nums text-primary">
-          {t.ui.settings.categories.splitSummary.replace('{owner}', String(owner)).replace('{partner}', String(partner))}
+          {t.ui.settings.categories.splitSummary
+            .replace('{owner}', String(owner))
+            .replace('{partner}', String(partner))}
         </span>
       </div>
       <input

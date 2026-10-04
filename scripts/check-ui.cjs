@@ -27,8 +27,10 @@ const COLOR_UTIL = new RegExp(
   String.raw`(?<![\w-])(?:[a-z-]+:)*(bg|text|border|ring|ring-offset|from|to|via|divide|placeholder|fill|stroke|shadow|outline|decoration|accent|caret)-${PALETTE}(-\d{2,3})?(?![\w-])`
 )
 const RAW_COLOR = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\((?!var)/
-const V4 = /(?<![\w-])(z-60|z-70|z-80|backdrop-blur-xs|shadow-xs|shadow-2xs|rounded-xs|blur-xs|drop-shadow-xs|outline-hidden|ring-3|bg-linear-[\w-]+|inset-shadow-[\w-]+)(?![\w-])/
-const PHYSICAL = /(?<![\w-])(?:[a-z-]+:)*(-?)(ml|mr|pl|pr|left|right|rounded-l|rounded-r|border-l|border-r)-(\d|\[|px|auto|full)|(?<![\w-])text-(left|right)(?![\w-])/
+const V4 =
+  /(?<![\w-])(z-60|z-70|z-80|backdrop-blur-xs|shadow-xs|shadow-2xs|rounded-xs|blur-xs|drop-shadow-xs|outline-hidden|ring-3|bg-linear-[\w-]+|inset-shadow-[\w-]+)(?![\w-])/
+const PHYSICAL =
+  /(?<![\w-])(?:[a-z-]+:)*(-?)(ml|mr|pl|pr|left|right|rounded-l|rounded-r|border-l|border-r)-(\d|\[|px|auto|full)|(?<![\w-])text-(left|right)(?![\w-])/
 
 const wantRtl = process.argv.includes('--rtl')
 const problems = []
@@ -60,7 +62,10 @@ function check(file) {
     const raw = colorExempt ? null : line.match(RAW_COLOR)
     if (raw && !/^\s*(\/\/|\*|\/\*)/.test(line)) problems.push(`${where}: raw colour literal "${raw[0]}"`)
     const mono = monoExempt || /^\s*(\/\/|\*|\/\*)/.test(line) ? null : line.match(MONO_OR_TRACKING)
-    if (mono) problems.push(`${where}: "${mono[1]}" outside <Mono> (breaks Arabic letter joining; use <Mono> for Latin codes, tabular for numbers)`)
+    if (mono)
+      problems.push(
+        `${where}: "${mono[1]}" outside <Mono> (breaks Arabic letter joining; use <Mono> for Latin codes, tabular for numbers)`
+      )
     const v4 = line.match(V4)
     if (v4) problems.push(`${where}: Tailwind v4-only class "${v4[0]}"`)
     if (wantRtl) {

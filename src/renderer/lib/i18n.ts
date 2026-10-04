@@ -174,7 +174,7 @@ export const ar = {
     filterByCategory: 'نوع العطل:',
     allTechnicians: 'جميع الفنيين',
     allCategories: 'جميع التصنيفات',
-    
+
     kpi: {
       totalRevenue: 'إجمالي الدخل المحقق',
       totalRevenueDesc: 'مجموع أسعار التذاكر المسلّمة',
@@ -342,7 +342,8 @@ export const ar = {
       languageArabic: 'العربية (Arabic - RTL)',
       languageEnglish: 'English (الإنجليزية - LTR)',
       overdueThresholdLabel: 'عتبة تنبيه التذاكر الجاهزة المتأخرة (بالأيام):',
-      overdueThresholdHelp: 'التذاكر التي تبقى بحالة "جاهز للتسليم" أكثر من هذا العدد من الأيام ستظهر بعلامة تنبيه بارزة في القائمة.',
+      overdueThresholdHelp:
+        'التذاكر التي تبقى بحالة "جاهز للتسليم" أكثر من هذا العدد من الأيام ستظهر بعلامة تنبيه بارزة في القائمة.',
       savePreferences: 'حفظ التفضيلات',
       preferencesSaved: 'تم حفظ التفضيلات بنجاح'
     },
@@ -359,7 +360,8 @@ export const ar = {
       importHelp: 'استرجاع البيانات من ملف نسخة احتياطية تم تصديره مسبقاً.',
       exportSuccess: 'تم تصدير النسخة الاحتياطية بنجاح إلى: {path}',
       importConfirmTitle: 'تأكيد استيراد واستعادة قاعدة البيانات',
-      importConfirmDesc: 'تنبيه هام: استيراد ملف جديد سيقوم باستبدال قاعدة البيانات الحالية بالكامل بالبيانات المستوردة. سيتم أخذ نسخة احتياطية صامتة تلقائياً قبل الاستبدال.',
+      importConfirmDesc:
+        'تنبيه هام: استيراد ملف جديد سيقوم باستبدال قاعدة البيانات الحالية بالكامل بالبيانات المستوردة. سيتم أخذ نسخة احتياطية صامتة تلقائياً قبل الاستبدال.',
       importSuccess: 'تمت استعادة قاعدة البيانات بنجاح وتحديث كافة السجلات.',
       safetyBackupNotice: 'تم حفظ نسخة احتياطية تلقائية من بياناتك السابقة في: {path}'
     }
@@ -379,8 +381,10 @@ export const ar = {
     nextToStep2: 'متابعة إلى الخطوة التالية',
     step2Title: 'الخطوة 2 من 3: الأثر المالي والتقارير',
     step2WarningBadge: 'تنبيه مالي وإداري حرج',
-    step2FinancialNotice: 'حذف هذه التذكرة سيؤدي إلى شطب كافة أرقامها ومستحقاتها المالية (المبالغ المدفوعة، حصص الأرباح، والديون) من التقارير المالية ومؤشرات الأداء التاريخية واللاحقة نهائياً.',
-    step2CustomerCleanupNotice: 'ملاحظة: إذا كانت هذه هي التذكرة الوحيدة للزبون، فسيتم تنظيف وحذف سجل الزبون تلقائياً وبصمت لعدم وجود سجلات أخرى له.',
+    step2FinancialNotice:
+      'حذف هذه التذكرة سيؤدي إلى شطب كافة أرقامها ومستحقاتها المالية (المبالغ المدفوعة، حصص الأرباح، والديون) من التقارير المالية ومؤشرات الأداء التاريخية واللاحقة نهائياً.',
+    step2CustomerCleanupNotice:
+      'ملاحظة: إذا كانت هذه هي التذكرة الوحيدة للزبون، فسيتم تنظيف وحذف سجل الزبون تلقائياً وبصمت لعدم وجود سجلات أخرى له.',
     step2IrreversibleNotice: 'هذا الإجراء نهائي ولا يمكن التراجع عنه بأي شكل من الأشكال.',
     nextToStep3: 'أقر بالآثار المالية وأريد المتابعة',
     step3Title: 'الخطوة 3 من 3: التأكيد النهائي بالكتابة',
@@ -394,8 +398,6 @@ export const ar = {
     cancel: 'إلغاء'
   }
 }
-
-
 
 export const en: typeof ar = {
   ui: {
@@ -684,7 +686,8 @@ export const en: typeof ar = {
       ownerShare: 'My Share: {percent}%',
       partnerShare: 'Partner Share: {percent}%',
       preview: 'Profit split preview for 10,000 DZD ticket:',
-      deleteGuardWarning: 'Cannot delete this category because it is used in existing tickets. You can edit its name or percentage instead.'
+      deleteGuardWarning:
+        'Cannot delete this category because it is used in existing tickets. You can edit its name or percentage instead.'
     },
     brands: {
       title: 'Device Brands Management',
@@ -727,7 +730,8 @@ export const en: typeof ar = {
       languageArabic: 'العربية (Arabic - RTL)',
       languageEnglish: 'English (LTR)',
       overdueThresholdLabel: 'Overdue Pickup Alert Threshold (Days):',
-      overdueThresholdHelp: 'Ready tickets remaining uncollected longer than this threshold will be highlighted in the tickets list.',
+      overdueThresholdHelp:
+        'Ready tickets remaining uncollected longer than this threshold will be highlighted in the tickets list.',
       savePreferences: 'Save Preferences',
       preferencesSaved: 'Preferences saved successfully'
     },
@@ -744,7 +748,8 @@ export const en: typeof ar = {
       importHelp: 'Restore all data from a previously exported backup file.',
       exportSuccess: 'Backup exported successfully to: {path}',
       importConfirmTitle: 'Confirm Database Restore',
-      importConfirmDesc: 'Important: Importing a backup will completely replace the current database with the imported data. A silent safety auto-backup will be taken before replacement.',
+      importConfirmDesc:
+        'Important: Importing a backup will completely replace the current database with the imported data. A silent safety auto-backup will be taken before replacement.',
       importSuccess: 'Database restored successfully and all records refreshed.',
       safetyBackupNotice: 'A silent safety backup of your previous database was saved to: {path}'
     }
@@ -760,12 +765,15 @@ export const en: typeof ar = {
     step1Barcode: 'Barcode:',
     step1Status: 'Status:',
     step1Price: 'Total Price:',
-    step1Notice: 'The ticket along with all its devices, accessories, and status logs will be permanently deleted. Do you wish to continue?',
+    step1Notice:
+      'The ticket along with all its devices, accessories, and status logs will be permanently deleted. Do you wish to continue?',
     nextToStep2: 'Proceed to Next Step',
     step2Title: 'Step 2 of 3: Financial Impact & Reports',
     step2WarningBadge: 'Critical Financial Warning',
-    step2FinancialNotice: 'Deleting this ticket will permanently remove all its financial figures (amounts paid, profit shares, and outstanding debt) from historical and future financial reports and KPI metrics.',
-    step2CustomerCleanupNotice: 'Note: If this is the customer\'s only ticket, the customer record will be automatically and silently cleaned up.',
+    step2FinancialNotice:
+      'Deleting this ticket will permanently remove all its financial figures (amounts paid, profit shares, and outstanding debt) from historical and future financial reports and KPI metrics.',
+    step2CustomerCleanupNotice:
+      "Note: If this is the customer's only ticket, the customer record will be automatically and silently cleaned up.",
     step2IrreversibleNotice: 'This action is irreversible and cannot be undone.',
     nextToStep3: 'I Acknowledge Financial Impact & Proceed',
     step3Title: 'Step 3 of 3: Final Type Confirmation',
@@ -779,8 +787,6 @@ export const en: typeof ar = {
     cancel: 'Cancel'
   }
 }
-
-
 
 // Fallback constant
 export let t = ar
@@ -832,6 +838,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }): React
       }
     }
     loadSetting()
+    // Runs once on boot: `language` is only the fallback for a missing setting, not a trigger to reload it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const setLanguage = (lang: Language): void => {
@@ -861,6 +869,3 @@ export function I18nProvider({ children }: { children: React.ReactNode }): React
 export function useI18n(): I18nContextType {
   return useContext(I18nContext)
 }
-
-
-

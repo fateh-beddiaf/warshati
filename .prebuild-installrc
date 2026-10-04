@@ -1,0 +1,5 @@
+; Read by prebuild-install (better-sqlite3's install step): fetch the binary built for Electron, not for the
+; local Node, so `npm ci` works without a C++ toolchain. Keep `target` equal to the installed Electron version
+; (scripts/install-native.cjs warns when they differ).
+runtime=electron
+target=34.5.8

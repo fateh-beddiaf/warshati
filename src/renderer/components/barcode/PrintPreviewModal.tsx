@@ -11,14 +11,7 @@ import { Label } from '../ui/Label'
 import { Switch } from '../ui/Switch'
 import { SegmentedControl } from '../ui/SegmentedControl'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/Select'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '../ui/Dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/Dialog'
 import type { PrinterInfo } from '../../../preload/index.d'
 import { Printer, CheckCircle2, AlertCircle, Eye, Maximize2, Tag, PhoneCall } from 'lucide-react'
 import { Mono } from '../ui/Mono'
@@ -86,15 +79,18 @@ export function PrintPreviewModal({
   // Load system printers list
   useEffect(() => {
     if (isOpen) {
-      window.api.getPrinters().then((res) => {
-        if (res.success && res.data) {
-          setPrinters(res.data)
-          const defaultP = res.data.find((p) => p.isDefault)
-          if (defaultP) {
-            setSelectedPrinter(defaultP.name)
+      window.api
+        .getPrinters()
+        .then((res) => {
+          if (res.success && res.data) {
+            setPrinters(res.data)
+            const defaultP = res.data.find((p) => p.isDefault)
+            if (defaultP) {
+              setSelectedPrinter(defaultP.name)
+            }
           }
-        }
-      }).catch(console.error)
+        })
+        .catch(console.error)
     }
   }, [isOpen])
 
@@ -231,7 +227,8 @@ export function PrintPreviewModal({
                   value={shortLabel}
                   onChange={(e) => setShortLabel(e.target.value)}
                   placeholder={t.ui.details.shortLabelPlaceholder}
-                  mono className="font-bold"
+                  mono
+                  className="font-bold"
                 />
               </div>
 

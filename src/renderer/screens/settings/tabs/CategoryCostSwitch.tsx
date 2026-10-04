@@ -25,7 +25,13 @@ export function CategoryCostSwitch({
   const id = React.useId()
 
   return (
-    <div className={compact ? 'flex items-center justify-between gap-3' : 'space-y-2 rounded-lg border border-border bg-muted/40 p-3'}>
+    <div
+      className={
+        compact
+          ? 'flex items-center justify-between gap-3'
+          : 'space-y-2 rounded-lg border border-border bg-muted/40 p-3'
+      }
+    >
       <div className="flex items-center justify-between gap-3">
         <Label htmlFor={id} className={compact ? 'text-xs font-semibold' : 'text-sm font-bold'}>
           {text.switchLabel}

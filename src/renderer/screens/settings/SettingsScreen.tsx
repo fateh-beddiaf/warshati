@@ -50,9 +50,17 @@ export function SettingsScreen(): React.JSX.Element {
       <PageHeader title={t.settings.title} subtitle={t.settings.subtitle} icon={<Sliders />} />
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as SettingsTabId)}>
-        <TabsList aria-label={t.ui.settings.tabsLabel} className="flex h-auto w-full flex-wrap justify-start gap-1 p-1.5">
+        <TabsList
+          aria-label={t.ui.settings.tabsLabel}
+          className="flex h-auto w-full flex-wrap justify-start gap-1 p-1.5"
+        >
           {TAB_ORDER.map((id) => (
-            <TabsTrigger key={id} value={id} data-testid={`settings-tab-${id}`} className="px-4 py-2.5 text-xs font-bold">
+            <TabsTrigger
+              key={id}
+              value={id}
+              data-testid={`settings-tab-${id}`}
+              className="px-4 py-2.5 text-xs font-bold"
+            >
               {activeTab === id && (
                 <motion.span
                   layoutId="settings-tab-pill"

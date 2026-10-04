@@ -33,7 +33,14 @@ const category = addRepairCategory(db, 'شاشات', 50, true)
 const { ticketId, barcode } = createTicket(db, {
   customer: { name: 'زبون الملصق', phone: '0555123987' },
   device: { brand: 'Realme', model: 'C51', short_label: 'RL C51' },
-  ticket: { repair_category_id: category.id, price: 9000, payment_type: 'cash', amount_paid: 9000, technician_id: 1, parts_cost: COST }
+  ticket: {
+    repair_category_id: category.id,
+    price: 9000,
+    payment_type: 'cash',
+    amount_paid: 9000,
+    technician_id: 1,
+    parts_cost: COST
+  }
 })
 updateTicketStatus(db, { ticketId, newStatus: 'ready' })
 updateTicketStatus(db, { ticketId, newStatus: 'delivered' })
@@ -50,12 +57,17 @@ const labelData: PrintLabelData & { svgContent?: string } = {
   ticketId
 }
 const html = buildLabelHtml(labelData)
-check(html.includes(barcode) && html.includes('زبون الملصق'), 'the label HTML is built (contains the barcode and the customer name)')
+check(
+  html.includes(barcode) && html.includes('زبون الملصق'),
+  'the label HTML is built (contains the barcode and the customer name)'
+)
 // The barcode / phone are random-ish digits: take them out so a coincidence cannot fail the money checks
 const stripped = html.split(barcode).join('').split('0555123987').join('')
 for (const text of COST_TEXTS) check(!stripped.includes(text), `label HTML does not contain "${text}"`)
-for (const word of ['parts_cost', 'partsCost', 'تكلفة', 'cost', 'Cost']) check(!stripped.includes(word), `label HTML does not mention "${word}"`)
-for (const amount of ['9000', '9.000', '9,000', '784']) check(!stripped.includes(amount), `label HTML does not contain money ("${amount}")`)
+for (const word of ['parts_cost', 'partsCost', 'تكلفة', 'cost', 'Cost'])
+  check(!stripped.includes(word), `label HTML does not mention "${word}"`)
+for (const amount of ['9000', '9.000', '9,000', '784'])
+  check(!stripped.includes(amount), `label HTML does not contain money ("${amount}")`)
 
 // The label data type has no money field at all, so no caller can hand one to the printer
 const types = readFileSync(resolve('src/shared/types.ts'), 'utf8')
@@ -70,7 +82,10 @@ const guarded = [
 ]
 for (const file of guarded) {
   const source = readFileSync(resolve(file), 'utf8')
-  check(!/parts_?cost|partsCost|requires_parts_cost|net_?profit|split_percentage/i.test(source), `${file} never references the parts cost`)
+  check(
+    !/parts_?cost|partsCost|requires_parts_cost|net_?profit|split_percentage/i.test(source),
+    `${file} never references the parts cost`
+  )
 }
 
 // The list payload (used by the "reprint" button in the tickets table) carries no cost amount either

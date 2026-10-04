@@ -5,14 +5,7 @@ import { useI18n } from '../../../lib/i18n'
 import { cn, formatCurrency } from '../../../lib/utils'
 import { Button } from '../../ui/Button'
 import { Input } from '../../ui/Input'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '../../ui/Dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../ui/Dialog'
 import { FeedbackBanners } from './FeedbackBanners'
 import { fadeIn, transitions } from '../../../lib/motion'
 import type { TicketFullDetails } from '../../../../shared/types'
@@ -58,7 +51,12 @@ export function DeleteTicketDialog({
   const { t } = useI18n()
   const { ticket, customer, device } = ticketDetails
   const { deleteStep, setDeleteStep, deleting, confirmBarcode } = state
-  const stepTitle = deleteStep === 1 ? t.deleteTicket.step1Title : deleteStep === 2 ? t.deleteTicket.step2Title : t.deleteTicket.step3Title
+  const stepTitle =
+    deleteStep === 1
+      ? t.deleteTicket.step1Title
+      : deleteStep === 2
+        ? t.deleteTicket.step2Title
+        : t.deleteTicket.step3Title
 
   return (
     <Dialog
@@ -98,7 +96,9 @@ export function DeleteTicketDialog({
                 <span>{t.deleteTicket.step1Warning}</span>
               </div>
               <div className="space-y-2 rounded-xl border border-border bg-muted/40 p-3.5 text-xs">
-                <div className="border-b border-border pb-1.5 font-bold text-foreground">{t.deleteTicket.step1DetailsTitle}</div>
+                <div className="border-b border-border pb-1.5 font-bold text-foreground">
+                  {t.deleteTicket.step1DetailsTitle}
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <Detail label={t.deleteTicket.step1Barcode}>
                     <Mono className="font-bold text-foreground">{ticket.barcode_code}</Mono>
@@ -107,7 +107,9 @@ export function DeleteTicketDialog({
                     <span className="font-bold text-foreground">{customer.name}</span>
                   </Detail>
                   <Detail label={t.deleteTicket.step1Device}>
-                    <span className="font-bold text-foreground">{device.brand} {device.model}</span>
+                    <span className="font-bold text-foreground">
+                      {device.brand} {device.model}
+                    </span>
                   </Detail>
                   <Detail label={t.deleteTicket.step1Price}>
                     <span className="tabular font-extrabold text-foreground">{formatCurrency(ticket.price)}</span>
@@ -149,7 +151,8 @@ export function DeleteTicketDialog({
                   value={confirmBarcode}
                   onChange={(e) => state.setConfirmBarcode(e.target.value)}
                   placeholder={t.deleteTicket.step3Placeholder}
-                  mono className="text-center font-bold"
+                  mono
+                  className="text-center font-bold"
                   autoFocus
                 />
                 {confirmBarcode && confirmBarcode.trim() !== ticket.barcode_code.trim() && (

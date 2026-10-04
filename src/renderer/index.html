@@ -1,8 +1,16 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Offline app: everything comes from the app itself. 'unsafe-inline' is for styles only: Radix (scroll lock)
+      and sonner inject <style> elements at runtime, and Vite injects the CSS as <style> in dev.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"
+    />
     <title>ورشتي — إدارة محل تصليح الهواتف</title>
   </head>
   <body class="select-none overflow-hidden">

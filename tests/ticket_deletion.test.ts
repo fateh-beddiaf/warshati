@@ -74,24 +74,40 @@ function testTicketDeletionAndCascade(): void {
   assert(getTicketById(db, ticketId) !== null, 'تم إنشاء التذكرة بنجاح')
 
   // Verify dependent records exist
-  assert((db.prepare('SELECT COUNT(*) AS c FROM TicketDevice WHERE ticket_id = ?').get(ticketId) as { c: number }).c === 1, 'TicketDevice موجود')
-  assert((db.prepare('SELECT COUNT(*) AS c FROM TicketAccessories WHERE ticket_id = ?').get(ticketId) as { c: number }).c === 2, 'TicketAccessories موجودة')
-  assert((db.prepare('SELECT COUNT(*) AS c FROM StatusLog WHERE ticket_id = ?').get(ticketId) as { c: number }).c === 1, 'StatusLog موجود')
+  assert(
+    (db.prepare('SELECT COUNT(*) AS c FROM TicketDevice WHERE ticket_id = ?').get(ticketId) as { c: number }).c === 1,
+    'TicketDevice موجود'
+  )
+  assert(
+    (db.prepare('SELECT COUNT(*) AS c FROM TicketAccessories WHERE ticket_id = ?').get(ticketId) as { c: number }).c ===
+      2,
+    'TicketAccessories موجودة'
+  )
+  assert(
+    (db.prepare('SELECT COUNT(*) AS c FROM StatusLog WHERE ticket_id = ?').get(ticketId) as { c: number }).c === 1,
+    'StatusLog موجود'
+  )
 
   const result = deleteTicket(db, ticketId)
   assert(result.success === true, 'تم حذف التذكرة بنجاح')
 
   // Verify all records are deleted
   assert(getTicketById(db, ticketId) === null, 'التذكرة لم تعد موجودة')
-  assert((db.prepare('SELECT COUNT(*) AS c FROM TicketDevice WHERE ticket_id = ?').get(ticketId) as { c: number }).c === 0, 'TicketDevice تم حذفه')
-  assert((db.prepare('SELECT COUNT(*) AS c FROM TicketAccessories WHERE ticket_id = ?').get(ticketId) as { c: number }).c === 0, 'TicketAccessories تم حذفها')
-  assert((db.prepare('SELECT COUNT(*) AS c FROM StatusLog WHERE ticket_id = ?').get(ticketId) as { c: number }).c === 0, 'StatusLog تم حذفه')
-
-  assertThrows(
-    () => deleteTicket(db, 99999),
-    'غير موجودة',
-    'محاولة حذف تذكرة غير موجودة تطلق استثناءً واضحاً'
+  assert(
+    (db.prepare('SELECT COUNT(*) AS c FROM TicketDevice WHERE ticket_id = ?').get(ticketId) as { c: number }).c === 0,
+    'TicketDevice تم حذفه'
   )
+  assert(
+    (db.prepare('SELECT COUNT(*) AS c FROM TicketAccessories WHERE ticket_id = ?').get(ticketId) as { c: number }).c ===
+      0,
+    'TicketAccessories تم حذفها'
+  )
+  assert(
+    (db.prepare('SELECT COUNT(*) AS c FROM StatusLog WHERE ticket_id = ?').get(ticketId) as { c: number }).c === 0,
+    'StatusLog تم حذفه'
+  )
+
+  assertThrows(() => deleteTicket(db, 99999), 'غير موجودة', 'محاولة حذف تذكرة غير موجودة تطلق استثناءً واضحاً')
 
   db.close()
 }
@@ -177,9 +193,14 @@ function testFinancialReportAdjustmentsOnTicketDeletion(): void {
   assert(updatedReport.totalMyShare === 4000, 'إجمالي حصتي بعد الحذف 4000 د.ج')
   assert(updatedReport.totalPartnerShare === 6000, 'إجمالي حصة الشريك بعد الحذف 6000 د.ج')
   assert(updatedReport.totalOutstandingDebt === 0, 'شُطبت الديون المرتبطة بالتذكرة المحذوفة وأصبحت 0 د.ج')
-  assert(updatedReport.totalRevenue === updatedReport.totalMyShare + updatedReport.totalPartnerShare, 'مجموع الحصص يطابق تماماً إجمالي الإيرادات بعد الحذف')
-  assert(updatedReport.tickets.some((t) => t.id === t2.ticketId) === false, 'التذكرة المحذوفة اختفت تماماً من سجل التذاكر في التقرير')
-
+  assert(
+    updatedReport.totalRevenue === updatedReport.totalMyShare + updatedReport.totalPartnerShare,
+    'مجموع الحصص يطابق تماماً إجمالي الإيرادات بعد الحذف'
+  )
+  assert(
+    updatedReport.tickets.some((t) => t.id === t2.ticketId) === false,
+    'التذكرة المحذوفة اختفت تماماً من سجل التذاكر في التقرير'
+  )
 
   db.close()
 }

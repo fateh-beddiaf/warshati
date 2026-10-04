@@ -73,17 +73,13 @@ export function Autocomplete({
     const q = query.toLowerCase()
     const matches = query
       ? options.filter(
-          (opt) =>
-            opt.label.toLowerCase().includes(q) || (opt.sublabel && opt.sublabel.toLowerCase().includes(q))
+          (opt) => opt.label.toLowerCase().includes(q) || (opt.sublabel && opt.sublabel.toLowerCase().includes(q))
         )
       : options
     return { visible: matches.slice(0, MAX_VISIBLE_OPTIONS), total: matches.length }
   }, [options, query])
 
-  const keys = useMemo(
-    () => visible.map((opt, index) => String(opt.id ?? `${String(opt.value)}-${index}`)),
-    [visible]
-  )
+  const keys = useMemo(() => visible.map((opt, index) => String(opt.id ?? `${String(opt.value)}-${index}`)), [visible])
   const currentKey = activeKey !== undefined && keys.includes(activeKey) ? activeKey : keys[0]
 
   const showList = isOpen && !disabled && (visible.length > 0 || query.trim() !== '')
@@ -142,9 +138,7 @@ export function Autocomplete({
       // Enter only picks a suggestion the user navigated to, or one that exactly matches the typed text;
       // otherwise it keeps the typed value (and the form's normal Enter behaviour).
       const typed = query.trim().toLowerCase()
-      const index = touched
-        ? keys.indexOf(currentKey)
-        : visible.findIndex((opt) => opt.label.toLowerCase() === typed)
+      const index = touched ? keys.indexOf(currentKey) : visible.findIndex((opt) => opt.label.toLowerCase() === typed)
       if (index >= 0) {
         e.preventDefault()
         handleSelect(visible[index])
@@ -201,12 +195,15 @@ export function Autocomplete({
         // Keep focus in the text field when clicking a row
         onMouseDown={(e) => e.preventDefault()}
       >
-        <Command shouldFilter={false} value={currentKey ?? ''} onValueChange={setActiveKey} label={placeholder ?? text.placeholder}>
+        <Command
+          shouldFilter={false}
+          value={currentKey ?? ''}
+          onValueChange={setActiveKey}
+          label={placeholder ?? text.placeholder}
+        >
           <CommandList ref={listRef} onPointerMoveCapture={() => !touched && setTouched(true)}>
             {visible.length === 0 && (
-              <CommandEmpty>
-                {allowCustomInput ? `${text.useTyped} "${query}"` : text.noResults}
-              </CommandEmpty>
+              <CommandEmpty>{allowCustomInput ? `${text.useTyped} "${query}"` : text.noResults}</CommandEmpty>
             )}
             {visible.map((opt, index) => {
               const isSelected = opt.value === value || opt.label === query

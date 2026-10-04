@@ -2,7 +2,13 @@ import Database from 'better-sqlite3'
 import { initializeSchema } from '../src/database/schema'
 import { seedInitialData } from '../src/database/seed'
 import { addRepairCategory, updateRepairCategory } from '../src/database/queries/metadata'
-import { createTicket, getTicketById, getTicketsList, setPartsCost, updateTicketStatus } from '../src/database/queries/tickets'
+import {
+  createTicket,
+  getTicketById,
+  getTicketsList,
+  setPartsCost,
+  updateTicketStatus
+} from '../src/database/queries/tickets'
 import { getFinancialReport } from '../src/database/queries/reports'
 import { LEGACY_SCHEMA_BEFORE_PARTS_COST } from './fixtures/legacy-schemas'
 
@@ -42,7 +48,8 @@ const deliver = (id: number): void => {
   updateTicketStatus(db, { ticketId: id, newStatus: 'delivered' })
 }
 const flag = (id: number): boolean => getTicketsList(db).find((x) => x.id === id)!.parts_cost_missing as boolean
-const required = (id: number): unknown => (db.prepare(`SELECT parts_cost_required v FROM Ticket WHERE id = ?`).get(id) as { v: number }).v
+const required = (id: number): unknown =>
+  (db.prepare(`SELECT parts_cost_required v FROM Ticket WHERE id = ?`).get(id) as { v: number }).v
 
 console.log('--- snapshot at creation ---')
 const oldInProgress = mk()
@@ -56,7 +63,11 @@ const newWithCost = mk(2600)
 eq([required(newNoCost), required(newWithCost)], [1, 1], 'tickets created after the switch is on snapshot 1')
 
 console.log('--- no retroactive effect ---')
-eq([flag(oldInProgress), flag(oldDelivered)], [false, false], 'old tickets are NOT "missing a cost" after turning the switch on')
+eq(
+  [flag(oldInProgress), flag(oldDelivered)],
+  [false, false],
+  'old tickets are NOT "missing a cost" after turning the switch on'
+)
 eq(flag(newNoCost), true, 'a new ticket without a cost IS missing it')
 eq(flag(newWithCost), false, 'a new ticket with a cost is not')
 const report = getFinancialReport(db, { period: 'all_time' })
@@ -65,18 +76,30 @@ eq(report.tickets.find((t) => t.id === oldDelivered)!.is_provisional, false, 're
 eq(getTicketById(db, oldDelivered)!.ticket.parts_cost_required, 0, 'details carry the snapshot (0) of the old ticket')
 
 deliver(newNoCost)
-eq(getFinancialReport(db, { period: 'all_time' }).provisionalTicketsCount, 1, 'a NEW ticket delivered without a cost is provisional')
+eq(
+  getFinancialReport(db, { period: 'all_time' }).provisionalTicketsCount,
+  1,
+  'a NEW ticket delivered without a cost is provisional'
+)
 
 console.log('--- turning the switch off later ---')
 updateRepairCategory(db, cat.id, 'شاشات', 50, false)
 eq(required(newWithCost), 1, 'switching off does not change an existing snapshot')
 const stillNoCost = mk()
 eq(required(stillNoCost), 0, 'a ticket created after switching off snapshots 0')
-eq(getFinancialReport(db, { period: 'all_time' }).provisionalTicketsCount, 1, 'the earlier new ticket stays provisional')
+eq(
+  getFinancialReport(db, { period: 'all_time' }).provisionalTicketsCount,
+  1,
+  'the earlier new ticket stays provisional'
+)
 
 console.log('--- adding a cost manually to an old ticket is always possible ---')
 const updated = setPartsCost(db, oldDelivered, 2600)
-eq([updated.my_share, updated.partner_share], [700, 700], 'old delivered ticket: cost 2600 => 700 / 700 (net profit as usual)')
+eq(
+  [updated.my_share, updated.partner_share],
+  [700, 700],
+  'old delivered ticket: cost 2600 => 700 / 700 (net profit as usual)'
+)
 eq(flag(oldInProgress), false, 'unchanged flag for the untouched old ticket')
 
 console.log('--- migration of a T004 database ---')
@@ -107,7 +130,11 @@ console.log('--- migration of a T004 database ---')
   initializeSchema(m)
   eq(
     m.prepare(`SELECT barcode_code c, parts_cost_required r FROM Ticket ORDER BY id`).all(),
-    [{ c: 'A', r: 0 }, { c: 'B', r: 1 }, { c: 'C', r: 1 }],
+    [
+      { c: 'A', r: 0 },
+      { c: 'B', r: 1 },
+      { c: 'C', r: 1 }
+    ],
     'T004 database: no cost => 0 (not retroactive); with a cost (even 0) => 1'
   )
   eq(JSON.stringify(m.prepare(probe).all()), before, 'migration loses nothing')

@@ -25,12 +25,17 @@ function mapTechnician(row: { id: number; name: string; is_partner: number | boo
 export function getAppMetadata(db: Database.Database): AppMetadata {
   const brands = db.prepare(`SELECT * FROM Brand ORDER BY name ASC`).all() as Brand[]
   const models = db.prepare(`SELECT * FROM Model ORDER BY name ASC`).all() as Model[]
-  const repairCategories = (db
-    .prepare(`SELECT * FROM RepairCategory ORDER BY id ASC`)
-    .all() as RepairCategoryRow[]).map(mapRepairCategory)
+  const repairCategories = (
+    db.prepare(`SELECT * FROM RepairCategory ORDER BY id ASC`).all() as RepairCategoryRow[]
+  ).map(mapRepairCategory)
   const accessories = db.prepare(`SELECT * FROM Accessories ORDER BY id ASC`).all() as Accessories[]
-  const technicians = (db.prepare(`SELECT * FROM Technician ORDER BY id ASC`).all() as { id: number; name: string; is_partner: number | boolean }[])
-    .map(mapTechnician)
+  const technicians = (
+    db.prepare(`SELECT * FROM Technician ORDER BY id ASC`).all() as {
+      id: number
+      name: string
+      is_partner: number | boolean
+    }[]
+  ).map(mapTechnician)
 
   return {
     brands,
@@ -80,9 +85,9 @@ export function checkBrandUsage(db: Database.Database, id: number): DeleteRefere
   }
 
   // Check if brand has models
-  const modelCountRow = db
-    .prepare(`SELECT COUNT(*) as count FROM Model WHERE brand_id = ?`)
-    .get(id) as { count: number }
+  const modelCountRow = db.prepare(`SELECT COUNT(*) as count FROM Model WHERE brand_id = ?`).get(id) as {
+    count: number
+  }
 
   if (modelCountRow.count > 0) {
     return {
@@ -205,7 +210,9 @@ export function deleteAccessory(db: Database.Database, id: number): void {
 // 5. Repair Categories CRUD & Guard
 // ==========================================
 export function getRepairCategories(db: Database.Database): RepairCategory[] {
-  return (db.prepare(`SELECT * FROM RepairCategory ORDER BY id ASC`).all() as RepairCategoryRow[]).map(mapRepairCategory)
+  return (db.prepare(`SELECT * FROM RepairCategory ORDER BY id ASC`).all() as RepairCategoryRow[]).map(
+    mapRepairCategory
+  )
 }
 
 /** Rejects non-numeric / NaN / infinite split percentages with a clear message, then clamps to 0–100. */
@@ -272,9 +279,9 @@ export function updateRepairCategory(
 }
 
 export function checkRepairCategoryUsage(db: Database.Database, id: number): DeleteReferenceCheckResult {
-  const ticketCountRow = db
-    .prepare(`SELECT COUNT(*) as count FROM Ticket WHERE repair_category_id = ?`)
-    .get(id) as { count: number }
+  const ticketCountRow = db.prepare(`SELECT COUNT(*) as count FROM Ticket WHERE repair_category_id = ?`).get(id) as {
+    count: number
+  }
 
   if (ticketCountRow.count > 0) {
     return {
@@ -299,8 +306,13 @@ export function deleteRepairCategory(db: Database.Database, id: number): void {
 // 6. Technicians CRUD & Guard
 // ==========================================
 export function getTechnicians(db: Database.Database): Technician[] {
-  return (db.prepare(`SELECT * FROM Technician ORDER BY id ASC`).all() as { id: number; name: string; is_partner: number | boolean }[])
-    .map(mapTechnician)
+  return (
+    db.prepare(`SELECT * FROM Technician ORDER BY id ASC`).all() as {
+      id: number
+      name: string
+      is_partner: number | boolean
+    }[]
+  ).map(mapTechnician)
 }
 
 export function addTechnician(db: Database.Database, name: string): Technician {
@@ -318,9 +330,9 @@ export function updateTechnician(db: Database.Database, id: number, name: string
 }
 
 export function checkTechnicianUsage(db: Database.Database, id: number): DeleteReferenceCheckResult {
-  const ticketCountRow = db
-    .prepare(`SELECT COUNT(*) as count FROM Ticket WHERE technician_id = ?`)
-    .get(id) as { count: number }
+  const ticketCountRow = db.prepare(`SELECT COUNT(*) as count FROM Ticket WHERE technician_id = ?`).get(id) as {
+    count: number
+  }
 
   if (ticketCountRow.count > 0) {
     return {

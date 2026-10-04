@@ -75,14 +75,19 @@ const negTest = calculateProfitSplit({ price: -100, isPartner: false, categorySp
 assert(negTest.myShare === 0 && negTest.partnerShare === 0, 'Negative price produces 0 shares')
 
 const defaultSplitTest = calculateProfitSplit({ price: 2000, isPartner: false, categorySplitPercentage: null })
-assert(defaultSplitTest.myShare === 1000 && defaultSplitTest.partnerShare === 1000, 'Null category split defaults to 50%')
+assert(
+  defaultSplitTest.myShare === 1000 && defaultSplitTest.partnerShare === 1000,
+  'Null category split defaults to 50%'
+)
 
 // Fractional precision test (e.g. 1255.50 at 70%)
-const fracTest = calculateProfitSplit({ price: 1255.50, isPartner: false, categorySplitPercentage: 70 })
+const fracTest = calculateProfitSplit({ price: 1255.5, isPartner: false, categorySplitPercentage: 70 })
 assert(fracTest.myShare === 878.85, 'Fractional price myShare = 878.85')
 assert(fracTest.partnerShare === 376.65, 'Fractional price partnerShare = 376.65')
-assert(Math.round((fracTest.myShare + fracTest.partnerShare) * 100) / 100 === 1255.50, 'Fractional shares sum exactly to total price')
-
+assert(
+  Math.round((fracTest.myShare + fracTest.partnerShare) * 100) / 100 === 1255.5,
+  'Fractional shares sum exactly to total price'
+)
 
 // =========================================================================
 // SECTION 2: Database Integration, Freezing Shares, & Reports

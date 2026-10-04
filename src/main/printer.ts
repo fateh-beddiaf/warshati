@@ -48,6 +48,7 @@ export function buildLabelHtml(data: PrintOptions): string {
     <html lang="ar" dir="rtl">
     <head>
       <meta charset="utf-8">
+      <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
       <style>
         @page {
           size: 40mm 20mm;
@@ -164,7 +165,9 @@ function runPrintJob(data: PrintOptions, ctx: { win: BrowserWindow | null }): Pr
         show: false,
         width: 380,
         height: 200,
+        // Same isolation as the main window; no preload: the label page needs no API at all
         webPreferences: {
+          sandbox: true,
           nodeIntegration: false,
           contextIsolation: true
         }

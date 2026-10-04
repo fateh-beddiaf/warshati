@@ -16,11 +16,59 @@ function check(name: string, condition: boolean, detail = ''): void {
 }
 
 const ALLOWED_BRANDS = [
-  'Samsung', 'Xiaomi', 'Redmi', 'Poco', 'Oppo', 'Realme', 'Infinix', 'Tecno', 'Itel', 'Huawei', 'Honor', 'OnePlus',
-  'Motorola', 'Nokia', 'Google Pixel', 'Sony', 'LG', 'HTC', 'Asus', 'Lenovo', 'Alcatel', 'TCL', 'ZTE', 'Nothing', 'Meizu'
+  'Samsung',
+  'Xiaomi',
+  'Redmi',
+  'Poco',
+  'Oppo',
+  'Realme',
+  'Infinix',
+  'Tecno',
+  'Itel',
+  'Huawei',
+  'Honor',
+  'OnePlus',
+  'Motorola',
+  'Nokia',
+  'Google Pixel',
+  'Sony',
+  'LG',
+  'HTC',
+  'Asus',
+  'Lenovo',
+  'Alcatel',
+  'TCL',
+  'ZTE',
+  'Nothing',
+  'Meizu'
 ]
-const REMOVED_BRANDS = ['Apple', 'Vivo', 'Condor', 'IRIS', 'KXD', 'Stream System', 'Brandt', 'Evertek', 'Wiko', 'Doogee', 'iQOO', 'Nubia', 'BlackBerry', 'Fairphone'].concat([
-  'Vsmart', 'Walton', 'Hisense', 'Black Shark', 'RedMagic', 'AGM', 'Cat', 'Sharp', 'Panasonic', 'Philips', 'BLU'
+const REMOVED_BRANDS = [
+  'Apple',
+  'Vivo',
+  'Condor',
+  'IRIS',
+  'KXD',
+  'Stream System',
+  'Brandt',
+  'Evertek',
+  'Wiko',
+  'Doogee',
+  'iQOO',
+  'Nubia',
+  'BlackBerry',
+  'Fairphone'
+].concat([
+  'Vsmart',
+  'Walton',
+  'Hisense',
+  'Black Shark',
+  'RedMagic',
+  'AGM',
+  'Cat',
+  'Sharp',
+  'Panasonic',
+  'Philips',
+  'BLU'
 ])
 
 const count = (db: Database.Database, sql: string, ...params: unknown[]): number =>
@@ -37,7 +85,8 @@ function freshDb(): Database.Database {
 {
   const db = freshDb()
   seedInitialData(db)
-  const version = (db.prepare(`SELECT value FROM Setting WHERE key = ?`).get(SEED_VERSION_KEY) as { value: string }).value
+  const version = (db.prepare(`SELECT value FROM Setting WHERE key = ?`).get(SEED_VERSION_KEY) as { value: string })
+    .value
   check('fresh DB is stamped with the latest seed_version', version === String(LATEST_SEED_VERSION), version)
   const brands = count(db, `SELECT COUNT(*) c FROM Brand`)
   const models = count(db, `SELECT COUNT(*) c FROM Model`)
@@ -79,7 +128,10 @@ function freshDb(): Database.Database {
   db.prepare(`DELETE FROM Technician WHERE name = 'الشريك'`).run()
   initializeSchema(db) // what initDatabase does on every launch
   seedInitialData(db)
-  check('deleted brands stay deleted after re-init', count(db, `SELECT COUNT(*) c FROM Brand WHERE name IN ('Tecno','Meizu')`) === 0)
+  check(
+    'deleted brands stay deleted after re-init',
+    count(db, `SELECT COUNT(*) c FROM Brand WHERE name IN ('Tecno','Meizu')`) === 0
+  )
   check('deleted model stays deleted', count(db, `SELECT COUNT(*) c FROM Model WHERE name = 'Galaxy A54'`) === 0)
   check(
     'deleted category/accessory/technician stay deleted',
@@ -99,7 +151,10 @@ function freshDb(): Database.Database {
   db.prepare(`INSERT INTO Brand (name) VALUES ('My Local Brand')`).run()
   const samsungId = (db.prepare(`SELECT id FROM Brand WHERE name = 'samsung'`).get() as { id: number }).id
   db.prepare(`INSERT INTO Model (brand_id, name) VALUES (?, 'galaxy a15')`).run(samsungId) // same as catalog, other case
-  check('legacy fixture has no seed_version', count(db, `SELECT COUNT(*) c FROM Setting WHERE key = ?`, SEED_VERSION_KEY) === 0)
+  check(
+    'legacy fixture has no seed_version',
+    count(db, `SELECT COUNT(*) c FROM Setting WHERE key = ?`, SEED_VERSION_KEY) === 0
+  )
 
   seedInitialData(db)
 
@@ -109,18 +164,31 @@ function freshDb(): Database.Database {
       count(db, `SELECT COUNT(*) c FROM Accessories`) === 0 &&
       count(db, `SELECT COUNT(*) c FROM Technician`) === 1
   )
-  check('legacy DB: no duplicate of the user samsung brand', count(db, `SELECT COUNT(*) c FROM Brand WHERE lower(name) = 'samsung'`) === 1)
-  check('legacy DB: user brand kept with original casing', count(db, `SELECT COUNT(*) c FROM Brand WHERE name = 'samsung'`) === 1)
-  check('legacy DB: custom brand untouched', count(db, `SELECT COUNT(*) c FROM Brand WHERE name = 'My Local Brand'`) === 1)
+  check(
+    'legacy DB: no duplicate of the user samsung brand',
+    count(db, `SELECT COUNT(*) c FROM Brand WHERE lower(name) = 'samsung'`) === 1
+  )
+  check(
+    'legacy DB: user brand kept with original casing',
+    count(db, `SELECT COUNT(*) c FROM Brand WHERE name = 'samsung'`) === 1
+  )
+  check(
+    'legacy DB: custom brand untouched',
+    count(db, `SELECT COUNT(*) c FROM Brand WHERE name = 'My Local Brand'`) === 1
+  )
   check(
     'legacy DB: no duplicate Galaxy A15 model',
     count(db, `SELECT COUNT(*) c FROM Model WHERE brand_id = ? AND lower(name) = 'galaxy a15'`, samsungId) === 1
   )
   check(
     'legacy DB: new catalog brands added',
-    count(db, `SELECT COUNT(*) c FROM Brand WHERE name = 'Meizu'`) === 1 && count(db, `SELECT COUNT(*) c FROM Brand`) === 19 // 25 catalog - 7 absent pack-1 brands + 'My Local Brand'
+    count(db, `SELECT COUNT(*) c FROM Brand WHERE name = 'Meizu'`) === 1 &&
+      count(db, `SELECT COUNT(*) c FROM Brand`) === 19 // 25 catalog - 7 absent pack-1 brands + 'My Local Brand'
   )
-  check('legacy DB: new models attach to the existing brand', count(db, `SELECT COUNT(*) c FROM Model WHERE brand_id = ?`, samsungId) > 20)
+  check(
+    'legacy DB: new models attach to the existing brand',
+    count(db, `SELECT COUNT(*) c FROM Model WHERE brand_id = ?`, samsungId) > 20
+  )
   db.close()
 }
 
@@ -132,14 +200,29 @@ function freshDb(): Database.Database {
   db.prepare(`INSERT INTO Brand (name) VALUES ('Apple')`).run() // pack-1 brand of the old app: left untouched
   // Honor, Xiaomi, ... (the other pack-1 brands) were deleted on purpose
   seedInitialData(db)
-  check('legacy DB: deleted Honor stays deleted after the upgrade', count(db, `SELECT COUNT(*) c FROM Brand WHERE lower(name) = 'honor'`) === 0)
+  check(
+    'legacy DB: deleted Honor stays deleted after the upgrade',
+    count(db, `SELECT COUNT(*) c FROM Brand WHERE lower(name) = 'honor'`) === 0
+  )
   check(
     'legacy DB: every deleted pack-1 brand stays deleted',
-    count(db, `SELECT COUNT(*) c FROM Brand WHERE name IN ('Xiaomi','Huawei','Oppo','Realme','Infinix','Tecno','Honor')`) === 0
+    count(
+      db,
+      `SELECT COUNT(*) c FROM Brand WHERE name IN ('Xiaomi','Huawei','Oppo','Realme','Infinix','Tecno','Honor')`
+    ) === 0
   )
-  check('legacy DB: kept pack-1 brand still gets the new models', count(db, `SELECT COUNT(*) c FROM Model m JOIN Brand b ON b.id = m.brand_id WHERE b.name = 'Samsung'`) > 20)
-  check('legacy DB: brands that were never in pack 1 are added', count(db, `SELECT COUNT(*) c FROM Brand WHERE name IN ('Redmi','Poco','Itel','Sony','Meizu')`) === 5)
-  check('legacy DB: existing Apple brand is never deleted', count(db, `SELECT COUNT(*) c FROM Brand WHERE name = 'Apple'`) === 1)
+  check(
+    'legacy DB: kept pack-1 brand still gets the new models',
+    count(db, `SELECT COUNT(*) c FROM Model m JOIN Brand b ON b.id = m.brand_id WHERE b.name = 'Samsung'`) > 20
+  )
+  check(
+    'legacy DB: brands that were never in pack 1 are added',
+    count(db, `SELECT COUNT(*) c FROM Brand WHERE name IN ('Redmi','Poco','Itel','Sony','Meizu')`) === 5
+  )
+  check(
+    'legacy DB: existing Apple brand is never deleted',
+    count(db, `SELECT COUNT(*) c FROM Brand WHERE name = 'Apple'`) === 1
+  )
   db.close()
 }
 
@@ -149,7 +232,10 @@ function freshDb(): Database.Database {
   db.prepare(`INSERT INTO Setting (key, value) VALUES (?, '1')`).run(SEED_VERSION_KEY)
   db.prepare(`INSERT INTO Brand (name) VALUES ('Samsung')`).run()
   seedInitialData(db)
-  check('seed_version=1 DB: deleted pack-1 brand stays deleted', count(db, `SELECT COUNT(*) c FROM Brand WHERE name = 'Honor'`) === 0)
+  check(
+    'seed_version=1 DB: deleted pack-1 brand stays deleted',
+    count(db, `SELECT COUNT(*) c FROM Brand WHERE name = 'Honor'`) === 0
+  )
   db.close()
 }
 
@@ -161,9 +247,24 @@ function freshDb(): Database.Database {
     'catalog has no blank names',
     BRAND_CATALOG_V2.every((b) => b.name.trim() && (b.models ?? []).every((m) => m.trim()))
   )
-  check('catalog holds exactly the allowed brands', JSON.stringify([...names].sort()) === JSON.stringify(ALLOWED_BRANDS.map((n) => n.toLowerCase()).sort()))
+  check(
+    'catalog holds exactly the allowed brands',
+    JSON.stringify([...names].sort()) === JSON.stringify(ALLOWED_BRANDS.map((n) => n.toLowerCase()).sort())
+  )
   const withModels = BRAND_CATALOG_V2.filter((b) => b.models && b.models.length > 0).map((b) => b.name)
-  for (const must of ['Samsung', 'Xiaomi', 'Redmi', 'Poco', 'Oppo', 'Realme', 'Infinix', 'Tecno', 'Itel', 'Huawei', 'Honor']) {
+  for (const must of [
+    'Samsung',
+    'Xiaomi',
+    'Redmi',
+    'Poco',
+    'Oppo',
+    'Realme',
+    'Infinix',
+    'Tecno',
+    'Itel',
+    'Huawei',
+    'Honor'
+  ]) {
     check(`major brand has models: ${must}`, withModels.includes(must))
   }
 }

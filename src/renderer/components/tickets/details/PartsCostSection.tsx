@@ -33,7 +33,7 @@ export function PartsCostSection({
   const { profitSplit, partsCost: editor } = state
   const { revealed, toggle, hide } = useAutoHide()
   // A different ticket, or a cost that just changed, always starts hidden again
-  React.useEffect(hide, [ticket.id, ticket.parts_cost])
+  React.useEffect(hide, [hide, ticket.id, ticket.parts_cost])
 
   const entered = ticket.parts_cost !== null && ticket.parts_cost !== undefined
   const loss = profitSplit.isLoss
@@ -113,7 +113,10 @@ export function PartsCostSection({
           </div>
         </Cell>
         <Cell label={text.netProfit}>
-          <span data-testid="net-profit-value" className={cn('tabular block text-sm font-extrabold text-foreground', moneyTone)}>
+          <span
+            data-testid="net-profit-value"
+            className={cn('tabular block text-sm font-extrabold text-foreground', moneyTone)}
+          >
             {revealed ? formatCurrency(profitSplit.netProfit) : hidden}
           </span>
         </Cell>
@@ -134,7 +137,10 @@ export function PartsCostSection({
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-semibold text-muted-foreground">{t.profit.partnerShareLabel}</span>
-          <strong data-testid="compact-partner-share" className={cn('tabular text-sm font-bold text-primary-to', moneyTone)}>
+          <strong
+            data-testid="compact-partner-share"
+            className={cn('tabular text-sm font-bold text-primary-to', moneyTone)}
+          >
             {revealed ? (
               <>
                 {formatCurrency(profitSplit.partnerShare)} <span dir="ltr">({profitSplit.partnerPercentage}%)</span>

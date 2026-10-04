@@ -28,11 +28,7 @@ interface DateRange {
  *  - a malformed date (not a real YYYY-MM-DD calendar day) -> throws an Arabic Error; the IPC
  *    layer turns it into { success: false, error } and the Reports screen shows it.
  */
-function getDateRange(
-  period: ReportFilterDTO['period'],
-  customStart?: string,
-  customEnd?: string
-): DateRange {
+function getDateRange(period: ReportFilterDTO['period'], customStart?: string, customEnd?: string): DateRange {
   const now = new Date()
   const bounded = (start: Date, end: Date): DateRange => ({
     startDate: start.toISOString(),
@@ -83,11 +79,7 @@ export function getFinancialReport(
   db: Database.Database,
   filter: ReportFilterDTO = { period: 'all_time' }
 ): FinancialReportResult {
-  const { startDate, endDate, unbounded, empty } = getDateRange(
-    filter.period,
-    filter.startDate,
-    filter.endDate
-  )
+  const { startDate, endDate, unbounded, empty } = getDateRange(filter.period, filter.startDate, filter.endDate)
 
   // Optional technician / category predicates, shared by the ticket query and the counters
   let extraWhere = ''
@@ -225,7 +217,12 @@ export function getFinancialReport(
       categorySplitPercentage: row.category_split_percentage ?? 50.0,
       appliedSplitPercentage: row.split_percentage_applied ?? null
     })
-    if (ticketMyShare === null || ticketMyShare === undefined || ticketPartnerShare === null || ticketPartnerShare === undefined) {
+    if (
+      ticketMyShare === null ||
+      ticketMyShare === undefined ||
+      ticketPartnerShare === null ||
+      ticketPartnerShare === undefined
+    ) {
       ticketMyShare = split.myShare
       ticketPartnerShare = split.partnerShare
     }

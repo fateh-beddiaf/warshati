@@ -31,7 +31,12 @@ export function SectionHeader({
         {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
       </div>
       {onAdd && addLabel && (
-        <Button size={compact ? 'sm' : 'default'} onClick={onAdd} data-testid={addTestId} className="shrink-0 self-start">
+        <Button
+          size={compact ? 'sm' : 'default'}
+          onClick={onAdd}
+          data-testid={addTestId}
+          className="shrink-0 self-start"
+        >
           <Plus className="h-4 w-4" />
           <span>{addLabel}</span>
         </Button>

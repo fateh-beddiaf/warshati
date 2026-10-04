@@ -72,10 +72,14 @@ const widthMicrons = widthMm * 1000
 const heightMicrons = heightMm * 1000
 
 if (widthPx !== 320 || heightPx !== 160 || widthMicrons !== 40000 || heightMicrons !== 20000) {
-  console.error(`[FAIL] Unexpected dimension calculations: ${widthPx}x${heightPx} px, ${widthMicrons}x${heightMicrons} microns`)
+  console.error(
+    `[FAIL] Unexpected dimension calculations: ${widthPx}x${heightPx} px, ${widthMicrons}x${heightMicrons} microns`
+  )
   passed = false
 } else {
-  console.log(`[PASS] 40x20mm at 203 DPI = ${widthPx}px x ${heightPx}px (Page size: ${widthMicrons}x${heightMicrons} microns)`)
+  console.log(
+    `[PASS] 40x20mm at 203 DPI = ${widthPx}px x ${heightPx}px (Page size: ${widthMicrons}x${heightMicrons} microns)`
+  )
 }
 
 // 5. Test Dual-Approach Barcode Scanner Timing Logic

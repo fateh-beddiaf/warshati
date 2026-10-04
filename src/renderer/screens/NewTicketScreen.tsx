@@ -62,7 +62,12 @@ export function NewTicketScreen({ onTicketCreated }: NewTicketScreenProps): Reac
         )}
 
         <div className="flex justify-end pt-2">
-          <Button type="submit" size="lg" disabled={form.loading || form.metadata === null} className="w-full min-w-[200px] md:w-auto">
+          <Button
+            type="submit"
+            size="lg"
+            disabled={form.loading || form.metadata === null}
+            className="w-full min-w-[200px] md:w-auto"
+          >
             {form.loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
             {form.loading ? t.newTicket.submittingButton : t.newTicket.submitButton}
           </Button>

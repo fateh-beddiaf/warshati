@@ -161,11 +161,8 @@ test('typing in the threshold input is not clobbered by a refetch, and saving wo
   // Saving persists and the button label reflects the new threshold
   await page.getByRole('button', { name: 'حفظ' }).click()
   await expect(page.getByText('تنبيه التأخر: 7 أيام')).toBeVisible()
-  const saved = await page.evaluate(
-    () =>
-      (
-        window as unknown as { api: { getOverdueDays: () => Promise<{ data: number }> } }
-      ).api.getOverdueDays()
+  const saved = await page.evaluate(() =>
+    (window as unknown as { api: { getOverdueDays: () => Promise<{ data: number }> } }).api.getOverdueDays()
   )
   expect(saved.data).toBe(7)
 

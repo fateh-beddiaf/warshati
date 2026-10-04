@@ -14,10 +14,16 @@ function check(name: string, cond: boolean): void {
 const ar = (code: string, key = 'ش'): ReturnType<typeof classifyKey> => classifyKey({ code, key })
 check('KeyA under Arabic layout -> A', JSON.stringify(ar('KeyA')) === JSON.stringify({ kind: 'char', char: 'A' }))
 check('KeyZ -> Z', JSON.stringify(ar('KeyZ', 'w')) === JSON.stringify({ kind: 'char', char: 'Z' }))
-check('Digit5 under AZERTY (key "(") -> 5', JSON.stringify(ar('Digit5', '(')) === JSON.stringify({ kind: 'char', char: '5' }))
+check(
+  'Digit5 under AZERTY (key "(") -> 5',
+  JSON.stringify(ar('Digit5', '(')) === JSON.stringify({ kind: 'char', char: '5' })
+)
 check('Numpad7 -> 7', JSON.stringify(ar('Numpad7', '7')) === JSON.stringify({ kind: 'char', char: '7' }))
 check('Minus -> -', JSON.stringify(ar('Minus', '_')) === JSON.stringify({ kind: 'char', char: '-' }))
-check('lowercase key still gives uppercase letter', JSON.stringify(ar('KeyW', 'w')) === JSON.stringify({ kind: 'char', char: 'W' }))
+check(
+  'lowercase key still gives uppercase letter',
+  JSON.stringify(ar('KeyW', 'w')) === JSON.stringify({ kind: 'char', char: 'W' })
+)
 check('Enter', classifyKey({ code: 'Enter', key: 'Enter' }).kind === 'enter')
 check('NumpadEnter', classifyKey({ code: 'NumpadEnter', key: 'Enter' }).kind === 'enter')
 check('Shift is a modifier', classifyKey({ code: 'ShiftLeft', key: 'Shift' }).kind === 'modifier')

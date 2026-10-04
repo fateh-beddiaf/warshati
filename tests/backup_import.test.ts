@@ -88,13 +88,22 @@ async function run(): Promise<void> {
   try {
     // Required tables are derived from schema.ts
     const required = getRequiredTables()
-    assert(required.length >= 11 && required.includes('TicketAccessories') && required.includes('Setting') && required.includes('StatusLog'),
-      `required table list derived from schema (${required.length} tables)`)
+    assert(
+      required.length >= 11 &&
+        required.includes('TicketAccessories') &&
+        required.includes('Setting') &&
+        required.includes('StatusLog'),
+      `required table list derived from schema (${required.length} tables)`
+    )
 
     closeDatabase()
     const live = initDatabase(livePath)
     createTicket(live, ticketDto(live, '0555000001'))
-    live.prepare("INSERT INTO Setting (key, value) VALUES ('uncheckpointed', 'yes') ON CONFLICT(key) DO UPDATE SET value='yes'").run()
+    live
+      .prepare(
+        "INSERT INTO Setting (key, value) VALUES ('uncheckpointed', 'yes') ON CONFLICT(key) DO UPDATE SET value='yes'"
+      )
+      .run()
 
     // (b) not a SQLite file
     console.log('\n--- (b) not a SQLite file ---')
@@ -148,7 +157,10 @@ async function run(): Promise<void> {
         throw new Error('injected prepare failure')
       }
     })
-    assert(res.success === false && (res.error ?? '').includes('injected prepare failure'), 'injected prepare failure reported')
+    assert(
+      res.success === false && (res.error ?? '').includes('injected prepare failure'),
+      'injected prepare failure reported'
+    )
     assertOriginalIntactAndOpen('0555000001', 'injected prepare failure')
 
     // Safety backup failure stops the import before touching live
@@ -158,7 +170,10 @@ async function run(): Promise<void> {
         throw new Error('simulated safety failure')
       }
     })
-    assert(res.success === false && (res.error ?? '').includes('لم يبدأ الاستيراد'), 'safety backup failure aborts import')
+    assert(
+      res.success === false && (res.error ?? '').includes('لم يبدأ الاستيراد'),
+      'safety backup failure aborts import'
+    )
     assertOriginalIntactAndOpen('0555000001', 'safety failure')
     assert(!existsSync(`${safetyPath}.partial`), 'safety failure: partial file cleaned up')
 
@@ -170,10 +185,14 @@ async function run(): Promise<void> {
         throw new Error('injected post-swap failure')
       }
     })
-    assert(res.success === false && (res.error ?? '').includes('تمت استعادة بياناتك الأصلية'), `post-swap failure restored: ${res.error}`)
+    assert(
+      res.success === false && (res.error ?? '').includes('تمت استعادة بياناتك الأصلية'),
+      `post-swap failure restored: ${res.error}`
+    )
     assertOriginalIntactAndOpen('0555000001', 'post-swap failure')
     assert(
-      (getDatabase().prepare("SELECT value FROM Setting WHERE key='uncheckpointed'").get() as { value: string }).value === 'yes',
+      (getDatabase().prepare("SELECT value FROM Setting WHERE key='uncheckpointed'").get() as { value: string })
+        .value === 'yes',
       'post-swap failure: data written before import (incl. WAL content) preserved'
     )
 
@@ -195,9 +214,13 @@ async function run(): Promise<void> {
     assert(existsSync(safetyPath), 'valid import: safety copy exists')
     const sdb = new Database(safetyPath, { readonly: true })
     const sp = phones(sdb)
-    const hasWalData = (sdb.prepare("SELECT COUNT(*) AS c FROM Setting WHERE key='uncheckpointed'").get() as { c: number }).c === 1
+    const hasWalData =
+      (sdb.prepare("SELECT COUNT(*) AS c FROM Setting WHERE key='uncheckpointed'").get() as { c: number }).c === 1
     sdb.close()
-    assert(sp.includes('0555000001') && sp.includes('0777000000') && hasWalData, 'valid import: safety copy has full pre-import data (WAL consistent)')
+    assert(
+      sp.includes('0555000001') && sp.includes('0777000000') && hasWalData,
+      'valid import: safety copy has full pre-import data (WAL consistent)'
+    )
     assert(!existsSync(`${livePath}.import-tmp`), 'valid import: temp copy cleaned up')
     assert(!readdirSync(join(dir, 'live')).some((f) => f.endsWith('.swap-tmp')), 'valid import: no staging leftovers')
 

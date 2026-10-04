@@ -1,12 +1,5 @@
 import { test, expect } from '@playwright/test'
-import {
-  launchApp,
-  shutdownApp,
-  createTicket,
-  openDetailsByBarcode,
-  closeDetails,
-  type Launched
-} from './helpers'
+import { launchApp, shutdownApp, createTicket, openDetailsByBarcode, closeDetails, type Launched } from './helpers'
 
 // Print preview modal: never a stale barcode, printing disabled when the barcode cannot be
 // generated, print SVG independent of the zoom toggle, and Close usable while a job hangs.
@@ -140,13 +133,29 @@ test('a barcode that cannot be generated disables printing and shows an error', 
       success: true,
       data: {
         ticket: {
-          id: 9999, barcode_code: 'سلام-٠١٢', customer_id: 1, created_at: new Date().toISOString(),
-          technician: 'T', technician_id: 1, repair_category_id: 1, price: 100, payment_type: 'cash',
-          amount_paid: 100, amount_remaining: 0, status: 'in_progress', my_share: null, partner_share: null
+          id: 9999,
+          barcode_code: 'سلام-٠١٢',
+          customer_id: 1,
+          created_at: new Date().toISOString(),
+          technician: 'T',
+          technician_id: 1,
+          repair_category_id: 1,
+          price: 100,
+          payment_type: 'cash',
+          amount_paid: 100,
+          amount_remaining: 0,
+          status: 'in_progress',
+          my_share: null,
+          partner_share: null
         },
         customer: { id: 1, name: 'Broken', phone: '0555' },
         device: { id: 1, ticket_id: 9999, brand: 'X', model: 'Y', short_label: 'X Y' },
-        category: null, accessories: [], statusLogs: [], ready_at: null, is_overdue: false, overdue_days: 0
+        category: null,
+        accessories: [],
+        statusLogs: [],
+        ready_at: null,
+        is_overdue: false,
+        overdue_days: 0
       }
     }))
   })

@@ -1,18 +1,29 @@
 {
   "name": "warshati",
-  "version": "1.0.0",
-  "description": "تطبيق إدارة محل تصليح الهواتف - ورشتي",
+  "productName": "Warshati",
+  "version": "0.9.0",
+  "private": true,
+  "description": "Offline desktop app for running a phone repair shop: repair tickets, barcode labels, debts and profit sharing.",
+  "author": "Fateh Beddiaf",
+  "license": "SEE LICENSE IN LICENSE",
   "main": "./out/main/index.js",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "test": "electron -r tsx tests/profit.test.ts && electron -r tsx tests/lifecycle.test.ts && electron -r tsx tests/unit.test.ts && electron -r tsx tests/milestone5.test.ts && electron -r tsx tests/ui_integrity.test.ts && electron -r tsx tests/audit_fixes.test.ts && electron -r tsx tests/ticket_deletion.test.ts && electron -r tsx tests/seed.test.ts && electron -r tsx tests/backup_import.test.ts && electron -r tsx tests/data_correctness.test.ts && electron -r tsx tests/scanner.test.ts && electron -r tsx tests/ticket_integrity.test.ts && electron -r tsx tests/with_timeout.test.ts && electron -r tsx tests/date_utils.test.ts && electron -r tsx tests/reports_query.test.ts && electron -r tsx tests/theme.test.ts && electron -r tsx tests/format.test.ts && electron -r tsx tests/parts_cost_profit.test.ts && electron -r tsx tests/parts_cost.test.ts && electron -r tsx tests/parts_cost_migration.test.ts && electron -r tsx tests/parts_cost_snapshot.test.ts && electron -r tsx tests/parts_cost_input.test.ts && electron -r tsx tests/label_privacy.test.ts",
+    "test": "node scripts/run-tests.cjs",
     "test:e2e": "electron-vite build && playwright test",
     "screenshots": "electron-vite build && playwright test -c playwright.screenshots.config.ts",
     "check:ui": "node scripts/check-ui.cjs --rtl",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "node scripts/install-native.cjs",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify": "npm run lint && npm run format:check && npm run typecheck && npm run check:ui && npm test"
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans-arabic": "^5.3.0",
@@ -26,7 +37,6 @@
     "@radix-ui/react-switch": "^1.3.7",
     "@radix-ui/react-tabs": "^1.1.21",
     "@radix-ui/react-tooltip": "^1.2.16",
-    "@types/jsbarcode": "^3.11.4",
     "better-sqlite3": "^11.8.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -35,12 +45,12 @@
     "jsbarcode": "^3.12.3",
     "lucide-react": "^1.16.0",
     "sonner": "^2.0.8",
-    "tailwind-merge": "^3.0.2",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwind-merge": "^3.0.2"
   },
   "devDependencies": {
-    "@electron-toolkit/preload": "^3.0.1",
     "@electron-toolkit/utils": "^3.0.0",
+    "@eslint-react/eslint-plugin": "^5.24.2",
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.13.4",
@@ -49,14 +59,21 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "electron": "^34.2.0",
-    "electron-builder": "^25.1.8",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^3.0.0",
+    "eslint": "^10.12.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
     "postcss": "^8.5.2",
+    "prettier": "^3.9.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwindcss": "^3.4.17",
+    "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.23.12",
     "typescript": "^5.7.3",
+    "typescript-eslint": "^8.71.0",
     "vite": "^6.1.0"
   },
   "allowScripts": {

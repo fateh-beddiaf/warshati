@@ -20,9 +20,32 @@ const problems: string[] = []
 
 // Arabic (non-Latin) characters for the physical US keys, to simulate an Arabic keyboard layout.
 const ARABIC_LETTERS: Record<string, string> = {
-  Q: 'ض', W: 'ص', E: 'ث', R: 'ق', T: 'ف', Y: 'غ', U: 'ع', I: 'ه', O: 'خ', P: 'ح',
-  A: 'ش', S: 'س', D: 'ي', F: 'ب', G: 'ل', H: 'ا', J: 'ت', K: 'ن', L: 'م',
-  Z: 'ئ', X: 'ء', C: 'ؤ', V: 'ر', B: 'لا', N: 'ى', M: 'ة'
+  Q: 'ض',
+  W: 'ص',
+  E: 'ث',
+  R: 'ق',
+  T: 'ف',
+  Y: 'غ',
+  U: 'ع',
+  I: 'ه',
+  O: 'خ',
+  P: 'ح',
+  A: 'ش',
+  S: 'س',
+  D: 'ي',
+  F: 'ب',
+  G: 'ل',
+  H: 'ا',
+  J: 'ت',
+  K: 'ن',
+  L: 'م',
+  Z: 'ئ',
+  X: 'ء',
+  C: 'ؤ',
+  V: 'ر',
+  B: 'لا',
+  N: 'ى',
+  M: 'ة'
 }
 const ARABIC_DIGITS = '٠١٢٣٤٥٦٧٨٩'
 
@@ -33,31 +56,55 @@ async function scan(code: string, layout: 'latin' | 'arabic', withEnter = true):
     const isDigit = /[0-9]/.test(ch)
     const physical = isDigit ? `Digit${ch}` : `Key${ch}`
     const key =
-      layout === 'latin'
-        ? isDigit ? ch : ch.toLowerCase()
-        : isDigit ? ARABIC_DIGITS[Number(ch)] : ARABIC_LETTERS[ch]
+      layout === 'latin' ? (isDigit ? ch : ch.toLowerCase()) : isDigit ? ARABIC_DIGITS[Number(ch)] : ARABIC_LETTERS[ch]
     const vk = isDigit ? 48 + Number(ch) : ch.charCodeAt(0)
     sends.push(
-      cdp.send('Input.dispatchKeyEvent' as never, {
-        type: 'keyDown', key, code: physical, text: key, windowsVirtualKeyCode: vk
-      } as never)
+      cdp.send(
+        'Input.dispatchKeyEvent' as never,
+        {
+          type: 'keyDown',
+          key,
+          code: physical,
+          text: key,
+          windowsVirtualKeyCode: vk
+        } as never
+      )
     )
     sends.push(
-      cdp.send('Input.dispatchKeyEvent' as never, {
-        type: 'keyUp', key, code: physical, windowsVirtualKeyCode: vk
-      } as never)
+      cdp.send(
+        'Input.dispatchKeyEvent' as never,
+        {
+          type: 'keyUp',
+          key,
+          code: physical,
+          windowsVirtualKeyCode: vk
+        } as never
+      )
     )
   }
   if (withEnter) {
     sends.push(
-      cdp.send('Input.dispatchKeyEvent' as never, {
-        type: 'keyDown', key: 'Enter', code: 'Enter', text: '\r', windowsVirtualKeyCode: 13
-      } as never)
+      cdp.send(
+        'Input.dispatchKeyEvent' as never,
+        {
+          type: 'keyDown',
+          key: 'Enter',
+          code: 'Enter',
+          text: '\r',
+          windowsVirtualKeyCode: 13
+        } as never
+      )
     )
     sends.push(
-      cdp.send('Input.dispatchKeyEvent' as never, {
-        type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13
-      } as never)
+      cdp.send(
+        'Input.dispatchKeyEvent' as never,
+        {
+          type: 'keyUp',
+          key: 'Enter',
+          code: 'Enter',
+          windowsVirtualKeyCode: 13
+        } as never
+      )
     )
   }
   await Promise.all(sends)
@@ -88,7 +135,13 @@ async function installEnterProbe(): Promise<void> {
         w.__enter.prevented.push(e.defaultPrevented)
       }
     })
-    document.addEventListener('submit', () => { w.__submits++ }, true)
+    document.addEventListener(
+      'submit',
+      () => {
+        w.__submits++
+      },
+      true
+    )
   })
 }
 

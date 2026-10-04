@@ -41,7 +41,17 @@ const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.str
     'parseLocalDateString(endOfDay): 23:59:59.999 of the same local day',
     toLocalDateString(e) === '2026-03-01' && e.getHours() === 23 && e.getMilliseconds() === 999
   )
-  for (const bad of ['', 'garbage', '2026-02-31', '2026-13-01', '2026-3-1', '01/03/2026', '2026-03-01T10:00', undefined, null]) {
+  for (const bad of [
+    '',
+    'garbage',
+    '2026-02-31',
+    '2026-13-01',
+    '2026-3-1',
+    '01/03/2026',
+    '2026-03-01T10:00',
+    undefined,
+    null
+  ]) {
     check(`parseLocalDateString rejects ${JSON.stringify(bad)}`, parseLocalDateString(bad as string) === null)
   }
 }
@@ -88,9 +98,7 @@ const toDelivered = (id: number, paid?: number): void =>
 const setCreated = (id: number, iso: string): void =>
   void db.prepare(`UPDATE Ticket SET created_at = ? WHERE id = ?`).run(iso, id)
 const setLogTime = (id: number, status: string, iso: string): void =>
-  void db
-    .prepare(`UPDATE StatusLog SET timestamp = ? WHERE ticket_id = ? AND new_status = ?`)
-    .run(iso, id, status)
+  void db.prepare(`UPDATE StatusLog SET timestamp = ? WHERE ticket_id = ? AND new_status = ?`).run(iso, id, status)
 
 // A: owner, delivered mid-March
 const A = mk(10000, 10000, ownerTech, cat1)
@@ -156,36 +164,58 @@ const filters: { name: string; filter: ReportFilterDTO }[] = [
   { name: 'custom March', filter: { period: 'custom', startDate: '2026-03-01', endDate: '2026-03-31' } },
   { name: 'custom April', filter: { period: 'custom', startDate: '2026-04-01', endDate: '2026-04-30' } },
   { name: 'custom single day (no end)', filter: { period: 'custom', startDate: '2026-03-10' } },
-  { name: 'custom single day (start=end)', filter: { period: 'custom', startDate: '2026-03-20', endDate: '2026-03-20' } },
+  {
+    name: 'custom single day (start=end)',
+    filter: { period: 'custom', startDate: '2026-03-20', endDate: '2026-03-20' }
+  },
   { name: 'custom year', filter: { period: 'custom', startDate: '2026-01-01', endDate: '2026-12-31' } },
-  { name: 'custom range with nothing in it', filter: { period: 'custom', startDate: '2025-01-01', endDate: '2025-01-31' } },
+  {
+    name: 'custom range with nothing in it',
+    filter: { period: 'custom', startDate: '2025-01-01', endDate: '2025-01-31' }
+  },
   { name: 'today', filter: { period: 'today' } },
   { name: 'this_week', filter: { period: 'this_week' } },
   { name: 'this_month', filter: { period: 'this_month' } },
   { name: 'all_time + owner technician', filter: { period: 'all_time', technicianFilter: String(ownerTech) } },
   { name: 'all_time + partner technician', filter: { period: 'all_time', technicianFilter: String(partnerTech) } },
   { name: 'all_time + category 1', filter: { period: 'all_time', categoryFilter: cat1 } },
-  { name: 'March + category 2', filter: { period: 'custom', startDate: '2026-03-01', endDate: '2026-03-31', categoryFilter: cat2 } },
-  { name: 'April + partner + category 1', filter: { period: 'custom', startDate: '2026-04-01', endDate: '2026-04-30', technicianFilter: String(partnerTech), categoryFilter: cat1 } }
+  {
+    name: 'March + category 2',
+    filter: { period: 'custom', startDate: '2026-03-01', endDate: '2026-03-31', categoryFilter: cat2 }
+  },
+  {
+    name: 'April + partner + category 1',
+    filter: {
+      period: 'custom',
+      startDate: '2026-04-01',
+      endDate: '2026-04-30',
+      technicianFilter: String(partnerTech),
+      categoryFilter: cat1
+    }
+  }
 ]
 
 // T004 added cost-related fields. Without any parts cost entered they must be neutral (net = revenue,
 // nothing provisional, no loss) and everything ELSE must still be identical to the legacy output.
 function withoutCostFields<T extends Record<string, unknown>>(report: T): Record<string, unknown> {
-  const { totalPartsCost, totalNetProfit, provisionalTicketsCount, lossTicketsCount, ...rest } = report as Record<string, unknown>
-  void totalPartsCost, totalNetProfit, provisionalTicketsCount, lossTicketsCount
+  const { totalPartsCost, totalNetProfit, provisionalTicketsCount, lossTicketsCount, ...rest } = report as Record<
+    string,
+    unknown
+  >
   const strip = (rows: unknown): unknown =>
     (rows as Record<string, unknown>[]).map((r) => {
       const { partsCost, netProfit, ...kept } = r
-      void partsCost, netProfit
       return kept
     })
-  return { ...rest, technicianBreakdown: strip(rest.technicianBreakdown), categoryBreakdown: strip(rest.categoryBreakdown) }
+  return {
+    ...rest,
+    technicianBreakdown: strip(rest.technicianBreakdown),
+    categoryBreakdown: strip(rest.categoryBreakdown)
+  }
 }
 function withoutTicketCostFields(rows: unknown[]): unknown[] {
   return (rows as Record<string, unknown>[]).map((r) => {
     const { net_profit, is_provisional, is_loss, parts_cost_missing, ...kept } = r
-    void net_profit, is_provisional, is_loss, parts_cost_missing
     return kept
   })
 }
@@ -207,7 +237,11 @@ for (const { name, filter } of filters) {
   const nextTicketsPlain = withoutTicketCostFields(next.tickets)
   void nextTickets
   const { tickets: legacyTickets, ...legacyRest } = legacy
-  check(`[${name}] totals, counts, breakdowns and range are identical to legacy`, same(nextRest, legacyRest), `\nnew=${JSON.stringify(nextRest)}\nold=${JSON.stringify(legacyRest)}`)
+  check(
+    `[${name}] totals, counts, breakdowns and range are identical to legacy`,
+    same(nextRest, legacyRest),
+    `\nnew=${JSON.stringify(nextRest)}\nold=${JSON.stringify(legacyRest)}`
+  )
   const displayed = legacyTickets.filter((t) => t.status === 'delivered')
   check(
     `[${name}] returned tickets == legacy's delivered tickets (same rows, order, fields)`,
@@ -221,7 +255,10 @@ for (const { name, filter } of filters) {
 // ---------------------------------------------------------------------------
 {
   const all = getFinancialReport(db, { period: 'all_time' })
-  check('all_time returns only delivered tickets', all.tickets.every((t) => t.status === 'delivered'))
+  check(
+    'all_time returns only delivered tickets',
+    all.tickets.every((t) => t.status === 'delivered')
+  )
   check(
     'in_progress / ready / reverted tickets are not returned',
     ![D, E, F].some((id) => all.tickets.some((t) => t.id === id))
@@ -238,7 +275,9 @@ for (const { name, filter } of filters) {
     `${all.inProgressTicketsCount}/${all.readyTicketsCount}`
   )
   const g = all.tickets.find((t) => t.id === G)!
-  const cat1Split = (db.prepare(`SELECT default_split_percentage p FROM RepairCategory WHERE id = ?`).get(cat1) as { p: number }).p
+  const cat1Split = (
+    db.prepare(`SELECT default_split_percentage p FROM RepairCategory WHERE id = ?`).get(cat1) as { p: number }
+  ).p
   check(
     'legacy delivered ticket (no frozen shares) gets shares computed from its category split',
     g.my_share === (5000 * cat1Split) / 100 && g.partner_share === 5000 - (5000 * cat1Split) / 100,
@@ -252,7 +291,14 @@ for (const { name, filter } of filters) {
     `got ${march.tickets.map((t) => t.id)}`
   )
   const april = getFinancialReport(db, { period: 'custom', startDate: '2026-04-01', endDate: '2026-04-30' })
-  check('April range: only C (latest delivered log)', same(april.tickets.map((t) => t.id), [C]), `got ${april.tickets.map((t) => t.id)}`)
+  check(
+    'April range: only C (latest delivered log)',
+    same(
+      april.tickets.map((t) => t.id),
+      [C]
+    ),
+    `got ${april.tickets.map((t) => t.id)}`
+  )
   check(
     'delivered_at is the latest delivered log',
     (april.tickets[0] as unknown as { delivered_at: string }).delivered_at === '2026-04-05T12:00:00.000Z'
@@ -264,7 +310,16 @@ for (const { name, filter } of filters) {
 // ---------------------------------------------------------------------------
 {
   const inverted = getFinancialReport(db, { period: 'custom', startDate: '2026-12-31', endDate: '2026-01-01' })
-  check('from > to returns an empty report without error', inverted.tickets.length === 0 && inverted.totalRevenue === 0 && inverted.completedTicketsCount === 0 && inverted.technicianBreakdown.length === 0 && inverted.categoryBreakdown.length === 0 && inverted.inProgressTicketsCount === 0 && inverted.readyTicketsCount === 0)
+  check(
+    'from > to returns an empty report without error',
+    inverted.tickets.length === 0 &&
+      inverted.totalRevenue === 0 &&
+      inverted.completedTicketsCount === 0 &&
+      inverted.technicianBreakdown.length === 0 &&
+      inverted.categoryBreakdown.length === 0 &&
+      inverted.inProgressTicketsCount === 0 &&
+      inverted.readyTicketsCount === 0
+  )
 
   for (const [label, filter] of [
     ['garbage start', { period: 'custom', startDate: 'garbage', endDate: '2026-03-31' }],

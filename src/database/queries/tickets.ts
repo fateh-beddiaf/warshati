@@ -1,5 +1,11 @@
 import type Database from 'better-sqlite3'
-import type { CreateTicketDTO, TicketListItem, UpdateTicketStatusDTO, TicketFullDetails, Ticket } from '../../shared/types'
+import type {
+  CreateTicketDTO,
+  TicketListItem,
+  UpdateTicketStatusDTO,
+  TicketFullDetails,
+  Ticket
+} from '../../shared/types'
 import { findOrCreateCustomer } from './customers'
 import { calculateRemaining, generateBarcodeCode } from '../helpers'
 import { generateShortLabel } from '../../shared/device-utils'
@@ -47,9 +53,8 @@ function getProfitContext(
   const category = db
     .prepare(`SELECT default_split_percentage FROM RepairCategory WHERE id = ?`)
     .get(ticket.repair_category_id) as { default_split_percentage: number } | undefined
-  const technician = db
-    .prepare(`SELECT is_partner FROM Technician WHERE id = ?`)
-    .get(ticket.technician_id) as { is_partner: number } | undefined
+  const technician = db.prepare(`SELECT is_partner FROM Technician WHERE id = ?`).get(ticket.technician_id) as
+    { is_partner: number } | undefined
   return {
     isPartner: Boolean(technician?.is_partner),
     categorySplitPercentage: category?.default_split_percentage ?? 50.0,
@@ -74,9 +79,8 @@ export function createTicket(db: Database.Database, dto: CreateTicketDTO): { tic
     const costRequired = categoryRow?.requires_parts_cost ? 1 : 0
 
     // 2. Resolve stable reference identities and preserve their current names as ticket snapshots.
-    const technician = db
-      .prepare(`SELECT id, name FROM Technician WHERE id = ?`)
-      .get(dto.ticket.technician_id) as { id: number; name: string } | undefined
+    const technician = db.prepare(`SELECT id, name FROM Technician WHERE id = ?`).get(dto.ticket.technician_id) as
+      { id: number; name: string } | undefined
     if (!technician) {
       throw new Error('الفني المختار غير موجود. حدّث بيانات النموذج ثم أعد المحاولة.')
     }
@@ -87,12 +91,14 @@ export function createTicket(db: Database.Database, dto: CreateTicketDTO): { tic
     const modelId = dto.device.model_id ?? null
 
     if (brandId !== null) {
-      const brandReference = db.prepare(`SELECT name FROM Brand WHERE id = ?`).get(brandId) as { name: string } | undefined
+      const brandReference = db.prepare(`SELECT name FROM Brand WHERE id = ?`).get(brandId) as
+        { name: string } | undefined
       if (!brandReference) throw new Error('الماركة المختارة غير موجودة. حدّث بيانات النموذج ثم أعد المحاولة.')
       brand = brandReference.name
     }
     if (modelId !== null) {
-      const modelReference = db.prepare(`SELECT name, brand_id FROM Model WHERE id = ?`).get(modelId) as { name: string; brand_id: number } | undefined
+      const modelReference = db.prepare(`SELECT name, brand_id FROM Model WHERE id = ?`).get(modelId) as
+        { name: string; brand_id: number } | undefined
       if (!modelReference) throw new Error('الموديل المختار غير موجود. حدّث بيانات النموذج ثم أعد المحاولة.')
       if (brandId === null || modelReference.brand_id !== brandId) {
         throw new Error('الموديل المختار لا يتبع الماركة المختارة.')
@@ -160,10 +166,12 @@ export function createTicket(db: Database.Database, dto: CreateTicketDTO): { tic
     // 6. Compute short label and insert TicketDevice
     const shortLabel = (dto.device.short_label || '').trim() || generateShortLabel(brand, model)
 
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO TicketDevice (ticket_id, brand, model, brand_id, model_id, short_label)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(ticketId, brand, model, brandId, modelId, shortLabel)
+    `
+    ).run(ticketId, brand, model, brandId, modelId, shortLabel)
 
     // 7. Insert Accessories (if any)
     if (dto.accessory_ids && dto.accessory_ids.length > 0) {
@@ -177,10 +185,12 @@ export function createTicket(db: Database.Database, dto: CreateTicketDTO): { tic
     }
 
     // 8. Insert Initial StatusLog
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO StatusLog (ticket_id, old_status, new_status, timestamp)
       VALUES (?, ?, ?, ?)
-    `).run(ticketId, null, status, createdAt)
+    `
+    ).run(ticketId, null, status, createdAt)
 
     return { ticketId, barcode }
   })
@@ -232,12 +242,16 @@ export function recordPayment(db: Database.Database, ticketId: number, amount: n
  */
 export function setPartsCost(db: Database.Database, ticketId: number, cost: unknown): Ticket {
   const transaction = db.transaction(() => {
-    const ticket = db.prepare(`
+    const ticket = db
+      .prepare(
+        `
       SELECT t.*, tech.is_partner AS technician_is_partner
       FROM Ticket t
       JOIN Technician tech ON tech.id = t.technician_id
       WHERE t.id = ?
-    `).get(ticketId) as Ticket | undefined
+    `
+      )
+      .get(ticketId) as Ticket | undefined
     if (!ticket) throw new Error(`التذكرة رقم ${ticketId} غير موجودة في النظام.`)
 
     const partsCost = normalizePartsCost(cost)
@@ -253,11 +267,13 @@ export function setPartsCost(db: Database.Database, ticketId: number, cost: unkn
         // frozen at delivery; tickets without one (price 0 / legacy) fall back to the category's current percentage
         appliedSplitPercentage: ticket.split_percentage_applied ?? null
       })
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE Ticket
         SET parts_cost = ?, my_share = ?, partner_share = ?, split_percentage_applied = ?
         WHERE id = ?
-      `).run(
+      `
+      ).run(
         partsCost,
         split.myShare,
         split.partnerShare,
@@ -268,12 +284,16 @@ export function setPartsCost(db: Database.Database, ticketId: number, cost: unkn
       db.prepare(`UPDATE Ticket SET parts_cost = ? WHERE id = ?`).run(partsCost, ticketId)
     }
 
-    return db.prepare(`
+    return db
+      .prepare(
+        `
       SELECT t.*, tech.is_partner AS technician_is_partner
       FROM Ticket t
       JOIN Technician tech ON tech.id = t.technician_id
       WHERE t.id = ?
-    `).get(ticketId) as Ticket
+    `
+      )
+      .get(ticketId) as Ticket
   })
   return transaction()
 }
@@ -295,12 +315,16 @@ export function updateTicketStatus(
   dto: UpdateTicketStatusDTO
 ): { success: boolean; ticket: Ticket } {
   const transaction = db.transaction(() => {
-    const currentTicket = db.prepare(`
+    const currentTicket = db
+      .prepare(
+        `
       SELECT t.*, tech.is_partner AS technician_is_partner
       FROM Ticket t
       JOIN Technician tech ON tech.id = t.technician_id
       WHERE t.id = ?
-    `).get(dto.ticketId) as Ticket | undefined
+    `
+      )
+      .get(dto.ticketId) as Ticket | undefined
     if (!currentTicket) {
       throw new Error(`التذكرة رقم ${dto.ticketId} غير موجودة في النظام.`)
     }
@@ -373,7 +397,8 @@ export function updateTicketStatus(
     // else: reverted away from delivered (or never delivered): the frozen shares and percentage are cleared
 
     // 1. Update Ticket
-    db.prepare(`
+    db.prepare(
+      `
       UPDATE Ticket
       SET status = ?,
           amount_paid = ?,
@@ -383,7 +408,8 @@ export function updateTicketStatus(
           partner_share = ?,
           split_percentage_applied = ?
       WHERE id = ?
-    `).run(
+    `
+    ).run(
       newStatus,
       newAmountPaid,
       newAmountRemaining,
@@ -395,28 +421,30 @@ export function updateTicketStatus(
     )
 
     // 2. Record in StatusLog
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO StatusLog (ticket_id, old_status, new_status, timestamp)
       VALUES (?, ?, ?, ?)
-    `).run(dto.ticketId, currentStatus, newStatus, timestamp)
+    `
+    ).run(dto.ticketId, currentStatus, newStatus, timestamp)
 
-    const updatedTicket = db.prepare(`
+    const updatedTicket = db
+      .prepare(
+        `
       SELECT t.*, tech.is_partner AS technician_is_partner
       FROM Ticket t
       JOIN Technician tech ON tech.id = t.technician_id
       WHERE t.id = ?
-    `).get(dto.ticketId) as Ticket
+    `
+      )
+      .get(dto.ticketId) as Ticket
     return { success: true, ticket: updatedTicket }
   })
 
   return transaction()
 }
 
-export function getTicketsList(
-  db: Database.Database,
-  searchQuery?: string,
-  statusFilter?: string
-): TicketListItem[] {
+export function getTicketsList(db: Database.Database, searchQuery?: string, statusFilter?: string): TicketListItem[] {
   let query = `
     SELECT 
       t.id,
@@ -501,16 +529,22 @@ export function getTicketsList(
 }
 
 export function getTicketById(db: Database.Database, ticketId: number): TicketFullDetails | null {
-  const ticket = db.prepare(`
+  const ticket = db
+    .prepare(
+      `
     SELECT t.*, tech.is_partner AS technician_is_partner
     FROM Ticket t
     JOIN Technician tech ON tech.id = t.technician_id
     WHERE t.id = ?
-  `).get(ticketId) as Ticket | undefined
+  `
+    )
+    .get(ticketId) as Ticket | undefined
   if (!ticket) return null
 
-  const customer = db.prepare(`SELECT * FROM Customer WHERE id = ?`).get(ticket.customer_id) as import('../../shared/types').Customer | undefined
-  const device = db.prepare(`SELECT * FROM TicketDevice WHERE ticket_id = ?`).get(ticket.id) as import('../../shared/types').TicketDevice | undefined
+  const customer = db.prepare(`SELECT * FROM Customer WHERE id = ?`).get(ticket.customer_id) as
+    import('../../shared/types').Customer | undefined
+  const device = db.prepare(`SELECT * FROM TicketDevice WHERE ticket_id = ?`).get(ticket.id) as
+    import('../../shared/types').TicketDevice | undefined
   // The UI dereferences customer.name / device.brand directly: fail with a clear message
   // (surfaced as { success:false, error } by the IPC layer) instead of handing it undefined.
   if (!customer || !device) {
@@ -523,18 +557,26 @@ export function getTicketById(db: Database.Database, ticketId: number): TicketFu
     ? { ...categoryRow, requires_parts_cost: Boolean(categoryRow.requires_parts_cost) }
     : null
 
-  const accessories = db.prepare(`
+  const accessories = db
+    .prepare(
+      `
     SELECT a.id, a.name
     FROM Accessories a
     JOIN TicketAccessories ta ON ta.accessory_id = a.id
     WHERE ta.ticket_id = ?
-  `).all(ticket.id) as import('../../shared/types').Accessories[]
+  `
+    )
+    .all(ticket.id) as import('../../shared/types').Accessories[]
 
-  const statusLogs = db.prepare(`
+  const statusLogs = db
+    .prepare(
+      `
     SELECT * FROM StatusLog
     WHERE ticket_id = ?
     ORDER BY id ASC
-  `).all(ticket.id) as import('../../shared/types').StatusLog[]
+  `
+    )
+    .all(ticket.id) as import('../../shared/types').StatusLog[]
 
   const readyLog = statusLogs.filter((l) => l.new_status === 'ready').slice(-1)[0]
   const ready_at = readyLog ? readyLog.timestamp : null
@@ -565,7 +607,8 @@ export function getTicketById(db: Database.Database, ticketId: number): TicketFu
 
 export function getTicketByBarcode(db: Database.Database, barcode: string): TicketFullDetails | null {
   const cleanBarcode = barcode.trim()
-  const ticket = db.prepare(`SELECT id FROM Ticket WHERE barcode_code = ?`).get(cleanBarcode) as { id: number } | undefined
+  const ticket = db.prepare(`SELECT id FROM Ticket WHERE barcode_code = ?`).get(cleanBarcode) as
+    { id: number } | undefined
   if (!ticket) return null
 
   return getTicketById(db, ticket.id)
@@ -576,14 +619,10 @@ export function getTicketByBarcode(db: Database.Database, barcode: string): Tick
  * After deletion, if the associated Customer has no remaining tickets, the Customer record
  * is deleted automatically and silently (orphan cascade cleanup).
  */
-export function deleteTicket(
-  db: Database.Database,
-  ticketId: number
-): { success: boolean; customerDeleted: boolean } {
+export function deleteTicket(db: Database.Database, ticketId: number): { success: boolean; customerDeleted: boolean } {
   const transaction = db.transaction(() => {
     const ticket = db.prepare(`SELECT customer_id FROM Ticket WHERE id = ?`).get(ticketId) as
-      | { customer_id: number }
-      | undefined
+      { customer_id: number } | undefined
 
     if (!ticket) {
       throw new Error(`التذكرة رقم ${ticketId} غير موجودة في النظام.`)
@@ -617,4 +656,3 @@ export function deleteTicket(
 
   return transaction()
 }
-

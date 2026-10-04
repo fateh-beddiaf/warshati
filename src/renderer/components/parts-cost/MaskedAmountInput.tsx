@@ -22,11 +22,10 @@ export function useAutoHide(): {
     const timer = setTimeout(() => setRevealed(false), REVEAL_MS)
     return () => clearTimeout(timer)
   }, [revealed])
-  return {
-    revealed,
-    toggle: () => setRevealed((v) => !v),
-    hide: () => setRevealed(false)
-  }
+  // Stable identities so callers can list them as effect dependencies
+  const toggle = React.useCallback(() => setRevealed((v) => !v), [])
+  const hide = React.useCallback(() => setRevealed(false), [])
+  return { revealed, toggle, hide }
 }
 
 interface MaskedAmountInputProps {

@@ -20,9 +20,14 @@ test.describe.configure({ mode: 'serial' })
 
 test.beforeAll(async () => {
   dataDir = mkdtempSync(join(tmpdir(), 'warshati-e2e-reports-layout-'))
-  const seeded = spawnSync(electronBinary, ['-r', 'tsx', 'tests/fixtures/seed-demo.run.ts', dataDir], { encoding: 'utf8' })
+  const seeded = spawnSync(electronBinary, ['-r', 'tsx', 'tests/fixtures/seed-demo.run.ts', dataDir], {
+    encoding: 'utf8'
+  })
   if (seeded.status !== 0) throw new Error(`demo seed failed: ${seeded.stdout}\n${seeded.stderr}`)
-  app = await electron.launch({ args: [resolve('out/main/index.js')], env: { ...process.env, WARSHATI_DATA_DIR: dataDir } })
+  app = await electron.launch({
+    args: [resolve('out/main/index.js')],
+    env: { ...process.env, WARSHATI_DATA_DIR: dataDir }
+  })
   page = await app.firstWindow()
   page.on('pageerror', (err) => problems.push(`pageerror: ${err.message}`))
   page.on('console', (msg) => {

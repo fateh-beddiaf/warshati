@@ -28,10 +28,8 @@ applyBootTheme()
 const api = {
   // Tickets
   createTicket: (dto: CreateTicketDTO) => ipcRenderer.invoke('tickets:create', dto),
-  recordPayment: (ticketId: number, amount: number) =>
-    ipcRenderer.invoke('tickets:recordPayment', ticketId, amount),
-  setPartsCost: (ticketId: number, cost: number | null) =>
-    ipcRenderer.invoke('tickets:setPartsCost', ticketId, cost),
+  recordPayment: (ticketId: number, amount: number) => ipcRenderer.invoke('tickets:recordPayment', ticketId, amount),
+  setPartsCost: (ticketId: number, cost: number | null) => ipcRenderer.invoke('tickets:setPartsCost', ticketId, cost),
   updateTicketStatus: (dto: import('../shared/types').UpdateTicketStatusDTO) =>
     ipcRenderer.invoke('tickets:updateStatus', dto),
   getTicketsList: (searchQuery?: string, statusFilter?: string) =>
@@ -109,15 +107,10 @@ const api = {
   getFinancialReport: (filter?: ReportFilterDTO) => ipcRenderer.invoke('reports:getFinancialReport', filter)
 }
 
-// Use `contextBridge` to expose the API to the renderer process
-if (process.contextIsolated) {
-  try {
-    contextBridge.exposeInMainWorld('api', api)
-  } catch (error) {
-    console.error('Failed to expose context bridge:', error)
-  }
-} else {
-  // @ts-ignore (define in window)
-  window.api = api
+// Expose the API through contextBridge only: the windows always run with contextIsolation,
+// and the renderer must never share a global scope with the preload.
+try {
+  contextBridge.exposeInMainWorld('api', api)
+} catch (error) {
+  console.error('Failed to expose context bridge:', error)
 }
-

@@ -57,15 +57,16 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       >
         <div className="max-w-md rounded-2xl border border-danger/25 bg-card p-6 text-center text-card-foreground shadow-card">
           <AlertTriangle className="mx-auto h-10 w-10 text-danger" />
-          <h2 className="mt-3 text-lg font-bold text-foreground">
-            حدث خطأ غير متوقع / Something went wrong
-          </h2>
+          <h2 className="mt-3 text-lg font-bold text-foreground">حدث خطأ غير متوقع / Something went wrong</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             بياناتك محفوظة ولم تتأثر. اضغط «إعادة المحاولة» للمتابعة.
             <br />
             Your data is safe. Press “Retry” to continue.
           </p>
-          <p className="mt-3 break-words rounded-lg bg-muted p-2 text-start text-[11px] text-muted-foreground" dir="ltr">
+          <p
+            className="mt-3 break-words rounded-lg bg-muted p-2 text-start text-[11px] text-muted-foreground"
+            dir="ltr"
+          >
             {error.message}
           </p>
           <button

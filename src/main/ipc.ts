@@ -1,11 +1,24 @@
 import { ipcMain } from 'electron'
 import { dbService } from '../database'
-import type { CreateTicketDTO, ReportFilterDTO } from '../shared/types'
+import {
+  assertCreateTicketDTO,
+  assertId,
+  assertNumber,
+  assertOptionalBoolean,
+  assertOptionalId,
+  assertNullableNumber,
+  assertOptionalString,
+  assertPrintLabelData,
+  assertReportFilterDTO,
+  assertString,
+  assertUpdateTicketStatusDTO
+} from './ipc-validate'
 
 export function registerIpcHandlers(): void {
   // Tickets
-  ipcMain.handle('tickets:create', async (_event, dto: CreateTicketDTO) => {
+  ipcMain.handle('tickets:create', async (_event, dto: unknown) => {
     try {
+      assertCreateTicketDTO(dto)
       const result = dbService.createTicket(dto)
       return { success: true, data: result }
     } catch (error: unknown) {
@@ -17,8 +30,10 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('tickets:recordPayment', async (_event, ticketId: number, amount: number) => {
+  ipcMain.handle('tickets:recordPayment', async (_event, ticketId: unknown, amount: unknown) => {
     try {
+      assertId(ticketId, 'ticketId')
+      assertNumber(amount, 'amount')
       return { success: true, data: dbService.recordPayment(ticketId, amount) }
     } catch (error: unknown) {
       console.error('Failed to record payment:', error)
@@ -26,8 +41,10 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('tickets:setPartsCost', async (_event, ticketId: number, cost: number | null) => {
+  ipcMain.handle('tickets:setPartsCost', async (_event, ticketId: unknown, cost: unknown) => {
     try {
+      assertId(ticketId, 'ticketId')
+      assertNullableNumber(cost, 'cost')
       return { success: true, data: dbService.setPartsCost(ticketId, cost) }
     } catch (error: unknown) {
       console.error('Failed to set parts cost:', error)
@@ -35,8 +52,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('tickets:updateStatus', async (_event, dto: import('../shared/types').UpdateTicketStatusDTO) => {
+  ipcMain.handle('tickets:updateStatus', async (_event, dto: unknown) => {
     try {
+      assertUpdateTicketStatusDTO(dto)
       const result = dbService.updateTicketStatus(dto)
       return { success: true, data: result }
     } catch (error: unknown) {
@@ -48,8 +66,10 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('tickets:list', async (_event, searchQuery?: string, statusFilter?: string) => {
+  ipcMain.handle('tickets:list', async (_event, searchQuery: unknown, statusFilter: unknown) => {
     try {
+      assertOptionalString(searchQuery, 'searchQuery')
+      assertOptionalString(statusFilter, 'statusFilter')
       const tickets = dbService.getTicketsList(searchQuery, statusFilter)
       return { success: true, data: tickets }
     } catch (error: unknown) {
@@ -61,8 +81,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('tickets:delete', async (_event, ticketId: number) => {
+  ipcMain.handle('tickets:delete', async (_event, ticketId: unknown) => {
     try {
+      assertId(ticketId, 'ticketId')
       const result = dbService.deleteTicket(ticketId)
       return { success: true, customerDeleted: result.customerDeleted }
     } catch (error: unknown) {
@@ -74,10 +95,10 @@ export function registerIpcHandlers(): void {
     }
   })
 
-
   // Customers
-  ipcMain.handle('customers:search', async (_event, query: string) => {
+  ipcMain.handle('customers:search', async (_event, query: unknown) => {
     try {
+      assertString(query, 'query')
       const customers = dbService.searchCustomers(query)
       return { success: true, data: customers }
     } catch (error: unknown) {
@@ -89,8 +110,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('customers:getById', async (_event, id: number) => {
+  ipcMain.handle('customers:getById', async (_event, id: unknown) => {
     try {
+      assertId(id, 'id')
       const customer = dbService.getCustomerById(id)
       return { success: true, data: customer }
     } catch (error: unknown) {
@@ -116,8 +138,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('tickets:getById', async (_event, id: number) => {
+  ipcMain.handle('tickets:getById', async (_event, id: unknown) => {
     try {
+      assertId(id, 'id')
       const ticket = dbService.getTicketById(id)
       return { success: true, data: ticket }
     } catch (error: unknown) {
@@ -129,8 +152,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('tickets:getByBarcode', async (_event, barcode: string) => {
+  ipcMain.handle('tickets:getByBarcode', async (_event, barcode: unknown) => {
     try {
+      assertString(barcode, 'barcode')
       const ticket = dbService.getTicketByBarcode(barcode)
       return { success: true, data: ticket }
     } catch (error: unknown) {
@@ -156,8 +180,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('printer:printLabel', async (_event, labelData) => {
+  ipcMain.handle('printer:printLabel', async (_event, labelData: unknown) => {
     try {
+      assertPrintLabelData(labelData)
       const { printTicketLabel } = await import('./printer')
       const result = await printTicketLabel(labelData)
       return result
@@ -171,8 +196,10 @@ export function registerIpcHandlers(): void {
   })
 
   // Settings
-  ipcMain.handle('settings:get', async (_event, key: string, defaultValue?: string) => {
+  ipcMain.handle('settings:get', async (_event, key: unknown, defaultValue: unknown) => {
     try {
+      assertString(key, 'key')
+      assertOptionalString(defaultValue, 'defaultValue')
       const val = dbService.getSetting(key, defaultValue)
       return { success: true, data: val }
     } catch (error: unknown) {
@@ -184,8 +211,10 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:set', async (_event, key: string, value: string) => {
+  ipcMain.handle('settings:set', async (_event, key: unknown, value: unknown) => {
     try {
+      assertString(key, 'key')
+      assertString(value, 'value')
       dbService.setSetting(key, value)
       return { success: true }
     } catch (error: unknown) {
@@ -220,8 +249,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:brands:add', async (_event, name: string) => {
+  ipcMain.handle('settings:brands:add', async (_event, name: unknown) => {
     try {
+      assertString(name, 'name')
       const data = dbService.addBrand(name)
       return { success: true, data }
     } catch (error: unknown) {
@@ -229,8 +259,10 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:brands:update', async (_event, id: number, name: string) => {
+  ipcMain.handle('settings:brands:update', async (_event, id: unknown, name: unknown) => {
     try {
+      assertId(id, 'id')
+      assertString(name, 'name')
       dbService.updateBrand(id, name)
       return { success: true }
     } catch (error: unknown) {
@@ -238,8 +270,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:brands:checkUsage', async (_event, id: number) => {
+  ipcMain.handle('settings:brands:checkUsage', async (_event, id: unknown) => {
     try {
+      assertId(id, 'id')
       const data = dbService.checkBrandUsage(id)
       return { success: true, data }
     } catch (error: unknown) {
@@ -247,8 +280,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:brands:delete', async (_event, id: number) => {
+  ipcMain.handle('settings:brands:delete', async (_event, id: unknown) => {
     try {
+      assertId(id, 'id')
       dbService.deleteBrand(id)
       return { success: true }
     } catch (error: unknown) {
@@ -257,8 +291,9 @@ export function registerIpcHandlers(): void {
   })
 
   // Settings & Reference CRUD: Models
-  ipcMain.handle('settings:models:getByBrand', async (_event, brandId: number) => {
+  ipcMain.handle('settings:models:getByBrand', async (_event, brandId: unknown) => {
     try {
+      assertId(brandId, 'brandId')
       const data = dbService.getModelsByBrand(brandId)
       return { success: true, data }
     } catch (error: unknown) {
@@ -275,8 +310,10 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:models:add', async (_event, brandId: number, name: string) => {
+  ipcMain.handle('settings:models:add', async (_event, brandId: unknown, name: unknown) => {
     try {
+      assertId(brandId, 'brandId')
+      assertString(name, 'name')
       const data = dbService.addModel(brandId, name)
       return { success: true, data }
     } catch (error: unknown) {
@@ -284,8 +321,11 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:models:update', async (_event, id: number, name: string, brandId?: number) => {
+  ipcMain.handle('settings:models:update', async (_event, id: unknown, name: unknown, brandId: unknown) => {
     try {
+      assertId(id, 'id')
+      assertString(name, 'name')
+      assertOptionalId(brandId, 'brandId')
       dbService.updateModel(id, name, brandId)
       return { success: true }
     } catch (error: unknown) {
@@ -293,8 +333,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:models:checkUsage', async (_event, id: number) => {
+  ipcMain.handle('settings:models:checkUsage', async (_event, id: unknown) => {
     try {
+      assertId(id, 'id')
       const data = dbService.checkModelUsage(id)
       return { success: true, data }
     } catch (error: unknown) {
@@ -302,8 +343,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:models:delete', async (_event, id: number) => {
+  ipcMain.handle('settings:models:delete', async (_event, id: unknown) => {
     try {
+      assertId(id, 'id')
       dbService.deleteModel(id)
       return { success: true }
     } catch (error: unknown) {
@@ -321,8 +363,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:accessories:add', async (_event, name: string) => {
+  ipcMain.handle('settings:accessories:add', async (_event, name: unknown) => {
     try {
+      assertString(name, 'name')
       const data = dbService.addAccessory(name)
       return { success: true, data }
     } catch (error: unknown) {
@@ -330,8 +373,10 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:accessories:update', async (_event, id: number, name: string) => {
+  ipcMain.handle('settings:accessories:update', async (_event, id: unknown, name: unknown) => {
     try {
+      assertId(id, 'id')
+      assertString(name, 'name')
       dbService.updateAccessory(id, name)
       return { success: true }
     } catch (error: unknown) {
@@ -339,8 +384,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:accessories:checkUsage', async (_event, id: number) => {
+  ipcMain.handle('settings:accessories:checkUsage', async (_event, id: unknown) => {
     try {
+      assertId(id, 'id')
       const data = dbService.checkAccessoryUsage(id)
       return { success: true, data }
     } catch (error: unknown) {
@@ -348,8 +394,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:accessories:delete', async (_event, id: number) => {
+  ipcMain.handle('settings:accessories:delete', async (_event, id: unknown) => {
     try {
+      assertId(id, 'id')
       dbService.deleteAccessory(id)
       return { success: true }
     } catch (error: unknown) {
@@ -367,26 +414,40 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:categories:add', async (_event, name: string, defaultSplitPercentage: number, requiresPartsCost?: boolean) => {
-    try {
-      const data = dbService.addRepairCategory(name, defaultSplitPercentage, requiresPartsCost)
-      return { success: true, data }
-    } catch (error: unknown) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to add repair category' }
+  ipcMain.handle(
+    'settings:categories:add',
+    async (_event, name: unknown, defaultSplitPercentage: unknown, requiresPartsCost: unknown) => {
+      try {
+        assertString(name, 'name')
+        assertNumber(defaultSplitPercentage, 'defaultSplitPercentage')
+        assertOptionalBoolean(requiresPartsCost, 'requiresPartsCost')
+        const data = dbService.addRepairCategory(name, defaultSplitPercentage, requiresPartsCost)
+        return { success: true, data }
+      } catch (error: unknown) {
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to add repair category' }
+      }
     }
-  })
+  )
 
-  ipcMain.handle('settings:categories:update', async (_event, id: number, name: string, defaultSplitPercentage: number, requiresPartsCost?: boolean) => {
-    try {
-      dbService.updateRepairCategory(id, name, defaultSplitPercentage, requiresPartsCost)
-      return { success: true }
-    } catch (error: unknown) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to update repair category' }
+  ipcMain.handle(
+    'settings:categories:update',
+    async (_event, id: unknown, name: unknown, defaultSplitPercentage: unknown, requiresPartsCost: unknown) => {
+      try {
+        assertId(id, 'id')
+        assertString(name, 'name')
+        assertNumber(defaultSplitPercentage, 'defaultSplitPercentage')
+        assertOptionalBoolean(requiresPartsCost, 'requiresPartsCost')
+        dbService.updateRepairCategory(id, name, defaultSplitPercentage, requiresPartsCost)
+        return { success: true }
+      } catch (error: unknown) {
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to update repair category' }
+      }
     }
-  })
+  )
 
-  ipcMain.handle('settings:categories:checkUsage', async (_event, id: number) => {
+  ipcMain.handle('settings:categories:checkUsage', async (_event, id: unknown) => {
     try {
+      assertId(id, 'id')
       const data = dbService.checkRepairCategoryUsage(id)
       return { success: true, data }
     } catch (error: unknown) {
@@ -394,8 +455,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:categories:delete', async (_event, id: number) => {
+  ipcMain.handle('settings:categories:delete', async (_event, id: unknown) => {
     try {
+      assertId(id, 'id')
       dbService.deleteRepairCategory(id)
       return { success: true }
     } catch (error: unknown) {
@@ -413,8 +475,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:technicians:add', async (_event, name: string) => {
+  ipcMain.handle('settings:technicians:add', async (_event, name: unknown) => {
     try {
+      assertString(name, 'name')
       const data = dbService.addTechnician(name)
       return { success: true, data }
     } catch (error: unknown) {
@@ -422,8 +485,10 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:technicians:update', async (_event, id: number, name: string) => {
+  ipcMain.handle('settings:technicians:update', async (_event, id: unknown, name: unknown) => {
     try {
+      assertId(id, 'id')
+      assertString(name, 'name')
       dbService.updateTechnician(id, name)
       return { success: true }
     } catch (error: unknown) {
@@ -431,8 +496,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:technicians:checkUsage', async (_event, id: number) => {
+  ipcMain.handle('settings:technicians:checkUsage', async (_event, id: unknown) => {
     try {
+      assertId(id, 'id')
       const data = dbService.checkTechnicianUsage(id)
       return { success: true, data }
     } catch (error: unknown) {
@@ -440,8 +506,9 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:technicians:delete', async (_event, id: number) => {
+  ipcMain.handle('settings:technicians:delete', async (_event, id: unknown) => {
     try {
+      assertId(id, 'id')
       dbService.deleteTechnician(id)
       return { success: true }
     } catch (error: unknown) {
@@ -485,8 +552,9 @@ export function registerIpcHandlers(): void {
   })
 
   // Reports
-  ipcMain.handle('reports:getFinancialReport', async (_event, filter?: ReportFilterDTO) => {
+  ipcMain.handle('reports:getFinancialReport', async (_event, filter: unknown) => {
     try {
+      assertReportFilterDTO(filter)
       const report = dbService.getFinancialReport(filter)
       return { success: true, data: report }
     } catch (error: unknown) {
@@ -498,5 +566,3 @@ export function registerIpcHandlers(): void {
     }
   })
 }
-
-

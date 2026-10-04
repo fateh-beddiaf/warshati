@@ -22,7 +22,13 @@ interface CategoryCardProps {
   onToggleRequiresCost: (category: RepairCategory, requires: boolean) => void
 }
 
-export function CategoryCard({ category, index, onEdit, onDelete, onToggleRequiresCost }: CategoryCardProps): React.JSX.Element {
+export function CategoryCard({
+  category,
+  index,
+  onEdit,
+  onDelete,
+  onToggleRequiresCost
+}: CategoryCardProps): React.JSX.Element {
   const { t } = useI18n()
   const mine = clampSplit(category.default_split_percentage)
   const partner = 100 - mine
@@ -48,7 +54,11 @@ export function CategoryCard({ category, index, onEdit, onDelete, onToggleRequir
                 )}
               </div>
             </div>
-            <RowActions onEdit={() => onEdit(category)} onDelete={() => onDelete(category)} testIdPrefix="settings-category" />
+            <RowActions
+              onEdit={() => onEdit(category)}
+              onDelete={() => onDelete(category)}
+              testIdPrefix="settings-category"
+            />
           </div>
 
           <div className="mt-4 space-y-1.5">
