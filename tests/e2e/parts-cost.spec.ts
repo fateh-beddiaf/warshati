@@ -43,8 +43,16 @@ async function revealDetails(): Promise<void> {
   if ((await eye.getAttribute('aria-pressed')) !== 'true') await eye.click()
 }
 
+/**
+ * Switches screen and waits until it is the only one shown and its enter animation has finished. Clicking the next tab
+ * while the previous switch is still animating can leave AnimatePresence (mode="wait") on the old screen.
+ */
 const go = async (tab: 'tickets' | 'new-ticket' | 'reports' | 'settings'): Promise<void> => {
   await l.page.getByTestId(`nav-${tab}`).click()
+  const screen = l.page.getByTestId(`screen-${tab}`)
+  await expect(screen).toBeVisible()
+  await expect(l.page.locator('[data-testid^="screen-"]')).toHaveCount(1)
+  await expect(screen).toHaveCSS('opacity', '1')
 }
 
 async function pickCategory(page: Page, name: string): Promise<void> {
