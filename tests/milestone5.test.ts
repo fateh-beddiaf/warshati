@@ -100,9 +100,10 @@ async function runMilestone5Tests(): Promise<void> {
   let brandDeleteBlocked = false
   try {
     deleteBrand(db, samsungBrand.id)
-  } catch (err: any) {
+  } catch (err) {
     brandDeleteBlocked = true
-    assert(err.message.includes('لا يمكن الحذف'), `Descriptive Arabic guard message: "${err.message}"`)
+    const message = (err as Error).message
+    assert(message.includes('لا يمكن الحذف'), `Descriptive Arabic guard message: "${message}"`)
   }
   assert(brandDeleteBlocked, 'Attempting to delete used brand threw error as required')
 
@@ -124,7 +125,7 @@ async function runMilestone5Tests(): Promise<void> {
   let modelDeleteBlocked = false
   try {
     deleteModel(db, a54Model.id)
-  } catch (err: any) {
+  } catch {
     modelDeleteBlocked = true
   }
   assert(modelDeleteBlocked, 'Attempting to delete used model was strictly prevented')
@@ -158,7 +159,7 @@ async function runMilestone5Tests(): Promise<void> {
   let accDeleteBlocked = false
   try {
     deleteAccessory(db, 1)
-  } catch (err: any) {
+  } catch {
     accDeleteBlocked = true
   }
   assert(accDeleteBlocked, 'Attempting to delete used accessory was strictly prevented')
@@ -223,7 +224,9 @@ async function runMilestone5Tests(): Promise<void> {
     if (existsSync(p))
       try {
         unlinkSync(p)
-      } catch {}
+      } catch {
+        // already gone
+      }
   })
 
   // Setup real database file
@@ -275,14 +278,14 @@ async function runMilestone5Tests(): Promise<void> {
   const restoredDb = new Database(originalDbPath)
   const restoredCustomer = restoredDb
     .prepare(`SELECT * FROM Customer WHERE name = 'زبون النسخ الاحتياطي الأصلي'`)
-    .get() as any
+    .get() as { id: number; phone: string } | undefined
 
   assert(restoredCustomer !== undefined, 'Restored Customer found in database')
-  assert(restoredCustomer.phone === '0555001122', 'Customer phone verified')
+  assert(restoredCustomer!.phone === '0555001122', 'Customer phone verified')
 
   const restoredTickets = restoredDb
     .prepare(`SELECT * FROM Ticket WHERE customer_id = ?`)
-    .all(restoredCustomer.id) as any[]
+    .all(restoredCustomer!.id) as { price: number; barcode_code: string }[]
   assert(restoredTickets.length === 1, 'Restored ticket count is exactly 1')
   assert(restoredTickets[0].price === 15000, 'Restored ticket price matches 15000 DZD')
   assert(restoredTickets[0].barcode_code === createdTicket.barcode, 'Restored barcode code matches perfectly')
@@ -294,7 +297,9 @@ async function runMilestone5Tests(): Promise<void> {
     if (existsSync(p))
       try {
         unlinkSync(p)
-      } catch {}
+      } catch {
+        // already gone
+      }
   })
 
   // =========================================================================
@@ -302,13 +307,14 @@ async function runMilestone5Tests(): Promise<void> {
   // =========================================================================
   console.log('\n--- Section 3: i18n Dictionary Symmetry Verification ---')
 
-  function checkSymmetry(arObj: any, enObj: any, path = ''): void {
+  type Dictionary = Record<string, unknown>
+  function checkSymmetry(arObj: Dictionary, enObj: Dictionary, path = ''): void {
     for (const key of Object.keys(arObj)) {
       const currentPath = path ? `${path}.${key}` : key
       assert(key in enObj, `English dictionary contains key: ${currentPath}`)
 
       if (typeof arObj[key] === 'object' && arObj[key] !== null) {
-        checkSymmetry(arObj[key], enObj[key], currentPath)
+        checkSymmetry(arObj[key] as Dictionary, enObj[key] as Dictionary, currentPath)
       }
     }
   }

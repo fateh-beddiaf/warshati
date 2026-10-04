@@ -12,7 +12,8 @@ function count(db: Database.Database, sql: string, ...p: unknown[]): number {
 }
 
 async function build(): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  // The legacy source tree is loaded at runtime by path, so it can only be require()d
+  /* eslint-disable @typescript-eslint/no-require-imports */
   const legacy = require(`${legacySrc}/src/database/index.ts`)
   const queries = require(`${legacySrc}/src/database/queries/tickets.ts`)
   const db = legacy.initDatabase(dbPath) as Database.Database
@@ -40,7 +41,6 @@ async function build(): Promise<void> {
 }
 
 async function verify(): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const current = require('../src/database/index.ts')
   const db = current.initDatabase(dbPath) as Database.Database
   const brands = count(db, 'SELECT COUNT(*) c FROM Brand')

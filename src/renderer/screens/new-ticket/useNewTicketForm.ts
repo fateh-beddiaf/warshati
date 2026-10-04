@@ -25,7 +25,8 @@ function useDebouncedCustomerSearch(query: string, onResults: (customers: Custom
       cancelled = true
       clearTimeout(timer)
     }
-    // onResults is a state setter (stable)
+    // onResults is a state setter (stable): listing it would not change when the effect runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query])
 }
 

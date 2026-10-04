@@ -202,11 +202,9 @@ function withoutCostFields<T extends Record<string, unknown>>(report: T): Record
     string,
     unknown
   >
-  ;(void totalPartsCost, totalNetProfit, provisionalTicketsCount, lossTicketsCount)
   const strip = (rows: unknown): unknown =>
     (rows as Record<string, unknown>[]).map((r) => {
       const { partsCost, netProfit, ...kept } = r
-      ;(void partsCost, netProfit)
       return kept
     })
   return {
@@ -218,7 +216,6 @@ function withoutCostFields<T extends Record<string, unknown>>(report: T): Record
 function withoutTicketCostFields(rows: unknown[]): unknown[] {
   return (rows as Record<string, unknown>[]).map((r) => {
     const { net_profit, is_provisional, is_loss, parts_cost_missing, ...kept } = r
-    ;(void net_profit, is_provisional, is_loss, parts_cost_missing)
     return kept
   })
 }

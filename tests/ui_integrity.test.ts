@@ -1,36 +1,15 @@
 import Database from 'better-sqlite3'
 import { initializeSchema } from '../src/database/schema'
 import { seedInitialData } from '../src/database/seed'
-import { createTicket, getTicketById, getTicketByBarcode } from '../src/database/queries/tickets'
+import { createTicket, getTicketById } from '../src/database/queries/tickets'
 import {
   getBrands,
-  addBrand,
-  updateBrand,
-  checkBrandUsage,
-  deleteBrand,
   getModelsByBrand,
-  addModel,
-  updateModel,
-  checkModelUsage,
-  deleteModel,
   getAccessories,
-  addAccessory,
-  updateAccessory,
-  checkAccessoryUsage,
-  deleteAccessory,
   getRepairCategories,
-  addRepairCategory,
-  updateRepairCategory,
-  checkRepairCategoryUsage,
-  deleteRepairCategory,
-  getTechnicians,
-  addTechnician,
-  updateTechnician,
-  checkTechnicianUsage,
-  deleteTechnician
+  getTechnicians
 } from '../src/database/queries/metadata'
 import { getSetting, setSetting } from '../src/database/queries/settings'
-import { ar, en } from '../src/renderer/lib/i18n'
 import { calculateProfitSplit } from '../src/shared/profit'
 
 function assert(condition: boolean, message: string): void {

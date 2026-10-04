@@ -838,6 +838,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }): React
       }
     }
     loadSetting()
+    // Runs once on boot: `language` is only the fallback for a missing setting, not a trigger to reload it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const setLanguage = (lang: Language): void => {

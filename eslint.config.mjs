@@ -16,10 +16,11 @@ export default defineConfig(
 
   {
     rules: {
-      // `_name` marks an intentionally unused parameter/binding (e.g. IPC handlers that ignore the event)
+      // `_name` marks an intentionally unused parameter/binding (e.g. IPC handlers that ignore the event);
+      // `const { omitted, ...rest } = obj` is the idiom for dropping fields
       '@typescript-eslint/no-unused-vars': [
         'error',
-        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', ignoreRestSiblings: true }
       ]
     }
   },
@@ -59,7 +60,8 @@ export default defineConfig(
     languageOptions: { globals: { ...globals.node, ...globals.browser } }
   },
   {
-    files: ['**/*.cjs'],
+    // CommonJS: scripts, and the Tailwind/PostCSS configs (package.json has no "type": "module")
+    files: ['**/*.cjs', 'tailwind.config.js', 'postcss.config.js'],
     languageOptions: { sourceType: 'commonjs' },
     rules: { '@typescript-eslint/no-require-imports': 'off' }
   },

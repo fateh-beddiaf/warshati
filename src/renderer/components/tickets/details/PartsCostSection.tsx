@@ -33,7 +33,7 @@ export function PartsCostSection({
   const { profitSplit, partsCost: editor } = state
   const { revealed, toggle, hide } = useAutoHide()
   // A different ticket, or a cost that just changed, always starts hidden again
-  React.useEffect(hide, [ticket.id, ticket.parts_cost])
+  React.useEffect(hide, [hide, ticket.id, ticket.parts_cost])
 
   const entered = ticket.parts_cost !== null && ticket.parts_cost !== undefined
   const loss = profitSplit.isLoss

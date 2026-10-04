@@ -66,11 +66,12 @@ try {
     ticketId,
     newStatus: 'delivered'
   })
-} catch (err: any) {
+} catch (err) {
   threwError = true
+  const message = (err as Error).message
   assert(
-    err.message.includes('غير مسموح به'),
-    `Direct in_progress -> delivered rejected with descriptive Arabic error: "${err.message}"`
+    message.includes('غير مسموح به'),
+    `Direct in_progress -> delivered rejected with descriptive Arabic error: "${message}"`
   )
 }
 assert(threwError, 'Direct in_progress -> delivered threw an error as expected')
