@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3'
 import { join } from 'path'
-import { existsSync, unlinkSync, mkdirSync } from 'fs'
+import { existsSync, mkdtempSync, rmSync } from 'fs'
+import { tmpdir } from 'os'
 import { initializeSchema } from '../src/database/schema'
 import { seedInitialData } from '../src/database/seed'
 import { createTicket } from '../src/database/queries/tickets'
@@ -211,23 +212,11 @@ async function runMilestone5Tests(): Promise<void> {
   // =========================================================================
   console.log('\n--- Section 2: Database Backup & Full Restore Verification ---')
 
-  const tempDir = join(process.cwd(), 'data', 'test-temp')
-  if (!existsSync(tempDir)) mkdirSync(tempDir, { recursive: true })
+  const tempDir = mkdtempSync(join(tmpdir(), 'warshati-milestone5-'))
 
   const originalDbPath = join(tempDir, 'original.db')
   const backupDbPath = join(tempDir, 'exported-backup.db')
   const safetyBackupPath = join(tempDir, 'auto-backup-before-import.db')
-
-  // Clean previous test files if any
-  const cleanFiles = [originalDbPath, backupDbPath, safetyBackupPath, `${originalDbPath}-wal`, `${originalDbPath}-shm`]
-  cleanFiles.forEach((p) => {
-    if (existsSync(p))
-      try {
-        unlinkSync(p)
-      } catch {
-        // already gone
-      }
-  })
 
   // Setup real database file
   const fileDb = new Database(originalDbPath)
@@ -293,14 +282,7 @@ async function runMilestone5Tests(): Promise<void> {
   restoredDb.close()
 
   // Clean test files
-  cleanFiles.forEach((p) => {
-    if (existsSync(p))
-      try {
-        unlinkSync(p)
-      } catch {
-        // already gone
-      }
-  })
+  rmSync(tempDir, { recursive: true, force: true })
 
   // =========================================================================
   // SECTION 3: Bilingual (i18n) Symmetry Verification

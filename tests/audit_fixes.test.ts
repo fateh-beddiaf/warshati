@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3'
-import { existsSync, mkdirSync, rmSync } from 'fs'
+import { mkdtempSync, rmSync } from 'fs'
+import { tmpdir } from 'os'
 import { join } from 'path'
 import { closeDatabase, getDatabase, initDatabase } from '../src/database'
 import { initializeSchema } from '../src/database/schema'
@@ -207,9 +208,7 @@ function testStableReferenceIdentitiesAndStrictMigration(): void {
 
 async function testBackupFailureStopsImport(): Promise<void> {
   console.log('\n--- النسخ الاحتياطي: إيقاف الاستيراد عند فشل نسخة الأمان ---')
-  const tempDir = join(process.cwd(), 'data', 'audit-fixes-temp')
-  if (existsSync(tempDir)) rmSync(tempDir, { recursive: true, force: true })
-  mkdirSync(tempDir, { recursive: true })
+  const tempDir = mkdtempSync(join(tmpdir(), 'warshati-audit-fixes-'))
 
   const activePath = join(tempDir, 'active.db')
   const sourcePath = join(tempDir, 'source.db')
