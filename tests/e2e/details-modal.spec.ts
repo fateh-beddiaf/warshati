@@ -1,13 +1,6 @@
 import { test, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
-import {
-  launchApp,
-  shutdownApp,
-  createTicket,
-  openDetailsByBarcode,
-  closeDetails,
-  type Launched
-} from './helpers'
+import { launchApp, shutdownApp, createTicket, openDetailsByBarcode, closeDetails, type Launched } from './helpers'
 
 // Ticket details modal: internal state is reset between tickets, invalid custom payments are
 // rejected, and the debt-payment section works for delivered tickets with a remaining balance.
@@ -38,7 +31,12 @@ async function snapshot(barcode: string): Promise<Snapshot> {
   return l.page.evaluate(async (code) => {
     const res = await window.api.getTicketByBarcode(code)
     const t = res.data!.ticket
-    return { status: t.status, amount_paid: t.amount_paid, amount_remaining: t.amount_remaining, payment_type: t.payment_type }
+    return {
+      status: t.status,
+      amount_paid: t.amount_paid,
+      amount_remaining: t.amount_remaining,
+      payment_type: t.payment_type
+    }
   }, barcode)
 }
 
@@ -167,14 +165,24 @@ test('debt payment section: partial, overpay, invalid and full settlement', asyn
   await page.getByTestId('confirm-delivery').click()
   await page.getByTestId('status-back-to-ready').waitFor()
   await expect(page.getByTestId('record-payment-section')).toBeVisible()
-  expect(await snapshot(code)).toMatchObject({ status: 'delivered', amount_paid: 1000, amount_remaining: 4000, payment_type: 'credit' })
+  expect(await snapshot(code)).toMatchObject({
+    status: 'delivered',
+    amount_paid: 1000,
+    amount_remaining: 4000,
+    payment_type: 'credit'
+  })
 
   // pay 2000 -> remaining 2000, still delivered, still credit
   await page.getByTestId('record-payment-input').fill('2000')
   await page.getByTestId('record-payment-submit').click()
   await expect(page.getByTestId('details-success')).toBeVisible()
   await expect(page.getByTestId('record-payment-input')).toHaveValue('')
-  expect(await snapshot(code)).toMatchObject({ status: 'delivered', amount_paid: 3000, amount_remaining: 2000, payment_type: 'credit' })
+  expect(await snapshot(code)).toMatchObject({
+    status: 'delivered',
+    amount_paid: 3000,
+    amount_remaining: 2000,
+    payment_type: 'credit'
+  })
   await expect(page.getByTestId('record-payment-section')).toBeVisible()
   await expect(page.getByTestId('status-back-to-ready')).toBeVisible()
 
@@ -196,6 +204,11 @@ test('debt payment section: partial, overpay, invalid and full settlement', asyn
   await page.getByTestId('record-payment-input').fill('2000')
   await page.getByTestId('record-payment-submit').click()
   await expect(page.getByTestId('record-payment-section')).toHaveCount(0)
-  expect(await snapshot(code)).toMatchObject({ status: 'delivered', amount_paid: 5000, amount_remaining: 0, payment_type: 'cash' })
+  expect(await snapshot(code)).toMatchObject({
+    status: 'delivered',
+    amount_paid: 5000,
+    amount_remaining: 0,
+    payment_type: 'cash'
+  })
   await closeDetails(page)
 })

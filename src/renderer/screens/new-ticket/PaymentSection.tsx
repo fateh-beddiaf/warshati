@@ -8,7 +8,6 @@ import { Field } from './Field'
 import { SectionCard } from './SectionCard'
 import type { NewTicketForm } from './useNewTicketForm'
 
-
 interface PaymentOptionProps {
   value: 'cash' | 'credit'
   checked: boolean
@@ -147,7 +146,11 @@ export function PaymentSection({ form }: { form: NewTicketForm }): React.JSX.Ele
               hasDebt ? 'text-warning-soft-foreground' : 'text-success-soft-foreground'
             )}
           >
-            <AnimatedNumber value={form.calculatedRemaining} format={(n) => formatAmount(Math.round(n))} data-testid="payment-remaining" />{' '}
+            <AnimatedNumber
+              value={form.calculatedRemaining}
+              format={(n) => formatAmount(Math.round(n))}
+              data-testid="payment-remaining"
+            />{' '}
             <span className="text-sm font-bold">{text.currency}</span>
           </p>
         </div>

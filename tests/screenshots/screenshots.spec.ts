@@ -65,7 +65,9 @@ async function configure(page: Page, theme: 'light' | 'dark', lang: 'ar' | 'en')
   )
   await page.reload()
   await page.waitForSelector('[data-testid="nav-tickets"]')
-  await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains('dark'))).toBe(theme === 'dark')
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.classList.contains('dark')))
+    .toBe(theme === 'dark')
   await expect.poll(() => page.evaluate(() => document.documentElement.lang)).toBe(lang)
 }
 

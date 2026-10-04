@@ -23,9 +23,19 @@ function build(): void {
   db.prepare(`UPDATE RepairCategory SET requires_parts_cost = 1 WHERE id IN (1, 2)`).run()
   const make = (price: number, category: number, tech: number, cost: number | null, status: string): number => {
     const { ticketId } = queries.createTicket(db, {
-      customer: { name: `c${price}${category}${status}${cost}`, phone: `055${Math.floor(Math.random() * 9000000 + 1000000)}` },
+      customer: {
+        name: `c${price}${category}${status}${cost}`,
+        phone: `055${Math.floor(Math.random() * 9000000 + 1000000)}`
+      },
       device: { brand: 'Samsung', model: 'Galaxy A54' },
-      ticket: { repair_category_id: category, price, payment_type: 'cash', amount_paid: price, technician_id: tech, parts_cost: cost },
+      ticket: {
+        repair_category_id: category,
+        price,
+        payment_type: 'cash',
+        amount_paid: price,
+        technician_id: tech,
+        parts_cost: cost
+      },
       accessory_ids: []
     })
     if (status !== 'in_progress') queries.updateTicketStatus(db, { ticketId, newStatus: 'ready' })
@@ -64,14 +74,25 @@ function verify(): void {
   )
   check(
     'categories unchanged (switch still on for 1 and 2)',
-    all(db, 'SELECT * FROM RepairCategory ORDER BY id').every((row, i) => Object.keys(preCats[i]).every((k) => Object.is(row[k], preCats[i][k])))
+    all(db, 'SELECT * FROM RepairCategory ORDER BY id').every((row, i) =>
+      Object.keys(preCats[i]).every((k) => Object.is(row[k], preCats[i][k]))
+    )
   )
   const snap = post.map((r) => r.parts_cost_required)
-  check(`snapshot: tickets with a cost (even 0) => 1, without => 0 (got ${JSON.stringify(snap)})`, JSON.stringify(snap) === JSON.stringify([1, 0, 0, 0, 0, 1]))
+  check(
+    `snapshot: tickets with a cost (even 0) => 1, without => 0 (got ${JSON.stringify(snap)})`,
+    JSON.stringify(snap) === JSON.stringify([1, 0, 0, 0, 0, 1])
+  )
   const list = tickets.getTicketsList(db) as Row[]
-  check('nothing is flagged "missing a cost" after the upgrade', list.every((r) => r.parts_cost_missing === false))
+  check(
+    'nothing is flagged "missing a cost" after the upgrade',
+    list.every((r) => r.parts_cost_missing === false)
+  )
   const report = reports.getFinancialReport(db, { period: 'all_time' })
-  check('report: no provisional ticket, costs counted (2600)', report.provisionalTicketsCount === 0 && report.totalPartsCost === 2600)
+  check(
+    'report: no provisional ticket, costs counted (2600)',
+    report.provisionalTicketsCount === 0 && report.totalPartsCost === 2600
+  )
   check('report: stored shares unchanged', report.totalMyShare + report.totalPartnerShare === report.totalNetProfit)
 
   // a ticket created now, in a category that requires a cost, snapshots 1 and is flagged without one
@@ -80,7 +101,10 @@ function verify(): void {
     device: { brand: 'Samsung', model: 'Galaxy A54' },
     ticket: { repair_category_id: 2, price: 1000, payment_type: 'cash', amount_paid: 1000, technician_id: 1 }
   })
-  check('a new ticket in a requiring category snapshots 1 and is flagged', (tickets.getTicketsList(db) as Row[]).filter((r) => r.parts_cost_missing).length === 1 && made.ticketId === 7)
+  check(
+    'a new ticket in a requiring category snapshots 1 and is flagged',
+    (tickets.getTicketsList(db) as Row[]).filter((r) => r.parts_cost_missing).length === 1 && made.ticketId === 7
+  )
   // adding the cost by hand to an old ticket still works (id 2 = delivered without cost, 50%)
   tickets.setPartsCost(db, 2, 2600)
   const t2 = all(db, 'SELECT my_share a, partner_share b FROM Ticket WHERE id = 2')[0]
@@ -91,7 +115,8 @@ function verify(): void {
     console.log(pass ? '✅' : '❌', name)
     ok = ok && pass
   }
-  const dump = (d: Database.Database): string => JSON.stringify(['Ticket', 'RepairCategory', 'StatusLog'].map((t) => all(d, `SELECT * FROM ${t} ORDER BY 1`)))
+  const dump = (d: Database.Database): string =>
+    JSON.stringify(['Ticket', 'RepairCategory', 'StatusLog'].map((t) => all(d, `SELECT * FROM ${t} ORDER BY 1`)))
   const before = dump(db)
   current.closeDatabase()
   const db2 = current.initDatabase(dbPath) as Database.Database

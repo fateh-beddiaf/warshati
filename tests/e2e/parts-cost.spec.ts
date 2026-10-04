@@ -16,7 +16,10 @@ const MINUS = /[-−‎]/
 
 /** The barcode art is full of numbers: strip the SVG (and the random barcode) so a coincidence cannot fail a "no cost digits" check. */
 const withoutBarcodeArt = (html: string, barcode: string): string =>
-  html.replace(/<svg[\s\S]*?<\/svg>/g, '').split(barcode).join('')
+  html
+    .replace(/<svg[\s\S]*?<\/svg>/g, '')
+    .split(barcode)
+    .join('')
 
 test.beforeAll(async () => {
   l = await launchApp('partscost')
@@ -77,7 +80,10 @@ async function fillAndSubmit(o: NewTicketOptions): Promise<void> {
   await text.nth(4).fill('C51')
   await pickCategory(l.page, o.category)
   await form.locator('input[type="number"]').nth(0).fill(String(o.price))
-  await form.locator('input[type="number"]').nth(1).fill(String(o.paid ?? o.price))
+  await form
+    .locator('input[type="number"]')
+    .nth(1)
+    .fill(String(o.paid ?? o.price))
   if (o.cost !== undefined) await form.getByTestId('parts-cost-input').fill(o.cost)
   else if (o.category === CATEGORY) await expect(form.getByTestId('parts-cost-input')).toHaveValue('') // a fresh form never inherits a cost
   await form.locator('button[type="submit"]').click()
@@ -118,7 +124,11 @@ test('(a) Settings: no category requires a cost by default; the switch enables i
 
   // persisted in the database, only for that category
   const stored = await l.page.evaluate(async () => {
-    const res = await (window as unknown as { api: { getRepairCategories: () => Promise<{ data: { name: string; requires_parts_cost: boolean }[] }> } }).api.getRepairCategories()
+    const res = await (
+      window as unknown as {
+        api: { getRepairCategories: () => Promise<{ data: { name: string; requires_parts_cost: boolean }[] }> }
+      }
+    ).api.getRepairCategories()
     return res.data.map((c) => [c.name, c.requires_parts_cost])
   })
   expect(stored).toEqual([
@@ -199,13 +209,23 @@ test('(c) New ticket: an invalid cost is refused with a message and nothing is c
 
 // ---------------------------------------------------------------------------------------------
 test('(b) a ticket created without a cost succeeds with a clear warning, a flag in the list and a filter', async () => {
-  barcodeNoCost = await submitAndGetBarcode({ name: 'No Cost Customer', phone: '0555000001', price: 4000, category: CATEGORY })
+  barcodeNoCost = await submitAndGetBarcode({
+    name: 'No Cost Customer',
+    phone: '0555000001',
+    price: 4000,
+    category: CATEGORY
+  })
   await expect(l.page.getByTestId('ticket-created-no-cost-warning')).toBeVisible()
   await expect(l.page.getByTestId('ticket-created-no-cost-warning')).toContainText('بلا تكلفة')
 
   // a ticket of a category that does not require a cost: no warning
   await go('tickets')
-  const plainBarcode = await submitAndGetBarcode({ name: 'Plain Customer', phone: '0555000002', price: 1500, category: PLAIN_CATEGORY })
+  const plainBarcode = await submitAndGetBarcode({
+    name: 'Plain Customer',
+    phone: '0555000002',
+    price: 1500,
+    category: PLAIN_CATEGORY
+  })
   await expect(l.page.getByTestId('ticket-created-no-cost-warning')).toHaveCount(0)
 
   await go('tickets')
@@ -402,7 +422,13 @@ test('(e) a cost above the price asks for a confirmation; the loss is shared lik
 // ---------------------------------------------------------------------------------------------
 test('(f) the cost never reaches the label: print preview from the new-ticket banner and from the details', async () => {
   const COST = '7431'
-  const barcode = await submitAndGetBarcode({ name: 'Label Customer', phone: '0555000004', price: 9000, category: CATEGORY, cost: COST })
+  const barcode = await submitAndGetBarcode({
+    name: 'Label Customer',
+    phone: '0555000004',
+    price: 9000,
+    category: CATEGORY,
+    cost: COST
+  })
 
   await l.app.evaluate(({ ipcMain }) => {
     const g = globalThis as unknown as { __prints: unknown[] }
@@ -442,7 +468,9 @@ test('(f) the cost never reaches the label: print preview from the new-ticket ba
   const prints = await l.app.evaluate(() => (globalThis as unknown as { __prints: unknown[] }).__prints)
   expect(prints.length).toBeGreaterThanOrEqual(2)
   const payload = JSON.stringify(
-    (prints as Array<Record<string, unknown>>).map(({ svgContent, barcode: code, ...rest }) => (void svgContent, void code, rest))
+    (prints as Array<Record<string, unknown>>).map(
+      ({ svgContent, barcode: code, ...rest }) => (void svgContent, void code, rest)
+    )
   )
   for (const needle of [COST, '7.431', '7,431', 'parts_cost', 'partsCost']) expect(payload).not.toContain(needle)
   await closeDetails(l.page)
@@ -468,7 +496,10 @@ test('(d) reports: the ledger with its net-profit column still fits at 1280 and 
       .poll(() =>
         l.page.evaluate(() => {
           const wrap = document.querySelector('table')!.parentElement!
-          return wrap.scrollWidth <= wrap.clientWidth && document.documentElement.scrollWidth <= document.documentElement.clientWidth
+          return (
+            wrap.scrollWidth <= wrap.clientWidth &&
+            document.documentElement.scrollWidth <= document.documentElement.clientWidth
+          )
         })
       )
       .toBe(true)
@@ -477,13 +508,28 @@ test('(d) reports: the ledger with its net-profit column still fits at 1280 and 
 
 // ---------------------------------------------------------------------------------------------
 // T004b
-async function apiTicket(category: number, price: number, cost: number | null): Promise<{ id: number; barcode: string }> {
+async function apiTicket(
+  category: number,
+  price: number,
+  cost: number | null
+): Promise<{ id: number; barcode: string }> {
   return l.page.evaluate(
     async ([cat, p, c]) => {
-      const res = await (window as unknown as { api: { createTicket: (d: unknown) => Promise<{ data: { ticketId: number; barcode: string } }> } }).api.createTicket({
+      const res = await (
+        window as unknown as {
+          api: { createTicket: (d: unknown) => Promise<{ data: { ticketId: number; barcode: string } }> }
+        }
+      ).api.createTicket({
         customer: { name: `API ${Math.random()}`, phone: `0555${Math.floor(Math.random() * 900000 + 100000)}` },
         device: { brand: 'Realme', model: 'C51' },
-        ticket: { repair_category_id: cat, price: p, payment_type: 'credit', amount_paid: 1000, technician_id: 1, parts_cost: c }
+        ticket: {
+          repair_category_id: cat,
+          price: p,
+          payment_type: 'credit',
+          amount_paid: 1000,
+          technician_id: 1,
+          parts_cost: c
+        }
       })
       return { id: res.data.ticketId, barcode: res.data.barcode }
     },

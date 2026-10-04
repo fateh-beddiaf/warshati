@@ -93,11 +93,7 @@ export function ReportFilters({
               ))}
             </FilterSelect>
 
-            <FilterSelect
-              label={t.reports.filterByCategory}
-              value={filters.categoryFilter}
-              onChange={onCategoryChange}
-            >
+            <FilterSelect label={t.reports.filterByCategory} value={filters.categoryFilter} onChange={onCategoryChange}>
               <option value="all">{t.reports.allCategories}</option>
               {metadata?.repairCategories?.map((cat) => (
                 <option key={cat.id} value={cat.id}>
@@ -109,10 +105,7 @@ export function ReportFilters({
         </div>
 
         {filters.period === 'custom' && (
-          <motion.div
-            {...fadeIn}
-            className="flex flex-wrap items-center gap-4 border-t border-border pt-4 text-xs"
-          >
+          <motion.div {...fadeIn} className="flex flex-wrap items-center gap-4 border-t border-border pt-4 text-xs">
             <label className="flex items-center gap-2">
               <span className="font-semibold text-muted-foreground">{t.reports.from}</span>
               <Input

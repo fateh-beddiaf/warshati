@@ -25,7 +25,12 @@ export function barcodeOptions(mode: BarcodeScaleMode): {
 
 /** Draws `barcode` into an existing <svg>; throws if the value cannot be encoded. */
 export function drawBarcode(svg: SVGSVGElement, barcode: string, mode: BarcodeScaleMode): void {
-  JsBarcode(svg, barcode, { ...barcodeOptions(mode), valid: (ok: boolean) => { if (!ok) throw new Error('invalid barcode') } })
+  JsBarcode(svg, barcode, {
+    ...barcodeOptions(mode),
+    valid: (ok: boolean) => {
+      if (!ok) throw new Error('invalid barcode')
+    }
+  })
   svg.setAttribute('data-barcode', barcode)
 }
 

@@ -7,10 +7,7 @@ import { seedInitialData } from '../database/seed'
 
 // Electron-free core of the database import flow (testable under plain node/electron -r tsx).
 
-export type SafetyBackupCreator = (
-  database: Database.Database,
-  destinationPath: string
-) => Promise<unknown>
+export type SafetyBackupCreator = (database: Database.Database, destinationPath: string) => Promise<unknown>
 
 export interface ImportDatabaseFromFileOptions {
   /** Where to keep the pre-import copy of the live DB. Default: <live dir>/auto-backup-before-import.db */
@@ -153,10 +150,12 @@ export async function importDatabaseFromFile(
   const tempPath = `${livePath}.import-tmp`
   const safetyPath = options.safetyBackupPath ?? join(dirname(livePath), 'auto-backup-before-import.db')
   const safetyPartial = `${safetyPath}.partial`
-  const prepare = options.prepareDatabase ?? ((db: Database.Database): void => {
-    initializeSchema(db)
-    seedInitialData(db)
-  })
+  const prepare =
+    options.prepareDatabase ??
+    ((db: Database.Database): void => {
+      initializeSchema(db)
+      seedInitialData(db)
+    })
 
   try {
     // 1. Validate + migrate a private temp copy; the live DB is untouched so far.
@@ -178,7 +177,8 @@ export async function importDatabaseFromFile(
       } catch {
         // ignore
       }
-      const createSafetyBackup: SafetyBackupCreator = options.createSafetyBackup ?? ((database, dest) => database.backup(dest))
+      const createSafetyBackup: SafetyBackupCreator =
+        options.createSafetyBackup ?? ((database, dest) => database.backup(dest))
       safeRemove(safetyPartial)
       await createSafetyBackup(live, safetyPartial)
       verifySafetyCopy(safetyPartial)

@@ -74,7 +74,6 @@ export function registerIpcHandlers(): void {
     }
   })
 
-
   // Customers
   ipcMain.handle('customers:search', async (_event, query: string) => {
     try {
@@ -367,23 +366,29 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('settings:categories:add', async (_event, name: string, defaultSplitPercentage: number, requiresPartsCost?: boolean) => {
-    try {
-      const data = dbService.addRepairCategory(name, defaultSplitPercentage, requiresPartsCost)
-      return { success: true, data }
-    } catch (error: unknown) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to add repair category' }
+  ipcMain.handle(
+    'settings:categories:add',
+    async (_event, name: string, defaultSplitPercentage: number, requiresPartsCost?: boolean) => {
+      try {
+        const data = dbService.addRepairCategory(name, defaultSplitPercentage, requiresPartsCost)
+        return { success: true, data }
+      } catch (error: unknown) {
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to add repair category' }
+      }
     }
-  })
+  )
 
-  ipcMain.handle('settings:categories:update', async (_event, id: number, name: string, defaultSplitPercentage: number, requiresPartsCost?: boolean) => {
-    try {
-      dbService.updateRepairCategory(id, name, defaultSplitPercentage, requiresPartsCost)
-      return { success: true }
-    } catch (error: unknown) {
-      return { success: false, error: error instanceof Error ? error.message : 'Failed to update repair category' }
+  ipcMain.handle(
+    'settings:categories:update',
+    async (_event, id: number, name: string, defaultSplitPercentage: number, requiresPartsCost?: boolean) => {
+      try {
+        dbService.updateRepairCategory(id, name, defaultSplitPercentage, requiresPartsCost)
+        return { success: true }
+      } catch (error: unknown) {
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to update repair category' }
+      }
     }
-  })
+  )
 
   ipcMain.handle('settings:categories:checkUsage', async (_event, id: number) => {
     try {
@@ -498,5 +503,3 @@ export function registerIpcHandlers(): void {
     }
   })
 }
-
-

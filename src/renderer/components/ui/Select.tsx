@@ -65,18 +65,14 @@ export const SelectContent = React.forwardRef<
       position={position}
       className={cn(
         'relative z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-pop data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=open]:duration-150 data-[state=closed]:duration-100',
-        position === 'popper' &&
-          'data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1',
+        position === 'popper' && 'data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1',
         className
       )}
       {...props}
     >
       <SelectScrollUpButton />
       <SelectPrimitive.Viewport
-        className={cn(
-          'p-1',
-          position === 'popper' && 'w-full min-w-[var(--radix-select-trigger-width)]'
-        )}
+        className={cn('p-1', position === 'popper' && 'w-full min-w-[var(--radix-select-trigger-width)]')}
       >
         {children}
       </SelectPrimitive.Viewport>
@@ -90,7 +86,11 @@ export const SelectLabel = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Label>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
 >(({ className, ...props }, ref) => (
-  <SelectPrimitive.Label ref={ref} className={cn('px-2 py-1.5 text-xs font-semibold text-muted-foreground', className)} {...props} />
+  <SelectPrimitive.Label
+    ref={ref}
+    className={cn('px-2 py-1.5 text-xs font-semibold text-muted-foreground', className)}
+    {...props}
+  />
 ))
 SelectLabel.displayName = 'SelectLabel'
 

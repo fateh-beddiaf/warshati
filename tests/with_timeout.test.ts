@@ -16,10 +16,14 @@ async function main(): Promise<void> {
   // 1. resolves in time -> value passes through, onTimeout never called
   {
     let called = false
-    const v = await withTimeout(sleep(5).then(() => 'ok'), 100, () => {
-      called = true
-      return 'timeout'
-    })
+    const v = await withTimeout(
+      sleep(5).then(() => 'ok'),
+      100,
+      () => {
+        called = true
+        return 'timeout'
+      }
+    )
     check('resolves with the promise value when fast enough', v === 'ok')
     await sleep(150)
     check('onTimeout is not called after a timely resolve (timer cleared)', !called)
@@ -40,7 +44,11 @@ async function main(): Promise<void> {
 
   // 3. promise settles late (after the timeout) -> ignored, no throw
   {
-    const v = await withTimeout(sleep(60).then(() => 'late'), 10, () => 'timeout')
+    const v = await withTimeout(
+      sleep(60).then(() => 'late'),
+      10,
+      () => 'timeout'
+    )
     check('late settlement does not override the timeout result', v === 'timeout')
     await sleep(80)
   }

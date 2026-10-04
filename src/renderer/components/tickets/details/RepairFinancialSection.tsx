@@ -78,10 +78,12 @@ export function RepairFinancialSection({
           </strong>
         </span>
         <span>
-          {t.ticketDetails.amountPaid} <strong className="tabular text-foreground">{formatCurrency(ticket.amount_paid)}</strong>
+          {t.ticketDetails.amountPaid}{' '}
+          <strong className="tabular text-foreground">{formatCurrency(ticket.amount_paid)}</strong>
         </span>
         <span>
-          {t.ticketDetails.createdAt} <strong className="tabular text-foreground">{formatDate(ticket.created_at)}</strong>
+          {t.ticketDetails.createdAt}{' '}
+          <strong className="tabular text-foreground">{formatDate(ticket.created_at)}</strong>
         </span>
       </div>
 

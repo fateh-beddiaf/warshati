@@ -39,26 +39,29 @@ function AppContent(): React.JSX.Element {
   const [scanAlert, setScanAlert] = useState<string | null>(null)
 
   // Fetch and open ticket by barcode
-  const handleBarcodeScanned = useCallback(async (scannedBarcode: string): Promise<void> => {
-    try {
-      const res = await window.api.getTicketByBarcode(scannedBarcode)
-      if (res.success && res.data) {
-        setSelectedTicketDetails(res.data)
-        setIsTicketDetailsOpen(true)
-        setScanAlert(null)
-      } else if (!res.success && res.error) {
-        setScanAlert(res.error)
-        setTimeout(() => setScanAlert(null), 4000)
-      } else {
+  const handleBarcodeScanned = useCallback(
+    async (scannedBarcode: string): Promise<void> => {
+      try {
+        const res = await window.api.getTicketByBarcode(scannedBarcode)
+        if (res.success && res.data) {
+          setSelectedTicketDetails(res.data)
+          setIsTicketDetailsOpen(true)
+          setScanAlert(null)
+        } else if (!res.success && res.error) {
+          setScanAlert(res.error)
+          setTimeout(() => setScanAlert(null), 4000)
+        } else {
+          setScanAlert(`${t.scanner.ticketNotFound}: ${scannedBarcode}`)
+          setTimeout(() => setScanAlert(null), 4000)
+        }
+      } catch (err) {
+        console.error('Failed to query ticket by barcode:', err)
         setScanAlert(`${t.scanner.ticketNotFound}: ${scannedBarcode}`)
         setTimeout(() => setScanAlert(null), 4000)
       }
-    } catch (err) {
-      console.error('Failed to query ticket by barcode:', err)
-      setScanAlert(`${t.scanner.ticketNotFound}: ${scannedBarcode}`)
-      setTimeout(() => setScanAlert(null), 4000)
-    }
-  }, [t])
+    },
+    [t]
+  )
 
   // Mount Dual-Approach Global Keyboard Listener for Henex Scanner
   useBarcodeScanner({
@@ -131,11 +134,7 @@ function AppContent(): React.JSX.Element {
   }
 
   return (
-    <Layout
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      onManualBarcodeScan={handleBarcodeScanned}
-    >
+    <Layout activeTab={activeTab} onTabChange={setActiveTab} onManualBarcodeScan={handleBarcodeScanned}>
       {/* Toast Notification when barcode not found */}
       <AnimatePresence>
         {scanAlert && (
@@ -156,10 +155,7 @@ function AppContent(): React.JSX.Element {
       <ErrorBoundary scope={`screen:${activeTab}`} resetKey={activeTab}>
         <AnimatePresence mode="wait">
           {activeTab === 'tickets' && (
-            <motion.div
-              key="tickets"
-              {...pageTransition}
-            >
+            <motion.div key="tickets" {...pageTransition}>
               <TicketsListScreen
                 onNewTicketClick={() => setActiveTab('new-ticket')}
                 onOpenTicketDetails={handleOpenTicketDetails}
@@ -170,28 +166,19 @@ function AppContent(): React.JSX.Element {
           )}
 
           {activeTab === 'new-ticket' && (
-            <motion.div
-              key="new-ticket"
-              {...pageTransition}
-            >
+            <motion.div key="new-ticket" {...pageTransition}>
               <NewTicketScreen onTicketCreated={handleTicketCreated} />
             </motion.div>
           )}
 
           {activeTab === 'reports' && (
-            <motion.div
-              key="reports"
-              {...pageTransition}
-            >
+            <motion.div key="reports" {...pageTransition}>
               <ReportsScreen onOpenTicketDetails={handleOpenTicketDetails} />
             </motion.div>
           )}
 
           {activeTab === 'settings' && (
-            <motion.div
-              key="settings"
-              {...pageTransition}
-            >
+            <motion.div key="settings" {...pageTransition}>
               <SettingsScreen />
             </motion.div>
           )}
@@ -211,11 +198,7 @@ function AppContent(): React.JSX.Element {
 
       {/* Print / Reprint Preview Modal */}
       <ErrorBoundary scope="print-preview" resetKey={printModalData?.barcode}>
-        <PrintPreviewModal
-          isOpen={isPrintModalOpen}
-          onClose={() => setIsPrintModalOpen(false)}
-          data={printModalData}
-        />
+        <PrintPreviewModal isOpen={isPrintModalOpen} onClose={() => setIsPrintModalOpen(false)} data={printModalData} />
       </ErrorBoundary>
     </Layout>
   )

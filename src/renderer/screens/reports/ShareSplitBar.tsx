@@ -26,15 +26,23 @@ export function ShareSplitBar({ report }: { report: FinancialReportResult | null
           role="img"
           aria-label={`${t.reports.table.myShare} ${Math.round(minePct)}% / ${t.reports.table.partnerShare} ${Math.round(partnerPct)}%`}
         >
-          <div className="h-full bg-primary transition-[width] duration-300 ease-out" style={{ width: `${minePct}%` }} />
-          <div className="h-full bg-primary-to transition-[width] duration-300 ease-out" style={{ width: `${partnerPct}%` }} />
+          <div
+            className="h-full bg-primary transition-[width] duration-300 ease-out"
+            style={{ width: `${minePct}%` }}
+          />
+          <div
+            className="h-full bg-primary-to transition-[width] duration-300 ease-out"
+            style={{ width: `${partnerPct}%` }}
+          />
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold">
           <span className="flex items-center gap-1.5 text-foreground">
             <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-primary" />
             {t.ui.reports.myShareShort}
             <span className="flex items-center gap-2 tabular text-muted-foreground">
-              <span className={report.totalMyShare < 0 ? 'text-danger' : undefined}>{formatCurrency(report.totalMyShare)}</span>
+              <span className={report.totalMyShare < 0 ? 'text-danger' : undefined}>
+                {formatCurrency(report.totalMyShare)}
+              </span>
               <span dir="ltr">{Math.round(minePct)}%</span>
             </span>
           </span>

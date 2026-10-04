@@ -93,7 +93,10 @@ export function BackupTab({ data, loading, reload, notify }: SettingsTabProps): 
               {loading && !dbInfo ? (
                 <Skeleton className="h-4 w-20" />
               ) : (
-                <span dir="ltr" className="block text-start text-sm font-bold tabular-nums text-success-soft-foreground">
+                <span
+                  dir="ltr"
+                  className="block text-start text-sm font-bold tabular-nums text-success-soft-foreground"
+                >
                   {dbInfo?.fileSizeFormatted || '...'}
                 </span>
               )}

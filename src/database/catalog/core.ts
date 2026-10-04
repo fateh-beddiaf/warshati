@@ -41,45 +41,10 @@ export const CORE_BRANDS_V1: Record<string, string[]> = {
     'Poco X5 Pro',
     'Poco F5'
   ],
-  Huawei: [
-    'Y9 2019 / Prime',
-    'Y7P / Y6P',
-    'Nova 7i',
-    'Nova 9',
-    'Nova 10',
-    'P30 Lite',
-    'P40 Pro'
-  ],
-  Oppo: [
-    'A16 / A17',
-    'A54 / A55',
-    'A58 / A78',
-    'Reno 6',
-    'Reno 8',
-    'Reno 10'
-  ],
-  Realme: [
-    'C11 / C21',
-    'C33 / C35',
-    'C53 / C55',
-    'Realme 9',
-    'Realme 11 Pro'
-  ],
-  Infinix: [
-    'Smart 6 / 7 / 8',
-    'Hot 11 / 12 Play',
-    'Hot 30 / 40',
-    'Note 12 / 30'
-  ],
-  Tecno: [
-    'Pop 5 / 7',
-    'Spark 8 / 10 / 20',
-    'Camon 18 / 20'
-  ],
-  Honor: [
-    'Honor X6 / X7',
-    'Honor X8 / X9a',
-    'Honor 90'
-  ]
+  Huawei: ['Y9 2019 / Prime', 'Y7P / Y6P', 'Nova 7i', 'Nova 9', 'Nova 10', 'P30 Lite', 'P40 Pro'],
+  Oppo: ['A16 / A17', 'A54 / A55', 'A58 / A78', 'Reno 6', 'Reno 8', 'Reno 10'],
+  Realme: ['C11 / C21', 'C33 / C35', 'C53 / C55', 'Realme 9', 'Realme 11 Pro'],
+  Infinix: ['Smart 6 / 7 / 8', 'Hot 11 / 12 Play', 'Hot 30 / 40', 'Note 12 / 30'],
+  Tecno: ['Pop 5 / 7', 'Spark 8 / 10 / 20', 'Camon 18 / 20'],
+  Honor: ['Honor X6 / X7', 'Honor X8 / X9a', 'Honor 90']
 }
-

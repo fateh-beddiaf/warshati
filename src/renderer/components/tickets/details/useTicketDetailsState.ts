@@ -115,7 +115,10 @@ export function useTicketDetailsState({ isOpen, ticketDetails, onClose, onStatus
   // Parts cost add / edit / clear (any status)
   const partsCost = usePartsCostEditor({ isOpen, ticketDetails, onSaved: onStatusUpdated })
 
-  const handleUpdateStatus = async (newStatus: TicketStatus, paymentUpdate?: { amount_paid?: number; payment_type?: PaymentType }): Promise<void> => {
+  const handleUpdateStatus = async (
+    newStatus: TicketStatus,
+    paymentUpdate?: { amount_paid?: number; payment_type?: PaymentType }
+  ): Promise<void> => {
     if (!ticketDetails) return
     const { ticket } = ticketDetails
     const session = sessionRef.current

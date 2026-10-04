@@ -9,7 +9,10 @@ import type { TicketDetailsState } from './useTicketDetailsState'
 
 type Props = {
   ticketDetails: TicketFullDetails
-  state: Pick<TicketDetailsState, 'recordAmount' | 'setRecordAmount' | 'recordingPayment' | 'loading' | 'handleRecordPayment'>
+  state: Pick<
+    TicketDetailsState,
+    'recordAmount' | 'setRecordAmount' | 'recordingPayment' | 'loading' | 'handleRecordPayment'
+  >
 }
 
 /** Debt payment (T002 recordPayment): delivered tickets that still carry a remaining balance. */
@@ -19,7 +22,10 @@ export function DebtPaymentSection({ ticketDetails, state }: Props): React.JSX.E
   if (ticket.status !== 'delivered' || ticket.amount_remaining <= 0) return null
 
   return (
-    <div data-testid="record-payment-section" className="space-y-3 rounded-lg border border-warning/30 bg-warning-soft/60 p-3.5">
+    <div
+      data-testid="record-payment-section"
+      className="space-y-3 rounded-lg border border-warning/30 bg-warning-soft/60 p-3.5"
+    >
       <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-warning-soft-foreground">
         <CreditCard className="h-4 w-4" />
         <span>{t.lifecycle.recordPaymentTitle}</span>

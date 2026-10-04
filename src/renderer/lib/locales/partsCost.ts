@@ -10,7 +10,8 @@ export const partsCostAr = {
   // Settings > categories
   settings: {
     switchLabel: 'يتطلب تكلفة قطع',
-    switchHint: 'فعّله للتصنيفات التي فيها ثمن قطعة (مثل الشاشات والفيشور). تُخصم التكلفة من السعر قبل توزيع الأرباح. اتركه مطفأً للفلاش والسوفتوير.',
+    switchHint:
+      'فعّله للتصنيفات التي فيها ثمن قطعة (مثل الشاشات والفيشور). تُخصم التكلفة من السعر قبل توزيع الأرباح. اتركه مطفأً للفلاش والسوفتوير.',
     badge: 'يتطلب تكلفة',
     enabledToast: 'تم تفعيل «يتطلب تكلفة قطع» للتصنيف',
     disabledToast: 'تم إيقاف «يتطلب تكلفة قطع» للتصنيف',
@@ -19,7 +20,8 @@ export const partsCostAr = {
     previewLine: 'السعر {price} − التكلفة {cost} = ربح صافٍ {net}',
     previewOwner: 'حصتي: {amount}',
     previewPartner: 'حصة الشريك: {amount}',
-    tabNote: 'التصنيفات التي تتطلب تكلفة قطع تُنبّهك عند إنشاء التذكرة، وتُحسب أرباحها على الربح الصافي (السعر − التكلفة).'
+    tabNote:
+      'التصنيفات التي تتطلب تكلفة قطع تُنبّهك عند إنشاء التذكرة، وتُحسب أرباحها على الربح الصافي (السعر − التكلفة).'
   },
   // New ticket
   newTicket: {
@@ -60,7 +62,8 @@ export const partsCostAr = {
     lossConfirmButton: 'نعم، احفظها بخسارة',
     sharesCaption: 'من الربح الصافي {net}',
     deliveryProvisionalTitle: 'الأرباح مؤقتة',
-    deliveryProvisionalBody: 'لم تُدخل تكلفة القطع بعد. التسليم مسموح، وتُعاد حسبة الحصص تلقائياً عند إضافة التكلفة لاحقاً.',
+    deliveryProvisionalBody:
+      'لم تُدخل تكلفة القطع بعد. التسليم مسموح، وتُعاد حسبة الحصص تلقائياً عند إضافة التكلفة لاحقاً.',
     deliveryLossNote: 'تنبيه: التكلفة أعلى من السعر، فالحصص سالبة (خسارة).',
     showProfit: 'إظهار توزيع الأرباح',
     hideProfit: 'إخفاء توزيع الأرباح',
@@ -104,7 +107,8 @@ export const partsCostEn: typeof partsCostAr = {
   },
   settings: {
     switchLabel: 'Requires a parts cost',
-    switchHint: 'Turn it on for categories with a part to buy (screens, charging ports...). The cost is deducted from the price before the profit is split. Leave it off for flashing and software.',
+    switchHint:
+      'Turn it on for categories with a part to buy (screens, charging ports...). The cost is deducted from the price before the profit is split. Leave it off for flashing and software.',
     badge: 'Requires cost',
     enabledToast: '"Requires a parts cost" turned on for the category',
     disabledToast: '"Requires a parts cost" turned off for the category',
@@ -113,7 +117,8 @@ export const partsCostEn: typeof partsCostAr = {
     previewLine: 'Price {price} − cost {cost} = net profit {net}',
     previewOwner: 'My share: {amount}',
     previewPartner: 'Partner share: {amount}',
-    tabNote: 'Categories that require a parts cost remind you when creating the ticket, and their profit is split on the net profit (price − cost).'
+    tabNote:
+      'Categories that require a parts cost remind you when creating the ticket, and their profit is split on the net profit (price − cost).'
   },
   newTicket: {
     label: 'Internal cost',
@@ -122,7 +127,8 @@ export const partsCostEn: typeof partsCostAr = {
     noCostTitle: 'This ticket has no cost',
     noCostBody: 'Add it later from the ticket details; the profit stays provisional until then.',
     lossTitle: 'The cost is higher than the price',
-    lossBody: 'The parts cost exceeds the repair price, so this ticket will be recorded as a loss. Do you want to continue?',
+    lossBody:
+      'The parts cost exceeds the repair price, so this ticket will be recorded as a loss. Do you want to continue?',
     lossConfirm: 'Yes, record it as a loss',
     lossReview: 'Review the values'
   },
@@ -136,12 +142,15 @@ export const partsCostEn: typeof partsCostAr = {
     addCost: 'Add the cost',
     editCost: 'Edit the cost',
     provisionalBadge: 'Provisional',
-    provisionalHint: 'Provisional profit: the parts cost has not been entered yet. The shares are recomputed automatically once you add it.',
+    provisionalHint:
+      'Provisional profit: the parts cost has not been entered yet. The shares are recomputed automatically once you add it.',
     lossBadge: 'Loss',
     lossHint: 'The parts cost is higher than the price: this ticket is a loss, split with the same percentage.',
     dialogTitle: 'Parts cost',
-    dialogDescription: 'The part is paid first from the customer\'s money, then the net profit is split. The cost never appears on the label.',
-    dialogDescriptionDelivered: 'The ticket is delivered: the shares are recomputed automatically with the percentage frozen at delivery.',
+    dialogDescription:
+      "The part is paid first from the customer's money, then the net profit is split. The cost never appears on the label.",
+    dialogDescriptionDelivered:
+      'The ticket is delivered: the shares are recomputed automatically with the percentage frozen at delivery.',
     inputLabel: 'Parts cost',
     clearCost: 'Clear the cost',
     saveCost: 'Save the cost',
@@ -152,7 +161,8 @@ export const partsCostEn: typeof partsCostAr = {
     lossConfirmButton: 'Yes, save it as a loss',
     sharesCaption: 'of the net profit {net}',
     deliveryProvisionalTitle: 'Provisional profit',
-    deliveryProvisionalBody: 'The parts cost has not been entered yet. Delivery is allowed, and the shares are recomputed automatically when you add the cost later.',
+    deliveryProvisionalBody:
+      'The parts cost has not been entered yet. Delivery is allowed, and the shares are recomputed automatically when you add the cost later.',
     deliveryLossNote: 'Heads up: the cost is higher than the price, so the shares are negative (a loss).',
     showProfit: 'Show profit split',
     hideProfit: 'Hide profit split',
@@ -170,7 +180,7 @@ export const partsCostEn: typeof partsCostAr = {
   },
   reports: {
     partsCost: 'Total parts cost',
-    partsCostDesc: 'Paid from the customer\'s money before the split',
+    partsCostDesc: "Paid from the customer's money before the split",
     netProfit: 'Net profit distributed',
     netProfitDesc: 'Price − cost',
     lossesCount: 'Tickets at a loss: {count}',

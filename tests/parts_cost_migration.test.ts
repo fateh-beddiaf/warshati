@@ -33,9 +33,17 @@ const columns = (db: Database.Database, table: string): string[] =>
   (all(db, `PRAGMA table_info(${table})`) as { name: string }[]).map((c) => c.name)
 const dump = (db: Database.Database): string =>
   JSON.stringify(
-    ['Customer', 'RepairCategory', 'Technician', 'Ticket', 'TicketDevice', 'StatusLog', 'Setting', 'Brand', 'Model'].map((t) =>
-      all(db, `SELECT * FROM ${t} ORDER BY 1`)
-    )
+    [
+      'Customer',
+      'RepairCategory',
+      'Technician',
+      'Ticket',
+      'TicketDevice',
+      'StatusLog',
+      'Setting',
+      'Brand',
+      'Model'
+    ].map((t) => all(db, `SELECT * FROM ${t} ORDER BY 1`))
   )
 
 // The old code froze my_share = round2(price x my%) on the price
@@ -86,10 +94,20 @@ function buildLegacyV1(path: string): { ids: Record<string, number> } {
             : null
         ).lastInsertRowid
     )
-    db.prepare(`INSERT INTO TicketDevice (ticket_id, brand, model, brand_id, model_id, short_label) VALUES (?, 'Samsung', 'Galaxy A54', 1, 1, 'SA A54')`).run(id)
-    db.prepare(`INSERT INTO StatusLog (ticket_id, old_status, new_status, timestamp) VALUES (?, NULL, 'in_progress', '2026-03-01T10:00:00.000Z')`).run(id)
-    if (o.status !== 'in_progress') db.prepare(`INSERT INTO StatusLog (ticket_id, old_status, new_status, timestamp) VALUES (?, 'in_progress', 'ready', '2026-03-02T10:00:00.000Z')`).run(id)
-    if (o.status === 'delivered') db.prepare(`INSERT INTO StatusLog (ticket_id, old_status, new_status, timestamp) VALUES (?, 'ready', 'delivered', '2026-03-03T10:00:00.000Z')`).run(id)
+    db.prepare(
+      `INSERT INTO TicketDevice (ticket_id, brand, model, brand_id, model_id, short_label) VALUES (?, 'Samsung', 'Galaxy A54', 1, 1, 'SA A54')`
+    ).run(id)
+    db.prepare(
+      `INSERT INTO StatusLog (ticket_id, old_status, new_status, timestamp) VALUES (?, NULL, 'in_progress', '2026-03-01T10:00:00.000Z')`
+    ).run(id)
+    if (o.status !== 'in_progress')
+      db.prepare(
+        `INSERT INTO StatusLog (ticket_id, old_status, new_status, timestamp) VALUES (?, 'in_progress', 'ready', '2026-03-02T10:00:00.000Z')`
+      ).run(id)
+    if (o.status === 'delivered')
+      db.prepare(
+        `INSERT INTO StatusLog (ticket_id, old_status, new_status, timestamp) VALUES (?, 'ready', 'delivered', '2026-03-03T10:00:00.000Z')`
+      ).run(id)
     ids[key] = id
   }
   add('fractional70', { tech: 1, cat: 3, price: 1255.5, status: 'delivered', pct: 70 })
@@ -109,105 +127,205 @@ function buildLegacyV1(path: string): { ids: Record<string, number> } {
 const dir = mkdtempSync(join(tmpdir(), 'warshati-parts-cost-mig-'))
 
 async function main(): Promise<void> {
-try {
-  console.log('--- Section 1: database from main @ 33b4cfc / @ 2410a27 ---')
-  {
-    const path = join(dir, 'v1.db')
-    const { ids } = buildLegacyV1(path)
+  try {
+    console.log('--- Section 1: database from main @ 33b4cfc / @ 2410a27 ---')
+    {
+      const path = join(dir, 'v1.db')
+      const { ids } = buildLegacyV1(path)
 
-    // Snapshot of every legacy column BEFORE the upgrade
-    const pre = new Database(path)
-    const legacyCols = columns(pre, 'Ticket')
-    const preTickets = all(pre, `SELECT * FROM Ticket ORDER BY id`)
-    const preCategories = all(pre, `SELECT * FROM RepairCategory ORDER BY id`)
-    const preOther = JSON.stringify([all(pre, `SELECT * FROM Customer`), all(pre, `SELECT * FROM TicketDevice`), all(pre, `SELECT * FROM StatusLog`), all(pre, `SELECT * FROM Technician`)])
-    eq(legacyCols.includes('parts_cost') || legacyCols.includes('split_percentage_applied'), false, 'precondition: the legacy Ticket has no T004 columns')
-    eq(columns(pre, 'RepairCategory').includes('requires_parts_cost'), false, 'precondition: the legacy RepairCategory has no requires_parts_cost')
-    pre.close()
+      // Snapshot of every legacy column BEFORE the upgrade
+      const pre = new Database(path)
+      const legacyCols = columns(pre, 'Ticket')
+      const preTickets = all(pre, `SELECT * FROM Ticket ORDER BY id`)
+      const preCategories = all(pre, `SELECT * FROM RepairCategory ORDER BY id`)
+      const preOther = JSON.stringify([
+        all(pre, `SELECT * FROM Customer`),
+        all(pre, `SELECT * FROM TicketDevice`),
+        all(pre, `SELECT * FROM StatusLog`),
+        all(pre, `SELECT * FROM Technician`)
+      ])
+      eq(
+        legacyCols.includes('parts_cost') || legacyCols.includes('split_percentage_applied'),
+        false,
+        'precondition: the legacy Ticket has no T004 columns'
+      )
+      eq(
+        columns(pre, 'RepairCategory').includes('requires_parts_cost'),
+        false,
+        'precondition: the legacy RepairCategory has no requires_parts_cost'
+      )
+      pre.close()
 
-    const db = new Database(path)
-    db.pragma('foreign_keys = ON')
-    initializeSchema(db)
-    seedInitialData(db)
+      const db = new Database(path)
+      db.pragma('foreign_keys = ON')
+      initializeSchema(db)
+      seedInitialData(db)
 
-    eq(columns(db, 'Ticket').includes('parts_cost'), true, 'Ticket.parts_cost added')
-    eq(columns(db, 'Ticket').includes('split_percentage_applied'), true, 'Ticket.split_percentage_applied added')
-    eq(columns(db, 'RepairCategory').includes('requires_parts_cost'), true, 'RepairCategory.requires_parts_cost added')
+      eq(columns(db, 'Ticket').includes('parts_cost'), true, 'Ticket.parts_cost added')
+      eq(columns(db, 'Ticket').includes('split_percentage_applied'), true, 'Ticket.split_percentage_applied added')
+      eq(
+        columns(db, 'RepairCategory').includes('requires_parts_cost'),
+        true,
+        'RepairCategory.requires_parts_cost added'
+      )
 
-    const info = (table: string, col: string): Row => (all(db, `PRAGMA table_info(${table})`) as Row[]).find((c) => c.name === col)!
-    eq([info('RepairCategory', 'requires_parts_cost').notnull, info('RepairCategory', 'requires_parts_cost').dflt_value], [1, '0'], 'requires_parts_cost is NOT NULL DEFAULT 0')
-    eq([info('Ticket', 'parts_cost').notnull, info('Ticket', 'parts_cost').dflt_value], [0, 'NULL'], 'parts_cost is nullable, default NULL')
-    eq(info('Ticket', 'split_percentage_applied').notnull, 0, 'split_percentage_applied is nullable')
+      const info = (table: string, col: string): Row =>
+        (all(db, `PRAGMA table_info(${table})`) as Row[]).find((c) => c.name === col)!
+      eq(
+        [
+          info('RepairCategory', 'requires_parts_cost').notnull,
+          info('RepairCategory', 'requires_parts_cost').dflt_value
+        ],
+        [1, '0'],
+        'requires_parts_cost is NOT NULL DEFAULT 0'
+      )
+      eq(
+        [info('Ticket', 'parts_cost').notnull, info('Ticket', 'parts_cost').dflt_value],
+        [0, 'NULL'],
+        'parts_cost is nullable, default NULL'
+      )
+      eq(info('Ticket', 'split_percentage_applied').notnull, 0, 'split_percentage_applied is nullable')
 
-    // Nothing lost: every legacy column of every row is identical
-    const postTickets = all(db, `SELECT * FROM Ticket ORDER BY id`)
-    eq(postTickets.length, preTickets.length, 'same number of tickets')
-    const legacyOnly = (rows: Row[]): Row[] => rows.map((r) => Object.fromEntries(legacyCols.map((c) => [c, r[c]])))
-    eq(JSON.stringify(legacyOnly(postTickets)), JSON.stringify(preTickets), 'every legacy ticket column is byte-identical after the upgrade')
-    const postCategories = all(db, `SELECT * FROM RepairCategory ORDER BY id`)
-    eq(JSON.stringify(postCategories.map(({ requires_parts_cost, ...rest }) => (void requires_parts_cost, rest))), JSON.stringify(preCategories), 'every legacy category column is identical')
-    eq(postCategories.every((c) => c.requires_parts_cost === 0), true, 'every existing category defaults to NOT requiring a cost')
-    eq(postTickets.every((t) => t.parts_cost === null), true, 'every existing ticket has parts_cost NULL (not entered)')
-    eq(JSON.stringify([all(db, `SELECT * FROM Customer`), all(db, `SELECT * FROM TicketDevice`), all(db, `SELECT * FROM StatusLog`), all(db, `SELECT * FROM Technician`)]), preOther, 'customers, devices, status log and technicians untouched')
+      // Nothing lost: every legacy column of every row is identical
+      const postTickets = all(db, `SELECT * FROM Ticket ORDER BY id`)
+      eq(postTickets.length, preTickets.length, 'same number of tickets')
+      const legacyOnly = (rows: Row[]): Row[] => rows.map((r) => Object.fromEntries(legacyCols.map((c) => [c, r[c]])))
+      eq(
+        JSON.stringify(legacyOnly(postTickets)),
+        JSON.stringify(preTickets),
+        'every legacy ticket column is byte-identical after the upgrade'
+      )
+      const postCategories = all(db, `SELECT * FROM RepairCategory ORDER BY id`)
+      eq(
+        JSON.stringify(postCategories.map(({ requires_parts_cost, ...rest }) => (void requires_parts_cost, rest))),
+        JSON.stringify(preCategories),
+        'every legacy category column is identical'
+      )
+      eq(
+        postCategories.every((c) => c.requires_parts_cost === 0),
+        true,
+        'every existing category defaults to NOT requiring a cost'
+      )
+      eq(
+        postTickets.every((t) => t.parts_cost === null),
+        true,
+        'every existing ticket has parts_cost NULL (not entered)'
+      )
+      eq(
+        JSON.stringify([
+          all(db, `SELECT * FROM Customer`),
+          all(db, `SELECT * FROM TicketDevice`),
+          all(db, `SELECT * FROM StatusLog`),
+          all(db, `SELECT * FROM Technician`)
+        ]),
+        preOther,
+        'customers, devices, status log and technicians untouched'
+      )
 
-    // Back-fill of the frozen percentage
-    const applied = (key: string): unknown => one(db, `SELECT split_percentage_applied a FROM Ticket WHERE id = ?`, ids[key]).a
-    eq(applied('fractional70'), 70, 'back-fill: 1255.5 / 878.85 => 70')
-    eq(applied('screen40'), 40, 'back-fill: 8000 / 3200 => 40')
-    eq(applied('odd3333'), 33.33, 'back-fill: 33.33% reproduced exactly')
-    eq(applied('partner'), null, 'back-fill: partner ticket => NULL (always 100%)')
-    eq(applied('freeRepair'), null, 'back-fill: price 0 => NULL (documented fallback to the category percentage)')
-    eq(applied('noShares'), null, 'back-fill: delivered ticket without stored shares => NULL')
-    eq(applied('inProgress'), null, 'back-fill: in progress => NULL')
-    eq(applied('ready'), null, 'back-fill: ready => NULL')
-    eq(applied('debt'), 50, 'back-fill: a delivered ticket with debt => 50')
-    // The back-filled percentage reproduces the stored share (what a later cost edit relies on)
-    for (const key of ['fractional70', 'screen40', 'odd3333', 'debt']) {
-      const t = one(db, `SELECT price, my_share, split_percentage_applied a FROM Ticket WHERE id = ?`, ids[key]) as { price: number; my_share: number; a: number }
-      const again = calculateProfitSplit({ price: t.price, isPartner: false, appliedSplitPercentage: t.a })
-      eq(again.myShare, t.my_share, `back-fill of "${key}" reproduces the stored my_share`)
+      // Back-fill of the frozen percentage
+      const applied = (key: string): unknown =>
+        one(db, `SELECT split_percentage_applied a FROM Ticket WHERE id = ?`, ids[key]).a
+      eq(applied('fractional70'), 70, 'back-fill: 1255.5 / 878.85 => 70')
+      eq(applied('screen40'), 40, 'back-fill: 8000 / 3200 => 40')
+      eq(applied('odd3333'), 33.33, 'back-fill: 33.33% reproduced exactly')
+      eq(applied('partner'), null, 'back-fill: partner ticket => NULL (always 100%)')
+      eq(applied('freeRepair'), null, 'back-fill: price 0 => NULL (documented fallback to the category percentage)')
+      eq(applied('noShares'), null, 'back-fill: delivered ticket without stored shares => NULL')
+      eq(applied('inProgress'), null, 'back-fill: in progress => NULL')
+      eq(applied('ready'), null, 'back-fill: ready => NULL')
+      eq(applied('debt'), 50, 'back-fill: a delivered ticket with debt => 50')
+      // The back-filled percentage reproduces the stored share (what a later cost edit relies on)
+      for (const key of ['fractional70', 'screen40', 'odd3333', 'debt']) {
+        const t = one(db, `SELECT price, my_share, split_percentage_applied a FROM Ticket WHERE id = ?`, ids[key]) as {
+          price: number
+          my_share: number
+          a: number
+        }
+        const again = calculateProfitSplit({ price: t.price, isPartner: false, appliedSplitPercentage: t.a })
+        eq(again.myShare, t.my_share, `back-fill of "${key}" reproduces the stored my_share`)
+      }
+
+      // Reports are unchanged by the upgrade (no costs entered => net = price)
+      const report = getFinancialReport(db, { period: 'all_time' })
+      const rawMy = (
+        all(db, `SELECT my_share FROM Ticket WHERE status = 'delivered' AND my_share IS NOT NULL`) as {
+          my_share: number
+        }[]
+      ).reduce((s, r) => s + r.my_share, 0)
+      eq(report.totalPartsCost, 0, 'report after upgrade: no costs')
+      eq(report.totalNetProfit, report.totalRevenue, 'report after upgrade: net profit = revenue')
+      eq(
+        report.provisionalTicketsCount,
+        0,
+        'report after upgrade: nothing provisional (no category requires a cost yet)'
+      )
+      eq(
+        report.totalMyShare >= Math.round(rawMy * 100) / 100,
+        true,
+        'report after upgrade: stored shares still counted (plus the share-less one computed)'
+      )
+
+      // A cost added later to a back-filled ticket uses the back-filled percentage, not the category's
+      db.prepare(`UPDATE RepairCategory SET default_split_percentage = 10 WHERE id = 3`).run()
+      setPartsCost(db, ids.fractional70, 100.25)
+      eq(
+        [
+          one(db, `SELECT my_share a FROM Ticket WHERE id = ?`, ids.fractional70).a,
+          one(db, `SELECT partner_share a FROM Ticket WHERE id = ?`, ids.fractional70).a
+        ],
+        [808.68, 346.57],
+        'cost added to a legacy ticket uses its back-filled 70% (category now says 10%)'
+      )
+      // price 0 + no frozen percentage: documented fallback = category percentage (50%)
+      setPartsCost(db, ids.freeRepair, 800)
+      eq(
+        [
+          one(db, `SELECT my_share a FROM Ticket WHERE id = ?`, ids.freeRepair).a,
+          one(db, `SELECT partner_share a FROM Ticket WHERE id = ?`, ids.freeRepair).a
+        ],
+        [-400, -400],
+        "price-0 legacy ticket: fallback to the category's 50% => -400 / -400"
+      )
+      eq(
+        one(db, `SELECT split_percentage_applied a FROM Ticket WHERE id = ?`, ids.freeRepair).a,
+        50,
+        'the fallback percentage is frozen on first use'
+      )
+      setPartsCost(db, ids.partner, 2600)
+      eq(
+        [
+          one(db, `SELECT my_share a FROM Ticket WHERE id = ?`, ids.partner).a,
+          one(db, `SELECT partner_share a FROM Ticket WHERE id = ?`, ids.partner).a
+        ],
+        [0, 7400],
+        'partner legacy ticket: 100% of the net (10000 - 2600)'
+      )
+      // restore to compare the second boot
+      db.prepare(`UPDATE RepairCategory SET default_split_percentage = 70 WHERE id = 3`).run()
+      db.close()
+
+      // Second boot: nothing changes, not even the back-filled values
+      const db2 = new Database(path)
+      db2.pragma('foreign_keys = ON')
+      const before = dump(db2)
+      initializeSchema(db2)
+      seedInitialData(db2)
+      initializeSchema(db2)
+      eq(dump(db2), before, 'a second (and third) launch changes nothing at all')
+      eq(
+        getRepairCategories(db2).every((c) => c.requires_parts_cost === false),
+        true,
+        'the categories still do not require a cost'
+      )
+      db2.close()
     }
 
-    // Reports are unchanged by the upgrade (no costs entered => net = price)
-    const report = getFinancialReport(db, { period: 'all_time' })
-    const rawMy = (all(db, `SELECT my_share FROM Ticket WHERE status = 'delivered' AND my_share IS NOT NULL`) as { my_share: number }[]).reduce((s, r) => s + r.my_share, 0)
-    eq(report.totalPartsCost, 0, 'report after upgrade: no costs')
-    eq(report.totalNetProfit, report.totalRevenue, 'report after upgrade: net profit = revenue')
-    eq(report.provisionalTicketsCount, 0, 'report after upgrade: nothing provisional (no category requires a cost yet)')
-    eq(report.totalMyShare >= Math.round(rawMy * 100) / 100, true, 'report after upgrade: stored shares still counted (plus the share-less one computed)')
-
-    // A cost added later to a back-filled ticket uses the back-filled percentage, not the category's
-    db.prepare(`UPDATE RepairCategory SET default_split_percentage = 10 WHERE id = 3`).run()
-    setPartsCost(db, ids.fractional70, 100.25)
-    eq([one(db, `SELECT my_share a FROM Ticket WHERE id = ?`, ids.fractional70).a, one(db, `SELECT partner_share a FROM Ticket WHERE id = ?`, ids.fractional70).a], [808.68, 346.57], 'cost added to a legacy ticket uses its back-filled 70% (category now says 10%)')
-    // price 0 + no frozen percentage: documented fallback = category percentage (50%)
-    setPartsCost(db, ids.freeRepair, 800)
-    eq([one(db, `SELECT my_share a FROM Ticket WHERE id = ?`, ids.freeRepair).a, one(db, `SELECT partner_share a FROM Ticket WHERE id = ?`, ids.freeRepair).a], [-400, -400], 'price-0 legacy ticket: fallback to the category\'s 50% => -400 / -400')
-    eq(one(db, `SELECT split_percentage_applied a FROM Ticket WHERE id = ?`, ids.freeRepair).a, 50, 'the fallback percentage is frozen on first use')
-    setPartsCost(db, ids.partner, 2600)
-    eq([one(db, `SELECT my_share a FROM Ticket WHERE id = ?`, ids.partner).a, one(db, `SELECT partner_share a FROM Ticket WHERE id = ?`, ids.partner).a], [0, 7400], 'partner legacy ticket: 100% of the net (10000 - 2600)')
-    // restore to compare the second boot
-    db.prepare(`UPDATE RepairCategory SET default_split_percentage = 70 WHERE id = 3`).run()
-    db.close()
-
-    // Second boot: nothing changes, not even the back-filled values
-    const db2 = new Database(path)
-    db2.pragma('foreign_keys = ON')
-    const before = dump(db2)
-    initializeSchema(db2)
-    seedInitialData(db2)
-    initializeSchema(db2)
-    eq(dump(db2), before, 'a second (and third) launch changes nothing at all')
-    eq(getRepairCategories(db2).every((c) => c.requires_parts_cost === false), true, 'the categories still do not require a cost')
-    db2.close()
-  }
-
-  console.log('\n--- Section 2: an older layout (identity columns missing too) migrates in one go ---')
-  {
-    const path = join(dir, 'ancient.db')
-    const db0 = new Database(path)
-    db0.exec(LEGACY_SCHEMA_ANCIENT)
-    db0.exec(`
+    console.log('\n--- Section 2: an older layout (identity columns missing too) migrates in one go ---')
+    {
+      const path = join(dir, 'ancient.db')
+      const db0 = new Database(path)
+      db0.exec(LEGACY_SCHEMA_ANCIENT)
+      db0.exec(`
       INSERT INTO Technician (name) VALUES ('أنا'), ('الشريك');
       INSERT INTO RepairCategory (name, default_split_percentage) VALUES ('شاشات', 40);
       INSERT INTO Brand (name) VALUES ('Samsung');
@@ -219,83 +337,122 @@ try {
       INSERT INTO TicketDevice (ticket_id, brand, model, short_label) VALUES (1, 'Samsung', 'Galaxy A54', 'SA'), (2, 'Samsung', 'Galaxy A54', 'SA');
       INSERT INTO StatusLog (ticket_id, old_status, new_status, timestamp) VALUES (1, NULL, 'in_progress', '2025-01-01T10:00:00.000Z'), (1, 'ready', 'delivered', '2025-01-03T10:00:00.000Z');
     `)
-    db0.close()
+      db0.close()
 
-    const db = new Database(path)
-    db.pragma('foreign_keys = ON')
-    initializeSchema(db)
-    seedInitialData(db)
-    const t = columns(db, 'Ticket')
-    eq(['technician_id', 'my_share', 'partner_share', 'parts_cost', 'split_percentage_applied'].every((c) => t.includes(c)), true, 'all identity, profit and T004 columns exist')
-    eq(columns(db, 'RepairCategory').includes('requires_parts_cost'), true, 'category switch exists')
-    eq(all(db, `SELECT COUNT(*) c FROM Ticket`)[0].c, 2, 'tickets kept')
-    eq(all(db, `SELECT split_percentage_applied a FROM Ticket ORDER BY id`).map((r) => r.a), [null, null], 'no shares existed => nothing to back-fill (NULL)')
-    eq(all(db, `SELECT is_partner p FROM Technician ORDER BY id`).map((r) => r.p), [0, 1], 'partner flagged by the identity migration')
-    // The upgraded ticket works end to end
-    const updated = setPartsCost(db, 1, 1000)
-    eq([updated.my_share, updated.partner_share], [2000, 3000], 'delivered ticket without shares: cost 1000 on 6000 at the category\'s 40% => 2000 / 3000')
-    const details = getTicketById(db, 1)!
-    eq(details.category!.requires_parts_cost, false, 'details work after the upgrade')
-    const before = dump(db)
-    initializeSchema(db)
-    seedInitialData(db)
-    eq(dump(db), before, 'second launch changes nothing (older layout)')
-    db.close()
-  }
+      const db = new Database(path)
+      db.pragma('foreign_keys = ON')
+      initializeSchema(db)
+      seedInitialData(db)
+      const t = columns(db, 'Ticket')
+      eq(
+        ['technician_id', 'my_share', 'partner_share', 'parts_cost', 'split_percentage_applied'].every((c) =>
+          t.includes(c)
+        ),
+        true,
+        'all identity, profit and T004 columns exist'
+      )
+      eq(columns(db, 'RepairCategory').includes('requires_parts_cost'), true, 'category switch exists')
+      eq(all(db, `SELECT COUNT(*) c FROM Ticket`)[0].c, 2, 'tickets kept')
+      eq(
+        all(db, `SELECT split_percentage_applied a FROM Ticket ORDER BY id`).map((r) => r.a),
+        [null, null],
+        'no shares existed => nothing to back-fill (NULL)'
+      )
+      eq(
+        all(db, `SELECT is_partner p FROM Technician ORDER BY id`).map((r) => r.p),
+        [0, 1],
+        'partner flagged by the identity migration'
+      )
+      // The upgraded ticket works end to end
+      const updated = setPartsCost(db, 1, 1000)
+      eq(
+        [updated.my_share, updated.partner_share],
+        [2000, 3000],
+        "delivered ticket without shares: cost 1000 on 6000 at the category's 40% => 2000 / 3000"
+      )
+      const details = getTicketById(db, 1)!
+      eq(details.category!.requires_parts_cost, false, 'details work after the upgrade')
+      const before = dump(db)
+      initializeSchema(db)
+      seedInitialData(db)
+      eq(dump(db), before, 'second launch changes nothing (older layout)')
+      db.close()
+    }
 
-  console.log('\n--- Section 3: a failing migration rolls everything back ---')
-  {
-    const path = join(dir, 'broken.db')
-    const db0 = new Database(path)
-    db0.exec(LEGACY_SCHEMA_ANCIENT)
-    // no technician named "الشريك": the identity migration cannot decide who the partner is and throws
-    db0.exec(`
+    console.log('\n--- Section 3: a failing migration rolls everything back ---')
+    {
+      const path = join(dir, 'broken.db')
+      const db0 = new Database(path)
+      db0.exec(LEGACY_SCHEMA_ANCIENT)
+      // no technician named "الشريك": the identity migration cannot decide who the partner is and throws
+      db0.exec(`
       INSERT INTO Technician (name) VALUES ('أنا');
       INSERT INTO RepairCategory (name, default_split_percentage) VALUES ('شاشات', 40);
       INSERT INTO Customer (name, phone) VALUES ('زبون', '0555');
     `)
-    db0.close()
-    const db = new Database(path)
-    let message = ''
-    try {
-      initializeSchema(db)
-    } catch (err) {
-      message = err instanceof Error ? err.message : String(err)
+      db0.close()
+      const db = new Database(path)
+      let message = ''
+      try {
+        initializeSchema(db)
+      } catch (err) {
+        message = err instanceof Error ? err.message : String(err)
+      }
+      eq(message.length > 0, true, 'the migration failed with a message')
+      eq(columns(db, 'Ticket').includes('parts_cost'), false, 'rolled back: Ticket.parts_cost was NOT left behind')
+      eq(
+        columns(db, 'Ticket').includes('split_percentage_applied'),
+        false,
+        'rolled back: Ticket.split_percentage_applied was NOT left behind'
+      )
+      eq(
+        columns(db, 'Ticket').includes('my_share'),
+        false,
+        'rolled back: even the profit columns are gone (all-or-nothing)'
+      )
+      eq(columns(db, 'RepairCategory').includes('requires_parts_cost'), false, 'rolled back: RepairCategory unchanged')
+      eq(all(db, `SELECT COUNT(*) c FROM RepairCategory`)[0].c, 1, 'rolled back: data intact')
+      db.close()
     }
-    eq(message.length > 0, true, 'the migration failed with a message')
-    eq(columns(db, 'Ticket').includes('parts_cost'), false, 'rolled back: Ticket.parts_cost was NOT left behind')
-    eq(columns(db, 'Ticket').includes('split_percentage_applied'), false, 'rolled back: Ticket.split_percentage_applied was NOT left behind')
-    eq(columns(db, 'Ticket').includes('my_share'), false, 'rolled back: even the profit columns are gone (all-or-nothing)')
-    eq(columns(db, 'RepairCategory').includes('requires_parts_cost'), false, 'rolled back: RepairCategory unchanged')
-    eq(all(db, `SELECT COUNT(*) c FROM RepairCategory`)[0].c, 1, 'rolled back: data intact')
-    db.close()
-  }
 
-  console.log('\n--- Section 4: importing an old backup file brings it up to date ---')
-  {
-    const livePath = join(dir, 'live.db')
-    const live = new Database(livePath)
-    initializeSchema(live)
-    seedInitialData(live)
-    live.pragma('journal_mode = DELETE')
-    live.close()
+    console.log('\n--- Section 4: importing an old backup file brings it up to date ---')
+    {
+      const livePath = join(dir, 'live.db')
+      const live = new Database(livePath)
+      initializeSchema(live)
+      seedInitialData(live)
+      live.pragma('journal_mode = DELETE')
+      live.close()
 
-    const srcPath = join(dir, 'old-backup.db')
-    buildLegacyV1(srcPath)
-    const res = await importDatabaseFromFile(srcPath, livePath, { safetyBackupPath: join(dir, 'safety.db') })
-    eq(res.success, true, `importing a pre-T004 backup succeeds (${res.error ?? ''})`)
-    const imported = new Database(livePath, { readonly: true })
-    eq(columns(imported, 'Ticket').includes('parts_cost') && columns(imported, 'Ticket').includes('split_percentage_applied'), true, 'imported backup has the new ticket columns')
-    eq(columns(imported, 'RepairCategory').includes('requires_parts_cost'), true, 'imported backup has the category switch')
-    eq(all(imported, `SELECT COUNT(*) c FROM Ticket`)[0].c, 9, 'imported backup kept all 9 tickets')
-    eq(all(imported, `SELECT split_percentage_applied a FROM Ticket WHERE barcode_code = 'WSHMIG1'`)[0].a, 70, 'imported backup: frozen percentage back-filled')
-    imported.close()
-    eq(existsSync(join(dir, 'safety.db')), true, 'the safety copy was made')
+      const srcPath = join(dir, 'old-backup.db')
+      buildLegacyV1(srcPath)
+      const res = await importDatabaseFromFile(srcPath, livePath, { safetyBackupPath: join(dir, 'safety.db') })
+      eq(res.success, true, `importing a pre-T004 backup succeeds (${res.error ?? ''})`)
+      const imported = new Database(livePath, { readonly: true })
+      eq(
+        columns(imported, 'Ticket').includes('parts_cost') &&
+          columns(imported, 'Ticket').includes('split_percentage_applied'),
+        true,
+        'imported backup has the new ticket columns'
+      )
+      eq(
+        columns(imported, 'RepairCategory').includes('requires_parts_cost'),
+        true,
+        'imported backup has the category switch'
+      )
+      eq(all(imported, `SELECT COUNT(*) c FROM Ticket`)[0].c, 9, 'imported backup kept all 9 tickets')
+      eq(
+        all(imported, `SELECT split_percentage_applied a FROM Ticket WHERE barcode_code = 'WSHMIG1'`)[0].a,
+        70,
+        'imported backup: frozen percentage back-filled'
+      )
+      imported.close()
+      eq(existsSync(join(dir, 'safety.db')), true, 'the safety copy was made')
+    }
+  } finally {
+    closeDatabase() // the import flow keeps the live database open
+    rmSync(dir, { recursive: true, force: true })
   }
-} finally {
-  closeDatabase() // the import flow keeps the live database open
-  rmSync(dir, { recursive: true, force: true })
-}
 }
 
 main().then(

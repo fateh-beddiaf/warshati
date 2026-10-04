@@ -15,8 +15,7 @@ export function Toaster(): React.JSX.Element {
       closeButton
       toastOptions={{
         classNames: {
-          toast:
-            'group !rounded-xl !border !border-border !bg-popover !text-popover-foreground !shadow-pop !font-sans',
+          toast: 'group !rounded-xl !border !border-border !bg-popover !text-popover-foreground !shadow-pop !font-sans',
           description: '!text-muted-foreground',
           success: '!border-success/40',
           error: '!border-danger/40',

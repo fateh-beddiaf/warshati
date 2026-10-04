@@ -5,14 +5,7 @@ import { Card, CardHeader, CardTitle } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { Skeleton } from '../../components/ui/Skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '../../components/ui/Table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/Table'
 import { StatusBadge } from '../../components/tickets/StatusBadge'
 import { cn, formatCurrency, formatDate } from '../../lib/utils'
 import type { TicketListItem } from '../../../shared/types'
@@ -59,7 +52,8 @@ export function ReportLedger({ tickets, initialLoading, onOpenTicketDetails }: R
               <TableHead className="px-2">{`${table.price} / ${table.paymentStatus}`}</TableHead>
               <TableHead className="px-2">{t.ui.partsCost.reports.netColumn}</TableHead>
               <TableHead className="px-2">
-                <span className="text-primary">{table.myShare}</span> / <span className="text-primary-to">{table.partnerShare}</span>
+                <span className="text-primary">{table.myShare}</span> /{' '}
+                <span className="text-primary-to">{table.partnerShare}</span>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -77,7 +71,9 @@ export function ReportLedger({ tickets, initialLoading, onOpenTicketDetails }: R
                 <TableCell className="px-2 py-3">
                   <Mono className="block text-xs font-bold text-foreground">{tItem.barcode_code}</Mono>
                   <StatusBadge status={tItem.status} className="mt-1 px-2 py-0 text-[10px]" />
-                  <span className="mt-1 block text-[11px] tabular text-muted-foreground">{formatDate(tItem.created_at)}</span>
+                  <span className="mt-1 block text-[11px] tabular text-muted-foreground">
+                    {formatDate(tItem.created_at)}
+                  </span>
                 </TableCell>
                 <TableCell className="whitespace-normal px-2 py-3">
                   <span className="block text-xs font-bold text-foreground">{tItem.customer_name}</span>
@@ -101,7 +97,9 @@ export function ReportLedger({ tickets, initialLoading, onOpenTicketDetails }: R
                   </Badge>
                 </TableCell>
                 <TableCell className="px-2 py-3">
-                  <span className="block text-xs font-extrabold tabular text-foreground">{formatCurrency(tItem.price)}</span>
+                  <span className="block text-xs font-extrabold tabular text-foreground">
+                    {formatCurrency(tItem.price)}
+                  </span>
                   {tItem.amount_remaining > 0 ? (
                     <Badge variant="warning" className="mt-1 rounded-md text-[11px] font-bold tabular">
                       {t.ui.reports.debtWithAmount.replace('{amount}', formatCurrency(tItem.amount_remaining))}
@@ -117,13 +115,21 @@ export function ReportLedger({ tickets, initialLoading, onOpenTicketDetails }: R
                     {formatCurrency(tItem.net_profit ?? tItem.price)}
                   </span>
                   {tItem.is_provisional && (
-                    <Badge variant="warning" data-testid="ledger-provisional" className="mt-1 gap-1 px-1.5 py-0 text-[10px]">
+                    <Badge
+                      variant="warning"
+                      data-testid="ledger-provisional"
+                      className="mt-1 gap-1 px-1.5 py-0 text-[10px]"
+                    >
                       <Hourglass className="h-3 w-3" />
                       {t.ui.partsCost.reports.provisionalBadge}
                     </Badge>
                   )}
                   {tItem.is_loss && (
-                    <Badge variant="destructive" data-testid="ledger-loss" className="mt-1 gap-1 px-1.5 py-0 text-[10px]">
+                    <Badge
+                      variant="destructive"
+                      data-testid="ledger-loss"
+                      className="mt-1 gap-1 px-1.5 py-0 text-[10px]"
+                    >
                       <TrendingDown className="h-3 w-3" />
                       {t.ui.partsCost.reports.lossBadge}
                     </Badge>
@@ -133,7 +139,9 @@ export function ReportLedger({ tickets, initialLoading, onOpenTicketDetails }: R
                   <span className={cn('block', (tItem.my_share ?? 0) < 0 ? 'text-danger' : 'text-primary')}>
                     {formatCurrency(tItem.my_share ?? 0)}
                   </span>
-                  <span className={cn('mt-1 block', (tItem.partner_share ?? 0) < 0 ? 'text-danger' : 'text-primary-to')}>
+                  <span
+                    className={cn('mt-1 block', (tItem.partner_share ?? 0) < 0 ? 'text-danger' : 'text-primary-to')}
+                  >
                     {formatCurrency(tItem.partner_share ?? 0)}
                   </span>
                 </TableCell>

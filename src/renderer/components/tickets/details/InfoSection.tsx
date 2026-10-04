@@ -20,7 +20,9 @@ export function InfoSection({ ticketDetails }: { ticketDetails: TicketFullDetail
           <Mono>{customer.phone}</Mono>
         </p>
         {customer.notes && (
-          <p className="rounded-lg border border-border bg-card p-2.5 text-xs text-muted-foreground">{customer.notes}</p>
+          <p className="rounded-lg border border-border bg-card p-2.5 text-xs text-muted-foreground">
+            {customer.notes}
+          </p>
         )}
       </SectionCard>
 

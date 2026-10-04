@@ -35,9 +35,7 @@ export function TicketRow({ ticket, index, onOpen, onPrint }: TicketRowProps): R
       }}
       className={cn(
         'cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
-        isOverdue
-          ? 'bg-status-overdue-soft hover:bg-status-overdue-soft/70'
-          : 'hover:bg-accent/50'
+        isOverdue ? 'bg-status-overdue-soft hover:bg-status-overdue-soft/70' : 'hover:bg-accent/50'
       )}
     >
       {/* Barcode, id and created date (+ start-edge accent bar for overdue tickets) */}

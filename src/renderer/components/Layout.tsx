@@ -66,12 +66,7 @@ function NavItem({ testId, icon: Icon, label, active, onClick }: NavItemProps): 
   )
 }
 
-export function Layout({
-  activeTab,
-  onTabChange,
-  onManualBarcodeScan,
-  children
-}: LayoutProps): React.JSX.Element {
+export function Layout({ activeTab, onTabChange, onManualBarcodeScan, children }: LayoutProps): React.JSX.Element {
   const { t } = useI18n()
   const [barcodeInput, setBarcodeInput] = useState('')
 
@@ -101,9 +96,7 @@ export function Layout({
               <Wrench className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-lg font-bold leading-tight text-sidebar-foreground">
-                {t.app.title}
-              </h1>
+              <h1 className="text-lg font-bold leading-tight text-sidebar-foreground">{t.app.title}</h1>
               <p className="text-xs text-sidebar-muted">{t.app.subtitle}</p>
             </div>
           </div>
@@ -134,9 +127,7 @@ export function Layout({
             <Barcode className="h-4 w-4 text-success" />
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-success" />
-              <span className="text-[11px] font-semibold text-sidebar-foreground">
-                {t.scanner.readyBadge}
-              </span>
+              <span className="text-[11px] font-semibold text-sidebar-foreground">{t.scanner.readyBadge}</span>
             </div>
           </div>
 

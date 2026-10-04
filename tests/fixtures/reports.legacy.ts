@@ -164,7 +164,12 @@ export function getFinancialReportLegacy(
       totalPaid += Number(row.amount_paid) || 0
       totalOutstandingDebt += Number(row.amount_remaining) || 0
 
-      if (ticketMyShare === null || ticketMyShare === undefined || ticketPartnerShare === null || ticketPartnerShare === undefined) {
+      if (
+        ticketMyShare === null ||
+        ticketMyShare === undefined ||
+        ticketPartnerShare === null ||
+        ticketPartnerShare === undefined
+      ) {
         const split = calculateProfitSplit({
           price,
           isPartner: Boolean(row.technician_is_partner),

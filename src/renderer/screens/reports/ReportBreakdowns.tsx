@@ -46,12 +46,12 @@ function ShareCell({
           : 'text-foreground'
   return (
     <div className="rounded-lg border border-border bg-card p-2">
-      <span className={`block text-[11px] font-semibold ${tone === 'neutral' && value >= 0 ? 'text-muted-foreground' : toneClass}`}>
+      <span
+        className={`block text-[11px] font-semibold ${tone === 'neutral' && value >= 0 ? 'text-muted-foreground' : toneClass}`}
+      >
         {label}
       </span>
-      <span className={`mt-0.5 block text-xs font-extrabold tabular ${toneClass}`}>
-        {formatCurrency(value)}
-      </span>
+      <span className={`mt-0.5 block text-xs font-extrabold tabular ${toneClass}`}>{formatCurrency(value)}</span>
     </div>
   )
 }

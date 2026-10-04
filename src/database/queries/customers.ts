@@ -55,8 +55,7 @@ export function findOrCreateCustomer(
 
   if (customer.id) {
     const stored = db.prepare(`SELECT id, name, phone FROM Customer WHERE id = ?`).get(customer.id) as
-      | { id: number; name: string; phone: string }
-      | undefined
+      { id: number; name: string; phone: string } | undefined
     if (
       stored &&
       normalizeName(stored.name) === normalizeName(name) &&

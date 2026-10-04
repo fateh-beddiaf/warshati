@@ -58,21 +58,35 @@ const customerCount = (): number => (db.prepare(`SELECT COUNT(*) c FROM Customer
   const t2 = createTicket(db, dto({ customer: { name: 'محمد', phone: '0555123456' } }))
   const c2 = getTicketById(db, t2.ticketId)!.customer
   check('same phone + different name creates a new customer', c2.id !== c1.id)
-  check('existing customer keeps its name', (db.prepare(`SELECT name FROM Customer WHERE id = ?`).get(c1.id) as { name: string }).name === 'أحمد بن علي')
+  check(
+    'existing customer keeps its name',
+    (db.prepare(`SELECT name FROM Customer WHERE id = ?`).get(c1.id) as { name: string }).name === 'أحمد بن علي'
+  )
 
   // same phone + same name (extra spaces / case) -> reused
   const before = customerCount()
   const t3 = createTicket(db, dto({ customer: { name: '  أحمد   بن  علي ', phone: '0555 123 456' } }))
-  check('same phone + same name (normalised) reuses the customer', getTicketById(db, t3.ticketId)!.customer.id === c1.id && customerCount() === before)
+  check(
+    'same phone + same name (normalised) reuses the customer',
+    getTicketById(db, t3.ticketId)!.customer.id === c1.id && customerCount() === before
+  )
 
   const tl = createTicket(db, dto({ customer: { name: 'Karim Test', phone: '0777000111' } }))
   const tl2 = createTicket(db, dto({ customer: { name: 'KARIM  test', phone: '0777000111' } }))
-  check('name comparison is case-insensitive', getTicketById(db, tl.ticketId)!.customer.id === getTicketById(db, tl2.ticketId)!.customer.id)
+  check(
+    'name comparison is case-insensitive',
+    getTicketById(db, tl.ticketId)!.customer.id === getTicketById(db, tl2.ticketId)!.customer.id
+  )
 
   // explicit id but the form no longer matches -> not a rename of that customer
   const t4 = createTicket(db, dto({ customer: { id: c1.id, name: 'شخص آخر', phone: '0666999888' } }))
   const c4 = getTicketById(db, t4.ticketId)!.customer
-  check('explicit id with different name/phone does not rename the stored customer', c4.id !== c1.id && (db.prepare(`SELECT name, phone FROM Customer WHERE id = ?`).get(c1.id) as { name: string; phone: string }).name === 'أحمد بن علي')
+  check(
+    'explicit id with different name/phone does not rename the stored customer',
+    c4.id !== c1.id &&
+      (db.prepare(`SELECT name, phone FROM Customer WHERE id = ?`).get(c1.id) as { name: string; phone: string })
+        .name === 'أحمد بن علي'
+  )
 
   // explicit id with matching data -> reused
   const t5 = createTicket(db, dto({ customer: { id: c1.id, name: 'أحمد بن علي', phone: '0555123456' } }))
@@ -85,7 +99,10 @@ const customerCount = (): number => (db.prepare(`SELECT COUNT(*) c FROM Customer
 {
   const partial = createTicket(db, dto({ price: 5000, paid: 2000, type: 'cash' }))
   const p = getTicketById(db, partial.ticketId)!.ticket
-  check('partial payment at creation is stored as credit even if the form said cash', p.payment_type === 'credit' && p.amount_remaining === 3000)
+  check(
+    'partial payment at creation is stored as credit even if the form said cash',
+    p.payment_type === 'credit' && p.amount_remaining === 3000
+  )
   const full = createTicket(db, dto({ price: 5000, paid: 5000, type: 'cash' }))
   check('full payment at creation stays cash', getTicketById(db, full.ticketId)!.ticket.payment_type === 'cash')
 }
@@ -101,19 +118,39 @@ const customerCount = (): number => (db.prepare(`SELECT COUNT(*) c FROM Customer
   const readyAtBefore = delivered.ready_at
 
   const afterPartial = recordPayment(db, t.ticketId, 2000)
-  check('partial debt payment updates paid/remaining', afterPartial.amount_paid === 3000 && afterPartial.amount_remaining === 3000)
-  check('partial debt payment keeps credit and delivered status', afterPartial.payment_type === 'credit' && afterPartial.status === 'delivered')
+  check(
+    'partial debt payment updates paid/remaining',
+    afterPartial.amount_paid === 3000 && afterPartial.amount_remaining === 3000
+  )
+  check(
+    'partial debt payment keeps credit and delivered status',
+    afterPartial.payment_type === 'credit' && afterPartial.status === 'delivered'
+  )
 
-  check('rejects zero / negative / NaN amounts', throws(() => recordPayment(db, t.ticketId, 0)) !== null && throws(() => recordPayment(db, t.ticketId, -5)) !== null && throws(() => recordPayment(db, t.ticketId, NaN)) !== null)
+  check(
+    'rejects zero / negative / NaN amounts',
+    throws(() => recordPayment(db, t.ticketId, 0)) !== null &&
+      throws(() => recordPayment(db, t.ticketId, -5)) !== null &&
+      throws(() => recordPayment(db, t.ticketId, NaN)) !== null
+  )
   check('rejects an amount above the remaining balance', throws(() => recordPayment(db, t.ticketId, 3001)) !== null)
   check('rejected payments changed nothing', getTicketById(db, t.ticketId)!.ticket.amount_remaining === 3000)
 
   const afterFull = recordPayment(db, t.ticketId, 3000)
-  check('full settlement zeroes the debt and flips to cash', afterFull.amount_remaining === 0 && afterFull.payment_type === 'cash')
+  check(
+    'full settlement zeroes the debt and flips to cash',
+    afterFull.amount_remaining === 0 && afterFull.payment_type === 'cash'
+  )
   const finalDetails = getTicketById(db, t.ticketId)!
   check('no StatusLog entry was added', finalDetails.statusLogs.length === logsBefore)
-  check('profit shares are unchanged', finalDetails.ticket.my_share === sharesBefore[0] && finalDetails.ticket.partner_share === sharesBefore[1])
-  check('delivery date (ready_at) is unchanged and status still delivered', finalDetails.ready_at === readyAtBefore && finalDetails.ticket.status === 'delivered')
+  check(
+    'profit shares are unchanged',
+    finalDetails.ticket.my_share === sharesBefore[0] && finalDetails.ticket.partner_share === sharesBefore[1]
+  )
+  check(
+    'delivery date (ready_at) is unchanged and status still delivered',
+    finalDetails.ready_at === readyAtBefore && finalDetails.ticket.status === 'delivered'
+  )
   check('paying a settled ticket is rejected', throws(() => recordPayment(db, t.ticketId, 1)) !== null)
   check('unknown ticket is rejected', throws(() => recordPayment(db, 999999, 10)) !== null)
 }
@@ -123,14 +160,25 @@ const customerCount = (): number => (db.prepare(`SELECT COUNT(*) c FROM Customer
   const bad: unknown[] = [NaN, Infinity, undefined, null, '', 'abc', {}]
   for (const value of bad) {
     const msgAdd = throws(() => addRepairCategory(db, `cat-${String(value)}`, value as number))
-    check(`addRepairCategory rejects ${JSON.stringify(value) ?? String(value)} with a clear message`, msgAdd !== null && msgAdd.includes('نسبة'))
+    check(
+      `addRepairCategory rejects ${JSON.stringify(value) ?? String(value)} with a clear message`,
+      msgAdd !== null && msgAdd.includes('نسبة')
+    )
   }
   const cat = addRepairCategory(db, 'اختبار نسبة', 45)
   check('valid split is accepted', cat.default_split_percentage === 45)
   check('updateRepairCategory rejects NaN', throws(() => updateRepairCategory(db, cat.id, 'اختبار نسبة', NaN)) !== null)
-  check('rejected update left the old value', (db.prepare(`SELECT default_split_percentage p FROM RepairCategory WHERE id = ?`).get(cat.id) as { p: number }).p === 45)
+  check(
+    'rejected update left the old value',
+    (db.prepare(`SELECT default_split_percentage p FROM RepairCategory WHERE id = ?`).get(cat.id) as { p: number })
+      .p === 45
+  )
   updateRepairCategory(db, cat.id, 'اختبار نسبة', '60' as unknown as number)
-  check('numeric strings are coerced', (db.prepare(`SELECT default_split_percentage p FROM RepairCategory WHERE id = ?`).get(cat.id) as { p: number }).p === 60)
+  check(
+    'numeric strings are coerced',
+    (db.prepare(`SELECT default_split_percentage p FROM RepairCategory WHERE id = ?`).get(cat.id) as { p: number })
+      .p === 60
+  )
 }
 
 if (!passed) process.exit(1)

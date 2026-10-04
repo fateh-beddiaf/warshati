@@ -47,9 +47,7 @@ export function BarcodeLabel({
       >
         {/* Header: Customer Name & Short Label */}
         <div className="flex items-center justify-between border-b border-black pb-[0.3mm] leading-none">
-          <span className="font-extrabold text-[8px] truncate max-w-[24mm] text-black">
-            {customerName || 'زبون'}
-          </span>
+          <span className="font-extrabold text-[8px] truncate max-w-[24mm] text-black">{customerName || 'زبون'}</span>
           <span className="font-mono font-black text-[7.5px] bg-black text-white px-1 py-[0.5px] rounded-[1px] tracking-tight">
             {shortLabel || 'جهاز'}
           </span>
@@ -85,9 +83,7 @@ export function BarcodeLabel({
     >
       {/* Header: Customer Name & Short Label */}
       <div className="flex items-center justify-between border-b-2 border-black pb-1">
-        <span className="font-extrabold text-sm truncate max-w-[200px] text-black">
-          {customerName || 'اسم الزبون'}
-        </span>
+        <span className="font-extrabold text-sm truncate max-w-[200px] text-black">{customerName || 'اسم الزبون'}</span>
         <span className="font-mono font-black text-xs bg-black text-white px-2 py-0.5 rounded tracking-wide shadow-sm">
           {shortLabel || 'SA A54'}
         </span>
@@ -96,9 +92,7 @@ export function BarcodeLabel({
       {/* Center: Barcode & Code */}
       <div className="flex flex-col items-center justify-center my-1 flex-1">
         <svg ref={svgRef} data-testid="barcode-svg" className="w-full max-h-[44px]" />
-        <span className="font-mono font-black text-xs tracking-widest text-black mt-1">
-          {barcode}
-        </span>
+        <span className="font-mono font-black text-xs tracking-widest text-black mt-1">{barcode}</span>
       </div>
 
       {/* Footer: Shop Identity & Phone */}

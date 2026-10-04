@@ -3,14 +3,7 @@ import { Wrench } from 'lucide-react'
 import { useI18n } from '../../../lib/i18n'
 import { Button } from '../../ui/Button'
 import { Label } from '../../ui/Label'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '../../ui/Dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../ui/Dialog'
 import { MaskedAmountInput } from '../../parts-cost/MaskedAmountInput'
 import { LossConfirmDialog } from '../../parts-cost/LossConfirmDialog'
 import type { TicketFullDetails } from '../../../../shared/types'
@@ -55,7 +48,9 @@ export function PartsCostDialog({
               </div>
               <div className="space-y-1 pe-6">
                 <DialogTitle>{text.dialogTitle}</DialogTitle>
-                <DialogDescription>{delivered ? text.dialogDescriptionDelivered : text.dialogDescription}</DialogDescription>
+                <DialogDescription>
+                  {delivered ? text.dialogDescriptionDelivered : text.dialogDescription}
+                </DialogDescription>
               </div>
             </div>
           </DialogHeader>
@@ -80,7 +75,11 @@ export function PartsCostDialog({
                 placeholder={t.ui.partsCost.newTicket.placeholder}
               />
               {editor.error && (
-                <p role="alert" data-testid="parts-cost-error" className="text-xs font-semibold text-danger-soft-foreground">
+                <p
+                  role="alert"
+                  data-testid="parts-cost-error"
+                  className="text-xs font-semibold text-danger-soft-foreground"
+                >
                   {editor.error}
                 </p>
               )}

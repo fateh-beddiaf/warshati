@@ -50,7 +50,8 @@ export const detailsEn: typeof detailsAr = {
   settled: 'Settled',
   paymentCash: 'Cash',
   paymentCredit: 'Credit / Debt',
-  deliveryDescription: 'Review the technician and partner shares and settle the account before the final delivery confirmation.',
+  deliveryDescription:
+    'Review the technician and partner shares and settle the account before the final delivery confirmation.',
   shareCaption: 'of {total}',
   settlementTitle: 'Settle the account at delivery',
   closeDialog: 'Close dialog',

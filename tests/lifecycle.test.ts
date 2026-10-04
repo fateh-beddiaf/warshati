@@ -170,11 +170,13 @@ updateTicketStatus(db, { ticketId: overdueTicket.ticketId, newStatus: 'ready' })
 
 // Mock the StatusLog timestamp for the ready status to 5 days ago
 const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-db.prepare(`
+db.prepare(
+  `
   UPDATE StatusLog 
   SET timestamp = ? 
   WHERE ticket_id = ? AND new_status = 'ready'
-`).run(fiveDaysAgo, overdueTicket.ticketId)
+`
+).run(fiveDaysAgo, overdueTicket.ticketId)
 
 let overdueDetails = getTicketById(db, overdueTicket.ticketId)
 assert(overdueDetails!.is_overdue === true, 'Ticket is detected as overdue with default 3-day threshold')

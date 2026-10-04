@@ -16,21 +16,12 @@ let page: Page
 let dataDir: string
 const problems: string[] = []
 
-const SETTINGS_TABS = [
-  'categories',
-  'brandsModels',
-  'accessories',
-  'technicians',
-  'backup',
-  'preferences'
-]
+const SETTINGS_TABS = ['categories', 'brandsModels', 'accessories', 'technicians', 'backup', 'preferences']
 
 async function assertAlive(label: string): Promise<void> {
   // Give React a moment to commit the next render, then check the tree is alive.
   await page.waitForTimeout(250)
-  const rootChildren = await page.evaluate(
-    () => document.getElementById('root')?.childElementCount ?? 0
-  )
+  const rootChildren = await page.evaluate(() => document.getElementById('root')?.childElementCount ?? 0)
   expect(rootChildren, `#root is empty after: ${label} (white screen)`).toBeGreaterThan(0)
   expect(problems, `renderer errors after: ${label}`).toEqual([])
 }
@@ -88,7 +79,10 @@ test('create tickets (cash + credit) and open details', async () => {
     await textInputs.nth(3).fill('Samsung')
     await textInputs.nth(4).fill('Galaxy A54')
     await page.locator('[data-testid="new-ticket-form"] input[type="number"]').nth(0).fill('5000')
-    await page.locator('[data-testid="new-ticket-form"] input[type="number"]').nth(1).fill(kind === 'cash' ? '5000' : '2000')
+    await page
+      .locator('[data-testid="new-ticket-form"] input[type="number"]')
+      .nth(1)
+      .fill(kind === 'cash' ? '5000' : '2000')
     await page.locator(`[data-testid="new-ticket-form"] input[name="paymentType"][value="${kind}"]`).check()
     await page.locator('[data-testid="new-ticket-form"] button[type="submit"]').click()
     await page.waitForSelector('[data-testid="ticket-created-banner"]')

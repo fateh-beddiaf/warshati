@@ -94,20 +94,22 @@ function testPaymentBounds(): void {
   ).count
 
   assertThrows(
-    () => updateTicketStatus(db, {
-      ticketId: created.ticketId,
-      newStatus: 'delivered',
-      paymentUpdate: { amount_paid: -1, payment_type: 'credit' }
-    }),
+    () =>
+      updateTicketStatus(db, {
+        ticketId: created.ticketId,
+        newStatus: 'delivered',
+        paymentUpdate: { amount_paid: -1, payment_type: 'credit' }
+      }),
     'أكبر من أو يساوي صفر',
     'تسوية سالبة عند التسليم مرفوضة'
   )
   assertThrows(
-    () => updateTicketStatus(db, {
-      ticketId: created.ticketId,
-      newStatus: 'delivered',
-      paymentUpdate: { amount_paid: 10001, payment_type: 'cash' }
-    }),
+    () =>
+      updateTicketStatus(db, {
+        ticketId: created.ticketId,
+        newStatus: 'delivered',
+        paymentUpdate: { amount_paid: 10001, payment_type: 'cash' }
+      }),
     'لا يمكن أن يتجاوز',
     'تسوية أكبر من السعر عند التسليم مرفوضة'
   )
@@ -115,7 +117,10 @@ function testPaymentBounds(): void {
   const afterRejectedSettlement = getTicketById(db, created.ticketId)!
   assert(afterRejectedSettlement.ticket.status === 'ready', 'فشل التسوية يبقي الحالة جاهزة')
   assert(afterRejectedSettlement.ticket.amount_paid === 2000, 'فشل التسوية لا يغير المبلغ المدفوع')
-  assert(afterRejectedSettlement.statusLogs.length === logCountBeforeRejectedSettlement, 'فشل التسوية لا يسجل انتقالاً جزئياً')
+  assert(
+    afterRejectedSettlement.statusLogs.length === logCountBeforeRejectedSettlement,
+    'فشل التسوية لا يسجل انتقالاً جزئياً'
+  )
   db.close()
 }
 
@@ -138,7 +143,10 @@ function testStableReferenceIdentitiesAndStrictMigration(): void {
   updateTicketStatus(db, { ticketId: created.ticketId, newStatus: 'ready' })
   updateTicketStatus(db, { ticketId: created.ticketId, newStatus: 'delivered' })
   const delivered = getTicketById(db, created.ticketId)!
-  assert(delivered.ticket.my_share === 0 && delivered.ticket.partner_share === 10000, 'صفة الشريك عبر ID تحفظ قاعدة 100% بعد تغيير الاسم')
+  assert(
+    delivered.ticket.my_share === 0 && delivered.ticket.partner_share === 10000,
+    'صفة الشريك عبر ID تحفظ قاعدة 100% بعد تغيير الاسم'
+  )
   db.close()
 
   const legacyDb = new Database(':memory:')
@@ -164,11 +172,19 @@ function testStableReferenceIdentitiesAndStrictMigration(): void {
   legacyDb.prepare("INSERT INTO Technician (name) VALUES ('أنا'), ('الشريك')").run()
   legacyDb.prepare("INSERT INTO Brand (name) VALUES ('Samsung')").run()
   legacyDb.prepare("INSERT INTO Model (brand_id, name) VALUES (1, 'Galaxy A54')").run()
-  legacyDb.prepare(`
+  legacyDb
+    .prepare(
+      `
     INSERT INTO Ticket (barcode_code, customer_id, created_at, technician, repair_category_id, price, payment_type, amount_paid, amount_remaining, status)
     VALUES ('WSH-LEGACY', 1, '2026-01-01T00:00:00.000Z', 'أنا', 1, 5000, 'cash', 5000, 0, 'in_progress')
-  `).run()
-  legacyDb.prepare("INSERT INTO TicketDevice (ticket_id, brand, model, short_label) VALUES (1, 'Unknown Brand', 'Unknown Model', 'UNK')").run()
+  `
+    )
+    .run()
+  legacyDb
+    .prepare(
+      "INSERT INTO TicketDevice (ticket_id, brand, model, short_label) VALUES (1, 'Unknown Brand', 'Unknown Model', 'UNK')"
+    )
+    .run()
 
   assertThrows(
     () => initializeSchema(legacyDb),
@@ -177,9 +193,15 @@ function testStableReferenceIdentitiesAndStrictMigration(): void {
   )
   const legacyTicketColumns = legacyDb.prepare('PRAGMA table_info(Ticket)').all() as { name: string }[]
   const legacyDeviceColumns = legacyDb.prepare('PRAGMA table_info(TicketDevice)').all() as { name: string }[]
-  assert(!legacyTicketColumns.some((column) => column.name === 'technician_id'), 'فشل الترحيل يعيد عمود technician_id بالكامل')
+  assert(
+    !legacyTicketColumns.some((column) => column.name === 'technician_id'),
+    'فشل الترحيل يعيد عمود technician_id بالكامل'
+  )
   assert(!legacyTicketColumns.some((column) => column.name === 'my_share'), 'فشل الترحيل يعيد أعمدة الأرباح بالكامل')
-  assert(!legacyDeviceColumns.some((column) => column.name === 'brand_id'), 'فشل الترحيل لا يترك TicketDevice بحالة جزئية')
+  assert(
+    !legacyDeviceColumns.some((column) => column.name === 'brand_id'),
+    'فشل الترحيل لا يترك TicketDevice بحالة جزئية'
+  )
   legacyDb.close()
 }
 
@@ -208,7 +230,11 @@ async function testBackupFailureStopsImport(): Promise<void> {
   assert(result.success === false, 'فشل نسخة الأمان يجعل الاستيراد يفشل')
   assert(result.error?.includes('لم يبدأ الاستيراد') === true, 'رسالة الفشل تشرح أن الاستيراد لم يبدأ')
   assert(
-    (getDatabase().prepare('SELECT COUNT(*) AS count FROM Ticket WHERE id = ?').get(activeTicket.ticketId) as { count: number }).count === 1,
+    (
+      getDatabase().prepare('SELECT COUNT(*) AS count FROM Ticket WHERE id = ?').get(activeTicket.ticketId) as {
+        count: number
+      }
+    ).count === 1,
     'فشل نسخة الأمان يبقي قاعدة البيانات النشطة بلا استبدال'
   )
 

@@ -28,10 +28,8 @@ applyBootTheme()
 const api = {
   // Tickets
   createTicket: (dto: CreateTicketDTO) => ipcRenderer.invoke('tickets:create', dto),
-  recordPayment: (ticketId: number, amount: number) =>
-    ipcRenderer.invoke('tickets:recordPayment', ticketId, amount),
-  setPartsCost: (ticketId: number, cost: number | null) =>
-    ipcRenderer.invoke('tickets:setPartsCost', ticketId, cost),
+  recordPayment: (ticketId: number, amount: number) => ipcRenderer.invoke('tickets:recordPayment', ticketId, amount),
+  setPartsCost: (ticketId: number, cost: number | null) => ipcRenderer.invoke('tickets:setPartsCost', ticketId, cost),
   updateTicketStatus: (dto: import('../shared/types').UpdateTicketStatusDTO) =>
     ipcRenderer.invoke('tickets:updateStatus', dto),
   getTicketsList: (searchQuery?: string, statusFilter?: string) =>
@@ -120,4 +118,3 @@ if (process.contextIsolated) {
   // @ts-ignore (define in window)
   window.api = api
 }
-

@@ -240,4 +240,3 @@ export const dbService = {
 }
 
 export * from '../shared/types'
-

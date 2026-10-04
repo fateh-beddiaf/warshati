@@ -45,7 +45,11 @@ export function RepairSection({ form }: { form: NewTicketForm }): React.JSX.Elem
             layoutGroup="new-ticket-technician"
             ariaLabel={t.newTicket.technician}
             className="w-full [&>button]:flex-1 [&>button]:justify-center [&>button]:py-2 [&>button]:text-sm"
-            items={technicians.map((tech) => ({ value: String(tech.id), label: tech.name, testId: `technician-${tech.id}` }))}
+            items={technicians.map((tech) => ({
+              value: String(tech.id),
+              label: tech.name,
+              testId: `technician-${tech.id}`
+            }))}
             value={form.technicianId === null ? '' : String(form.technicianId)}
             onChange={(v) => form.setTechnicianId(Number(v))}
           />
@@ -53,7 +57,11 @@ export function RepairSection({ form }: { form: NewTicketForm }): React.JSX.Elem
 
         {/* Shown only for categories that require a parts cost. Masked: the customer may see the screen. */}
         {form.requiresPartsCost && (
-          <Field label={t.ui.partsCost.newTicket.label} hint={t.ui.partsCost.newTicket.optional} className="md:col-span-1">
+          <Field
+            label={t.ui.partsCost.newTicket.label}
+            hint={t.ui.partsCost.newTicket.optional}
+            className="md:col-span-1"
+          >
             <MaskedAmountInput
               testId="parts-cost-input"
               ariaLabel={t.ui.partsCost.newTicket.label}

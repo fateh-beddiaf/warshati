@@ -47,7 +47,8 @@ export function CustomerSection({ form }: { form: NewTicketForm }): React.JSX.El
             onChange={(e) => form.onPhoneChange(e.target.value)}
             placeholder={t.newTicket.phonePlaceholder}
             error={phoneMissing}
-            mono className="tabular text-start"
+            mono
+            className="tabular text-start"
           />
           {form.phoneMatches.length > 0 && (
             <div className="mt-2 space-y-1" data-testid="phone-matches">
@@ -61,9 +62,7 @@ export function CustomerSection({ form }: { form: NewTicketForm }): React.JSX.El
                   className="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-start text-xs transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span className="font-semibold text-foreground">{c.name}</span>
-                  <Mono className="text-muted-foreground">
-                    {c.phone}
-                  </Mono>
+                  <Mono className="text-muted-foreground">{c.phone}</Mono>
                 </button>
               ))}
             </div>

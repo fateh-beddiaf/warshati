@@ -33,7 +33,6 @@ import { getSetting, setSetting } from '../src/database/queries/settings'
 import { ar, en } from '../src/renderer/lib/i18n'
 import { calculateProfitSplit } from '../src/shared/profit'
 
-
 function assert(condition: boolean, message: string): void {
   if (!condition) {
     console.error(`❌ Assertion failed: ${message}`)
@@ -82,8 +81,14 @@ assert(accList.length > 0, `Found ${accList.length} accessories`)
 // 4. Tab: Technicians Simulation
 console.log('\n--- Testing Tab 4: Technicians ---')
 const techs = getTechnicians(db)
-assert(techs.some((t) => t.name === 'أنا'), 'Technician "أنا" exists')
-assert(techs.some((t) => t.name === 'الشريك'), 'Technician "الشريك" exists')
+assert(
+  techs.some((t) => t.name === 'أنا'),
+  'Technician "أنا" exists'
+)
+assert(
+  techs.some((t) => t.name === 'الشريك'),
+  'Technician "الشريك" exists'
+)
 
 // 5. Tab: Preferences & Settings
 console.log('\n--- Testing Tab 5: Preferences & Settings ---')

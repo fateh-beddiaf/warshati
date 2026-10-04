@@ -48,7 +48,9 @@ const e1 = throws(() => getTicketById(db, noDevice.ticketId))
 check('missing TicketDevice throws a clear Arabic error', !!e1 && e1.includes('بيانات التذكرة ناقصة'), String(e1))
 
 const noCustomer = make('0555000003')
-const cid = (db.prepare(`SELECT customer_id FROM Ticket WHERE id = ?`).get(noCustomer.ticketId) as { customer_id: number }).customer_id
+const cid = (
+  db.prepare(`SELECT customer_id FROM Ticket WHERE id = ?`).get(noCustomer.ticketId) as { customer_id: number }
+).customer_id
 db.prepare(`DELETE FROM Customer WHERE id = ?`).run(cid)
 const e2 = throws(() => getTicketById(db, noCustomer.ticketId))
 check('missing Customer throws a clear Arabic error', !!e2 && e2.includes('بيانات التذكرة ناقصة'), String(e2))

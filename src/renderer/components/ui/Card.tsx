@@ -18,7 +18,10 @@ export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHead
   return <h3 className={cn('text-lg font-bold leading-none text-foreground', className)} {...props} />
 }
 
-export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>): React.JSX.Element {
+export function CardDescription({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLParagraphElement>): React.JSX.Element {
   return <p className={cn('text-sm text-muted-foreground', className)} {...props} />
 }
 

@@ -86,10 +86,7 @@ export function useReportData(filters: ReportFilters): ReportData {
   }, [period, startDate, endDate, technicianFilter, categoryFilter, t])
 
   // The ledger only lists delivered tickets: derive them once per report, not per use
-  const deliveredTickets = useMemo(
-    () => (report?.tickets ?? []).filter((tk) => tk.status === 'delivered'),
-    [report]
-  )
+  const deliveredTickets = useMemo(() => (report?.tickets ?? []).filter((tk) => tk.status === 'delivered'), [report])
 
   useEffect(() => {
     loadReport()

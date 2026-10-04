@@ -37,7 +37,13 @@ export function BrandsPanel({
 
   return (
     <div className="space-y-4">
-      <SectionHeader compact title={t.settings.brands.title} addLabel={t.common.add} onAdd={onAdd} addTestId="settings-brand-add" />
+      <SectionHeader
+        compact
+        title={t.settings.brands.title}
+        addLabel={t.common.add}
+        onAdd={onAdd}
+        addTestId="settings-brand-add"
+      />
 
       {loading ? (
         <div className="space-y-2">
@@ -77,7 +83,12 @@ export function BrandsPanel({
                   aria-pressed={selected}
                   className="flex min-w-0 flex-1 items-center gap-2 px-3 py-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                 >
-                  <span className={cn('truncate text-sm', selected ? 'font-bold text-accent-foreground' : 'font-medium text-foreground')}>
+                  <span
+                    className={cn(
+                      'truncate text-sm',
+                      selected ? 'font-bold text-accent-foreground' : 'font-medium text-foreground'
+                    )}
+                  >
                     {b.name}
                   </span>
                   <Badge variant="secondary" className="tabular-nums">

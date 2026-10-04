@@ -166,11 +166,17 @@ async function runMilestone5Tests(): Promise<void> {
   // 1.4 Repair Categories CRUD & Guard
   console.log('\n[1.4] Repair Categories CRUD & Usage Guard:')
   const newCat = addRepairCategory(db, 'تبديل كاميرا خلفية', 65)
-  assert(newCat.id > 0 && newCat.name === 'تبديل كاميرا خلفية' && newCat.default_split_percentage === 65, 'Added Repair Category with 65% split')
+  assert(
+    newCat.id > 0 && newCat.name === 'تبديل كاميرا خلفية' && newCat.default_split_percentage === 65,
+    'Added Repair Category with 65% split'
+  )
 
   updateRepairCategory(db, newCat.id, 'صيانة الكاميرات والعدسات', 70)
   const updatedCat = getRepairCategories(db).find((c) => c.id === newCat.id)
-  assert(updatedCat?.name === 'صيانة الكاميرات والعدسات' && updatedCat?.default_split_percentage === 70, 'Updated category name and split')
+  assert(
+    updatedCat?.name === 'صيانة الكاميرات والعدسات' && updatedCat?.default_split_percentage === 70,
+    'Updated category name and split'
+  )
 
   deleteRepairCategory(db, newCat.id)
   assert(getRepairCategories(db).find((c) => c.id === newCat.id) === undefined, 'Unused category deleted')
@@ -199,7 +205,6 @@ async function runMilestone5Tests(): Promise<void> {
   const meUsage = checkTechnicianUsage(db, techMe.id)
   assert(meUsage.canDelete === false, 'Technician "أنا" cannot be deleted (used in tickets)')
 
-
   // =========================================================================
   // SECTION 2: Database Backup & Restore Flow (.db)
   // =========================================================================
@@ -215,7 +220,10 @@ async function runMilestone5Tests(): Promise<void> {
   // Clean previous test files if any
   const cleanFiles = [originalDbPath, backupDbPath, safetyBackupPath, `${originalDbPath}-wal`, `${originalDbPath}-shm`]
   cleanFiles.forEach((p) => {
-    if (existsSync(p)) try { unlinkSync(p) } catch {}
+    if (existsSync(p))
+      try {
+        unlinkSync(p)
+      } catch {}
   })
 
   // Setup real database file
@@ -272,7 +280,9 @@ async function runMilestone5Tests(): Promise<void> {
   assert(restoredCustomer !== undefined, 'Restored Customer found in database')
   assert(restoredCustomer.phone === '0555001122', 'Customer phone verified')
 
-  const restoredTickets = restoredDb.prepare(`SELECT * FROM Ticket WHERE customer_id = ?`).all(restoredCustomer.id) as any[]
+  const restoredTickets = restoredDb
+    .prepare(`SELECT * FROM Ticket WHERE customer_id = ?`)
+    .all(restoredCustomer.id) as any[]
   assert(restoredTickets.length === 1, 'Restored ticket count is exactly 1')
   assert(restoredTickets[0].price === 15000, 'Restored ticket price matches 15000 DZD')
   assert(restoredTickets[0].barcode_code === createdTicket.barcode, 'Restored barcode code matches perfectly')
@@ -281,9 +291,11 @@ async function runMilestone5Tests(): Promise<void> {
 
   // Clean test files
   cleanFiles.forEach((p) => {
-    if (existsSync(p)) try { unlinkSync(p) } catch {}
+    if (existsSync(p))
+      try {
+        unlinkSync(p)
+      } catch {}
   })
-
 
   // =========================================================================
   // SECTION 3: Bilingual (i18n) Symmetry Verification
@@ -304,7 +316,9 @@ async function runMilestone5Tests(): Promise<void> {
   checkSymmetry(ar, en)
   console.log('✅ All Arabic and English translation keys are 100% symmetric and fully mapped.')
 
-  console.log('\n🎉 ALL MILESTONE 5 TESTS (SETTINGS CRUD, REFERENCE GUARDS, BACKUP/RESTORE & i18n) PASSED SUCCESSFULLY! 🎉\n')
+  console.log(
+    '\n🎉 ALL MILESTONE 5 TESTS (SETTINGS CRUD, REFERENCE GUARDS, BACKUP/RESTORE & i18n) PASSED SUCCESSFULLY! 🎉\n'
+  )
   process.exit(0)
 }
 

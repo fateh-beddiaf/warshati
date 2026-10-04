@@ -22,7 +22,21 @@ eq(parseCostInput('1234,56'), { kind: 'ok', value: 1234.56 }, 'comma decimal sep
 eq(parseCostInput('٢٦٠٠'), { kind: 'ok', value: 2600 }, 'Arabic-Indic digits')
 eq(parseCostInput('۲۶۰۰'), { kind: 'ok', value: 2600 }, 'Extended Arabic-Indic digits')
 eq(parseCostInput('١٢٣٫٥'), { kind: 'ok', value: 123.5 }, 'Arabic decimal separator')
-for (const bad of ['abc', '-5', '+5', '1e3', '1.234', '12.', '.5', '1..2', '١٢٣abc', '2600 د.ج', 'NaN', 'Infinity', '--1']) {
+for (const bad of [
+  'abc',
+  '-5',
+  '+5',
+  '1e3',
+  '1.234',
+  '12.',
+  '.5',
+  '1..2',
+  '١٢٣abc',
+  '2600 د.ج',
+  'NaN',
+  'Infinity',
+  '--1'
+]) {
   eq(parseCostInput(bad), { kind: 'invalid' }, `invalid: "${bad}"`)
 }
 

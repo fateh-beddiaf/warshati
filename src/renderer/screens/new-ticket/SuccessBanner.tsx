@@ -17,7 +17,13 @@ interface SuccessBannerProps {
 }
 
 /** Shown after a ticket is saved: barcode + print / another / view actions. */
-export function SuccessBanner({ barcode, withoutCost, onPrint, onAnother, onView }: SuccessBannerProps): React.JSX.Element {
+export function SuccessBanner({
+  barcode,
+  withoutCost,
+  onPrint,
+  onAnother,
+  onView
+}: SuccessBannerProps): React.JSX.Element {
   const { t } = useI18n()
   const ref = useRef<HTMLDivElement>(null)
 
