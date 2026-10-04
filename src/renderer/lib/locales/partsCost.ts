@@ -61,7 +61,13 @@ export const partsCostAr = {
     sharesCaption: 'من الربح الصافي {net}',
     deliveryProvisionalTitle: 'الأرباح مؤقتة',
     deliveryProvisionalBody: 'لم تُدخل تكلفة القطع بعد. التسليم مسموح، وتُعاد حسبة الحصص تلقائياً عند إضافة التكلفة لاحقاً.',
-    deliveryLossNote: 'تنبيه: التكلفة أعلى من السعر، فالحصص سالبة (خسارة).'
+    deliveryLossNote: 'تنبيه: التكلفة أعلى من السعر، فالحصص سالبة (خسارة).',
+    showProfit: 'إظهار توزيع الأرباح',
+    hideProfit: 'إخفاء توزيع الأرباح',
+    profitHiddenHint: 'توزيع الأرباح مخفي لأن الزبون قد يرى الشاشة. اضغط للإظهار.',
+    showCostProfit: 'إظهار التكلفة والأرباح',
+    hideCostProfit: 'إخفاء التكلفة والأرباح',
+    hiddenShare: '••••'
   },
   // Tickets list
   tickets: {
@@ -147,7 +153,13 @@ export const partsCostEn: typeof partsCostAr = {
     sharesCaption: 'of the net profit {net}',
     deliveryProvisionalTitle: 'Provisional profit',
     deliveryProvisionalBody: 'The parts cost has not been entered yet. Delivery is allowed, and the shares are recomputed automatically when you add the cost later.',
-    deliveryLossNote: 'Heads up: the cost is higher than the price, so the shares are negative (a loss).'
+    deliveryLossNote: 'Heads up: the cost is higher than the price, so the shares are negative (a loss).',
+    showProfit: 'Show profit split',
+    hideProfit: 'Hide profit split',
+    profitHiddenHint: 'The profit split is hidden because the customer may be looking. Click to show it.',
+    showCostProfit: 'Show cost and profit',
+    hideCostProfit: 'Hide cost and profit',
+    hiddenShare: '••••'
   },
   tickets: {
     missingTooltip: 'Cost not entered',

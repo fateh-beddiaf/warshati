@@ -38,6 +38,8 @@ export function PartsCostSection({
   const entered = ticket.parts_cost !== null && ticket.parts_cost !== undefined
   const loss = profitSplit.isLoss
   const moneyTone = loss ? 'text-danger' : undefined
+  const hidden = text.hiddenValue
+  const eyeLabel = revealed ? text.hideCostProfit : text.showCostProfit
 
   return (
     <div data-testid="parts-cost-section" className="space-y-3 rounded-lg border border-border bg-card p-3">
@@ -63,17 +65,33 @@ export function PartsCostSection({
             </span>
           )}
         </div>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          data-testid="parts-cost-edit"
-          onClick={editor.openEditor}
-          className="gap-1.5 text-xs"
-        >
-          {entered ? <Pencil className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-          {entered ? text.editCost : text.addCost}
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            data-testid="parts-cost-reveal"
+            aria-pressed={revealed}
+            aria-label={eyeLabel}
+            title={eyeLabel}
+            onClick={toggle}
+            onBlur={hide}
+            className="h-8 w-8 p-0 text-muted-foreground"
+          >
+            {revealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            data-testid="parts-cost-edit"
+            onClick={editor.openEditor}
+            className="gap-1.5 text-xs"
+          >
+            {entered ? <Pencil className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+            {entered ? text.editCost : text.addCost}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -90,27 +108,13 @@ export function PartsCostSection({
                 entered ? 'text-foreground' : 'font-medium text-muted-foreground'
               )}
             >
-              {!entered ? text.notEntered : revealed ? formatCurrency(ticket.parts_cost as number) : text.hiddenValue}
+              {!entered ? text.notEntered : revealed ? formatCurrency(ticket.parts_cost as number) : hidden}
             </span>
-            {entered && (
-              <button
-                type="button"
-                data-testid="parts-cost-reveal"
-                aria-pressed={revealed}
-                aria-label={revealed ? t.ui.partsCost.field.hide : t.ui.partsCost.field.show}
-                title={revealed ? t.ui.partsCost.field.hide : t.ui.partsCost.field.show}
-                onClick={toggle}
-                onBlur={hide}
-                className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {revealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-              </button>
-            )}
           </div>
         </Cell>
         <Cell label={text.netProfit}>
           <span data-testid="net-profit-value" className={cn('tabular block text-sm font-extrabold text-foreground', moneyTone)}>
-            {formatCurrency(profitSplit.netProfit)}
+            {revealed ? formatCurrency(profitSplit.netProfit) : hidden}
           </span>
         </Cell>
       </div>
@@ -119,13 +123,25 @@ export function PartsCostSection({
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-semibold text-muted-foreground">{t.profit.ownerShareLabel}</span>
           <strong data-testid="compact-my-share" className={cn('tabular text-sm font-bold text-primary', moneyTone)}>
-            {formatCurrency(profitSplit.myShare)} <span dir="ltr">({profitSplit.myPercentage}%)</span>
+            {revealed ? (
+              <>
+                {formatCurrency(profitSplit.myShare)} <span dir="ltr">({profitSplit.myPercentage}%)</span>
+              </>
+            ) : (
+              text.hiddenShare
+            )}
           </strong>
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs font-semibold text-muted-foreground">{t.profit.partnerShareLabel}</span>
           <strong data-testid="compact-partner-share" className={cn('tabular text-sm font-bold text-primary-to', moneyTone)}>
-            {formatCurrency(profitSplit.partnerShare)} <span dir="ltr">({profitSplit.partnerPercentage}%)</span>
+            {revealed ? (
+              <>
+                {formatCurrency(profitSplit.partnerShare)} <span dir="ltr">({profitSplit.partnerPercentage}%)</span>
+              </>
+            ) : (
+              text.hiddenShare
+            )}
           </strong>
         </div>
       </div>

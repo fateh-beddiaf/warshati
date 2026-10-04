@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { AlertTriangle, CheckCircle, CreditCard, TrendingDown } from 'lucide-react'
+import { AlertTriangle, CheckCircle, CreditCard, Eye, EyeOff, TrendingDown } from 'lucide-react'
 import { useI18n } from '../../../lib/i18n'
 import { cn, formatCurrency } from '../../../lib/utils'
 import { Button } from '../../ui/Button'
@@ -68,6 +68,12 @@ export function DeliveryDialog({
   const { t } = useI18n()
   const { ticket } = ticketDetails
   const d = t.ui.details
+  // The customer is usually at the counter: the profit split stays hidden until asked for, and is hidden
+  // again whenever the dialog closes (or another ticket is shown).
+  const [showProfit, setShowProfit] = React.useState(false)
+  React.useEffect(() => {
+    setShowProfit(false)
+  }, [state.isDeliveryDialogOpen, ticket.id])
 
   return (
     <Dialog open={state.isDeliveryDialogOpen} onOpenChange={(open) => !open && state.closeDeliveryDialog()}>
@@ -91,7 +97,27 @@ export function DeliveryDialog({
           </div>
         </DialogHeader>
 
-        <ProfitShares split={state.profitSplit} />
+        <div className="space-y-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            data-testid="delivery-profit-toggle"
+            aria-pressed={showProfit}
+            onClick={() => setShowProfit((v) => !v)}
+            className="gap-1.5 text-xs font-bold"
+          >
+            {showProfit ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showProfit ? t.ui.partsCost.details.hideProfit : t.ui.partsCost.details.showProfit}
+          </Button>
+          {showProfit ? (
+            <ProfitShares split={state.profitSplit} />
+          ) : (
+            <p data-testid="delivery-profit-hidden" className="text-xs text-muted-foreground">
+              {t.ui.partsCost.details.profitHiddenHint}
+            </p>
+          )}
+        </div>
 
         {state.profitSplit.isProvisional && (
           <div

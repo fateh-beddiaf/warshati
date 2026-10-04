@@ -67,6 +67,7 @@ export function initializeSchema(db: Database.Database): void {
       partner_share REAL DEFAULT NULL,
       parts_cost REAL DEFAULT NULL CHECK(parts_cost IS NULL OR parts_cost >= 0),
       split_percentage_applied REAL DEFAULT NULL,
+      parts_cost_required INTEGER NOT NULL DEFAULT 0 CHECK(parts_cost_required IN (0, 1)),
       FOREIGN KEY (customer_id) REFERENCES Customer(id),
       FOREIGN KEY (repair_category_id) REFERENCES RepairCategory(id),
       FOREIGN KEY (technician_id) REFERENCES Technician(id) ON DELETE RESTRICT
@@ -188,7 +189,9 @@ function runMigrations(db: Database.Database): void {
     !ticketColumns.includes('split_percentage_applied') ||
     !categoryColumns.includes('requires_parts_cost')
 
-  if (!needsLegacyIdentityMigration && !needsProfitMigration && !needsPartsCostMigration) return
+  const needsCostRequiredMigration = !ticketColumns.includes('parts_cost_required')
+
+  if (!needsLegacyIdentityMigration && !needsProfitMigration && !needsPartsCostMigration && !needsCostRequiredMigration) return
 
   // One transaction for every step: a failure leaves the database exactly as it was.
   const migrateLegacySchema = db.transaction(() => {
@@ -200,6 +203,7 @@ function runMigrations(db: Database.Database): void {
     }
     if (needsLegacyIdentityMigration) migrateLegacyIdentities(db, ticketColumns, deviceColumns, technicianColumns)
     if (needsPartsCostMigration) migratePartsCost(db, ticketColumns, categoryColumns)
+    if (needsCostRequiredMigration) migrateCostRequiredSnapshot(db)
   })
 
   migrateLegacySchema()
@@ -311,4 +315,18 @@ function migratePartsCost(db: Database.Database, ticketColumns: string[], catego
       ) ?? candidates[1]
     setApplied.run(applied, row.id)
   }
+}
+
+/**
+ * T004b: Ticket.parts_cost_required is a snapshot of the category's "requires a parts cost" switch taken
+ * when the ticket is CREATED. Everything about "missing cost / provisional" reads this snapshot, so turning
+ * the switch on later never turns old tickets into "missing cost".
+ * Existing tickets get 0 (even if their category requires a cost now), except tickets that already HAVE a
+ * cost: those get 1 (harmless, and it keeps them consistent). Runs only when the column is missing.
+ */
+function migrateCostRequiredSnapshot(db: Database.Database): void {
+  db.prepare(
+    `ALTER TABLE Ticket ADD COLUMN parts_cost_required INTEGER NOT NULL DEFAULT 0 CHECK(parts_cost_required IN (0, 1))`
+  ).run()
+  db.prepare(`UPDATE Ticket SET parts_cost_required = 1 WHERE parts_cost IS NOT NULL`).run()
 }
