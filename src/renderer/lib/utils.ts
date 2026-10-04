@@ -18,9 +18,15 @@ export function setUiLanguage(language: UiLanguage): void {
 const numberLocale = (): string => (uiLanguage === 'en' ? 'en-US' : 'ar-DZ')
 const dateLocale = (language: UiLanguage = uiLanguage): string => (language === 'en' ? 'en-GB' : 'ar-DZ')
 
-/** Plain amount without the currency: `1.500` (ar) / `1,500` (en). */
+/**
+ * Plain amount without the currency: `1.500` (ar) / `1,500` (en).
+ * A negative amount (a loss) keeps its minus on the LEFT of the digits even inside right-to-left text:
+ * the sign + digits are wrapped in a left-to-right isolate (otherwise Arabic text puts it after the digits: `250-`).
+ */
 export function formatAmount(amount: number): string {
-  return new Intl.NumberFormat(numberLocale(), { maximumFractionDigits: 0 }).format(amount)
+  const body = new Intl.NumberFormat(numberLocale(), { maximumFractionDigits: 0 }).format(Math.abs(amount))
+  const negative = amount < 0 && Math.round(Math.abs(amount)) > 0
+  return negative ? `\u2066-${body}\u2069` : body
 }
 
 /** Amount with the currency following the UI language: `1.500 د.ج` (ar) / `1,500 DZD` (en). Display only. */

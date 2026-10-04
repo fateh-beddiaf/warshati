@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { AlertTriangle, Search } from 'lucide-react'
+import { AlertTriangle, CircleDollarSign, Search } from 'lucide-react'
 import { useI18n } from '../../lib/i18n'
 import { Input } from '../../components/ui/Input'
 import { SegmentedControl, type SegmentedItem } from '../../components/ui/SegmentedControl'
@@ -32,11 +32,18 @@ export function TicketsToolbar({
       tone: 'overdue',
       icon: <AlertTriangle />
     },
-    { value: 'delivered', label: t.ticketsList.filterDelivered, testId: 'filter-delivered', tone: 'delivered' }
+    { value: 'delivered', label: t.ticketsList.filterDelivered, testId: 'filter-delivered', tone: 'delivered' },
+    {
+      value: 'missing_cost',
+      label: t.ui.partsCost.tickets.filterMissing,
+      testId: 'filter-missing_cost',
+      tone: 'warning',
+      icon: <CircleDollarSign />
+    }
   ]
 
   return (
-    <div className="flex flex-col items-stretch justify-between gap-3 rounded-xl border border-border bg-card p-3 shadow-soft md:flex-row md:items-center">
+    <div className="flex flex-col items-stretch justify-between gap-3 rounded-xl border border-border bg-card p-3 shadow-soft xl:flex-row xl:items-center">
       <div className="relative min-w-[280px] flex-1">
         <Input
           type="text"

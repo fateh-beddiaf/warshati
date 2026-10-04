@@ -9,6 +9,12 @@ import type {
   DeleteReferenceCheckResult
 } from '../../shared/types'
 
+type RepairCategoryRow = Omit<RepairCategory, 'requires_parts_cost'> & { requires_parts_cost: number | boolean }
+
+function mapRepairCategory(row: RepairCategoryRow): RepairCategory {
+  return { ...row, requires_parts_cost: Boolean(row.requires_parts_cost) }
+}
+
 function mapTechnician(row: { id: number; name: string; is_partner: number | boolean }): Technician {
   return { ...row, is_partner: Boolean(row.is_partner) }
 }
@@ -19,9 +25,9 @@ function mapTechnician(row: { id: number; name: string; is_partner: number | boo
 export function getAppMetadata(db: Database.Database): AppMetadata {
   const brands = db.prepare(`SELECT * FROM Brand ORDER BY name ASC`).all() as Brand[]
   const models = db.prepare(`SELECT * FROM Model ORDER BY name ASC`).all() as Model[]
-  const repairCategories = db
+  const repairCategories = (db
     .prepare(`SELECT * FROM RepairCategory ORDER BY id ASC`)
-    .all() as RepairCategory[]
+    .all() as RepairCategoryRow[]).map(mapRepairCategory)
   const accessories = db.prepare(`SELECT * FROM Accessories ORDER BY id ASC`).all() as Accessories[]
   const technicians = (db.prepare(`SELECT * FROM Technician ORDER BY id ASC`).all() as { id: number; name: string; is_partner: number | boolean }[])
     .map(mapTechnician)
@@ -199,7 +205,7 @@ export function deleteAccessory(db: Database.Database, id: number): void {
 // 5. Repair Categories CRUD & Guard
 // ==========================================
 export function getRepairCategories(db: Database.Database): RepairCategory[] {
-  return db.prepare(`SELECT * FROM RepairCategory ORDER BY id ASC`).all() as RepairCategory[]
+  return (db.prepare(`SELECT * FROM RepairCategory ORDER BY id ASC`).all() as RepairCategoryRow[]).map(mapRepairCategory)
 }
 
 /** Rejects non-numeric / NaN / infinite split percentages with a clear message, then clamps to 0–100. */
@@ -211,33 +217,58 @@ function normalizeSplitPercentage(value: unknown): number {
   return Math.max(0, Math.min(100, parsed))
 }
 
+/** The parts-cost switch must be a real boolean (or 0/1); anything else is rejected instead of guessed. */
+function normalizeRequiresPartsCost(value: unknown): boolean {
+  if (typeof value === 'boolean') return value
+  if (value === 0 || value === 1) return value === 1
+  throw new Error('قيمة "يتطلب تكلفة قطع" غير صالحة.')
+}
+
 export function addRepairCategory(
   db: Database.Database,
   name: string,
-  defaultSplitPercentage: number
+  defaultSplitPercentage: number,
+  requiresPartsCost: boolean = false
 ): RepairCategory {
   const trimmedName = name.trim()
   if (!trimmedName) throw new Error('اسم تصنيف العطل مطلوب')
   const split = normalizeSplitPercentage(defaultSplitPercentage)
-  const stmt = db.prepare(`INSERT INTO RepairCategory (name, default_split_percentage) VALUES (?, ?)`)
-  const result = stmt.run(trimmedName, split)
-  return { id: Number(result.lastInsertRowid), name: trimmedName, default_split_percentage: split }
+  const requires = normalizeRequiresPartsCost(requiresPartsCost)
+  const stmt = db.prepare(
+    `INSERT INTO RepairCategory (name, default_split_percentage, requires_parts_cost) VALUES (?, ?, ?)`
+  )
+  const result = stmt.run(trimmedName, split, requires ? 1 : 0)
+  return {
+    id: Number(result.lastInsertRowid),
+    name: trimmedName,
+    default_split_percentage: split,
+    requires_parts_cost: requires
+  }
 }
 
+/** `requiresPartsCost` undefined keeps the stored value (callers that only edit name / split). */
 export function updateRepairCategory(
   db: Database.Database,
   id: number,
   name: string,
-  defaultSplitPercentage: number
+  defaultSplitPercentage: number,
+  requiresPartsCost?: boolean
 ): void {
   const trimmedName = name.trim()
   if (!trimmedName) throw new Error('اسم تصنيف العطل مطلوب')
   const split = normalizeSplitPercentage(defaultSplitPercentage)
-  db.prepare(`UPDATE RepairCategory SET name = ?, default_split_percentage = ? WHERE id = ?`).run(
-    trimmedName,
-    split,
-    id
-  )
+  if (requiresPartsCost === undefined) {
+    db.prepare(`UPDATE RepairCategory SET name = ?, default_split_percentage = ? WHERE id = ?`).run(
+      trimmedName,
+      split,
+      id
+    )
+    return
+  }
+  const requires = normalizeRequiresPartsCost(requiresPartsCost)
+  db.prepare(
+    `UPDATE RepairCategory SET name = ?, default_split_percentage = ?, requires_parts_cost = ? WHERE id = ?`
+  ).run(trimmedName, split, requires ? 1 : 0, id)
 }
 
 export function checkRepairCategoryUsage(db: Database.Database, id: number): DeleteReferenceCheckResult {

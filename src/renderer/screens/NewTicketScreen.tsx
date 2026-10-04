@@ -12,6 +12,7 @@ import { DeviceSection } from './new-ticket/DeviceSection'
 import { RepairSection } from './new-ticket/RepairSection'
 import { PaymentSection } from './new-ticket/PaymentSection'
 import { SuccessBanner, ErrorBanner } from './new-ticket/SuccessBanner'
+import { LossConfirmDialog } from '../components/parts-cost/LossConfirmDialog'
 
 interface NewTicketScreenProps {
   onTicketCreated: (ticketId: number) => void
@@ -39,6 +40,7 @@ export function NewTicketScreen({ onTicketCreated }: NewTicketScreenProps): Reac
       {form.successInfo && (
         <SuccessBanner
           barcode={form.successInfo.barcode}
+          withoutCost={form.successInfo.withoutCost}
           onPrint={() => setIsPrintModalOpen(true)}
           onAnother={form.resetForm}
           onView={() => onTicketCreated(form.successInfo!.ticketId)}
@@ -66,6 +68,17 @@ export function NewTicketScreen({ onTicketCreated }: NewTicketScreenProps): Reac
           </Button>
         </div>
       </form>
+
+      <LossConfirmDialog
+        open={form.confirmLossOpen}
+        title={t.ui.partsCost.newTicket.lossTitle}
+        body={t.ui.partsCost.newTicket.lossBody}
+        confirmLabel={t.ui.partsCost.newTicket.lossConfirm}
+        cancelLabel={t.ui.partsCost.newTicket.lossReview}
+        busy={form.loading}
+        onCancel={() => form.setConfirmLossOpen(false)}
+        onConfirm={() => void form.submitTicket()}
+      />
 
       {form.printData && (
         <PrintPreviewModal isOpen={isPrintModalOpen} onClose={() => setIsPrintModalOpen(false)} data={form.printData} />

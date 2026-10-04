@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { motion } from 'framer-motion'
-import { Coins, CreditCard, User, Users } from 'lucide-react'
+import { Coins, CreditCard, TrendingDown, TrendingUp, User, Users, Wrench } from 'lucide-react'
 import { useI18n } from '../../lib/i18n'
 import { Card, CardContent } from '../../components/ui/Card'
 import { Skeleton } from '../../components/ui/Skeleton'
@@ -9,7 +9,7 @@ import { cn, formatCurrency } from '../../lib/utils'
 import { listContainer, listItem } from '../../lib/motion'
 import type { FinancialReportResult } from '../../../shared/types'
 
-type Tone = 'success' | 'primary' | 'partner' | 'warning'
+type Tone = 'success' | 'primary' | 'partner' | 'warning' | 'neutral' | 'danger'
 
 // Static class strings so Tailwind can see them
 const TONES: Record<Tone, { glow: string; bar: string; icon: string }> = {
@@ -32,6 +32,16 @@ const TONES: Record<Tone, { glow: string; bar: string; icon: string }> = {
     glow: 'from-warning/10',
     bar: 'bg-warning',
     icon: 'bg-warning-soft text-warning-soft-foreground'
+  },
+  neutral: {
+    glow: 'from-muted-foreground/10',
+    bar: 'bg-muted-foreground',
+    icon: 'bg-muted text-muted-foreground'
+  },
+  danger: {
+    glow: 'from-danger/10',
+    bar: 'bg-danger',
+    icon: 'bg-danger-soft text-danger-soft-foreground'
   }
 }
 
@@ -102,14 +112,21 @@ interface ReportStatCardsProps {
 export function ReportStatCards({ report, initialLoading }: ReportStatCardsProps): React.JSX.Element {
   const { t } = useI18n()
   const revenue = report?.totalRevenue || 0
-  const pct = (part: number): string => (report && revenue > 0 ? `${Math.round((part / revenue) * 100)}%` : '0%')
+  const partsCost = report?.totalPartsCost || 0
+  const netProfit = report?.totalNetProfit || 0
+  const isLoss = netProfit < 0
+  const lossCount = report?.lossTicketsCount || 0
+  // Shares are taken from the NET profit, so their percentages are relative to it
+  const pct = (part: number): string => (report && netProfit > 0 ? `${Math.round((part / netProfit) * 100)}%` : '-')
+  const shareClass = (value: number, base: string): string => (value < 0 ? 'text-danger' : base)
+  const text = t.ui.partsCost.reports
 
   return (
     <motion.div
       variants={listContainer}
       initial="hidden"
       animate="show"
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
     >
       <StatCard
         testId="stat-revenue"
@@ -126,12 +143,39 @@ export function ReportStatCards({ report, initialLoading }: ReportStatCardsProps
         footerEnd={<span className="font-bold text-success-soft-foreground">{t.ui.reports.fullIncome}</span>}
       />
       <StatCard
+        testId="stat-parts-cost"
+        tone="neutral"
+        icon={<Wrench className="h-4 w-4" />}
+        label={text.partsCost}
+        value={partsCost}
+        skeleton={initialLoading}
+        footerStart={<span>{text.partsCostDesc}</span>}
+        footerEnd={null}
+      />
+      <StatCard
+        testId="stat-net-profit"
+        tone={isLoss ? 'danger' : 'success'}
+        icon={isLoss ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
+        label={text.netProfit}
+        value={netProfit}
+        valueClassName={isLoss ? 'text-danger' : undefined}
+        skeleton={initialLoading}
+        footerStart={<span>{text.netProfitDesc}</span>}
+        footerEnd={
+          lossCount > 0 ? (
+            <span data-testid="stat-loss-count" className="font-bold tabular text-danger">
+              {text.lossesCount.replace('{count}', String(lossCount))}
+            </span>
+          ) : null
+        }
+      />
+      <StatCard
         testId="stat-my-share"
         tone="primary"
         icon={<User className="h-4 w-4" />}
         label={t.reports.kpi.myTotalShare}
         value={report?.totalMyShare || 0}
-        valueClassName="text-primary"
+        valueClassName={shareClass(report?.totalMyShare || 0, 'text-primary')}
         skeleton={initialLoading}
         footerStart={<span>{t.reports.kpi.myTotalShareDesc}</span>}
         footerEnd={<span className="font-bold tabular text-primary">{pct(report?.totalMyShare || 0)}</span>}
@@ -142,7 +186,7 @@ export function ReportStatCards({ report, initialLoading }: ReportStatCardsProps
         icon={<Users className="h-4 w-4" />}
         label={t.reports.kpi.partnerTotalShare}
         value={report?.totalPartnerShare || 0}
-        valueClassName="text-primary-to"
+        valueClassName={shareClass(report?.totalPartnerShare || 0, 'text-primary-to')}
         skeleton={initialLoading}
         footerStart={<span>{t.reports.kpi.partnerTotalShareDesc}</span>}
         footerEnd={

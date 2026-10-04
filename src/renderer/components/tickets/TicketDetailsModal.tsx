@@ -15,6 +15,7 @@ import { RepairFinancialSection } from './details/RepairFinancialSection'
 import { StatusTimeline } from './details/StatusTimeline'
 import { DeliveryDialog } from './details/DeliveryDialog'
 import { DeleteTicketDialog } from './details/DeleteTicketDialog'
+import { PartsCostDialog } from './details/PartsCostDialog'
 
 export interface TicketDetailsModalProps {
   isOpen: boolean
@@ -102,6 +103,7 @@ export function TicketDetailsModal({
       {ticketDetails && isOpen && (
         <>
           <DeliveryDialog ticketDetails={ticketDetails} state={state} />
+          <PartsCostDialog ticketDetails={ticketDetails} state={state} />
           <DeleteTicketDialog ticketDetails={ticketDetails} state={state} />
         </>
       )}

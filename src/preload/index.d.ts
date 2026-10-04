@@ -22,6 +22,7 @@ export interface PrinterInfo {
 export interface IElectronAPI {
   createTicket: (dto: CreateTicketDTO) => Promise<{ success: boolean; data?: { ticketId: number; barcode: string }; error?: string }>
   recordPayment: (ticketId: number, amount: number) => Promise<{ success: boolean; data?: Ticket; error?: string }>
+  setPartsCost: (ticketId: number, cost: number | null) => Promise<{ success: boolean; data?: Ticket; error?: string }>
   updateTicketStatus: (dto: UpdateTicketStatusDTO) => Promise<{ success: boolean; data?: { success: boolean; ticket: Ticket }; error?: string }>
   getTicketsList: (searchQuery?: string, statusFilter?: string) => Promise<{ success: boolean; data?: TicketListItem[]; error?: string }>
   getTicketById: (id: number) => Promise<{ success: boolean; data?: TicketFullDetails | null; error?: string }>
@@ -57,8 +58,8 @@ export interface IElectronAPI {
 
   // Settings & Reference CRUD: Repair Categories
   getRepairCategories: () => Promise<{ success: boolean; data?: import('../shared/types').RepairCategory[]; error?: string }>
-  addRepairCategory: (name: string, defaultSplitPercentage: number) => Promise<{ success: boolean; data?: import('../shared/types').RepairCategory; error?: string }>
-  updateRepairCategory: (id: number, name: string, defaultSplitPercentage: number) => Promise<{ success: boolean; error?: string }>
+  addRepairCategory: (name: string, defaultSplitPercentage: number, requiresPartsCost?: boolean) => Promise<{ success: boolean; data?: import('../shared/types').RepairCategory; error?: string }>
+  updateRepairCategory: (id: number, name: string, defaultSplitPercentage: number, requiresPartsCost?: boolean) => Promise<{ success: boolean; error?: string }>
   checkRepairCategoryUsage: (id: number) => Promise<{ success: boolean; data?: import('../shared/types').DeleteReferenceCheckResult; error?: string }>
   deleteRepairCategory: (id: number) => Promise<{ success: boolean; error?: string }>
 

@@ -37,10 +37,16 @@ function ShareCell({
   tone: 'neutral' | 'primary' | 'partner'
 }): React.JSX.Element {
   const toneClass =
-    tone === 'primary' ? 'text-primary' : tone === 'partner' ? 'text-primary-to' : 'text-foreground'
+    value < 0
+      ? 'text-danger'
+      : tone === 'primary'
+        ? 'text-primary'
+        : tone === 'partner'
+          ? 'text-primary-to'
+          : 'text-foreground'
   return (
     <div className="rounded-lg border border-border bg-card p-2">
-      <span className={`block text-[11px] font-semibold ${tone === 'neutral' ? 'text-muted-foreground' : toneClass}`}>
+      <span className={`block text-[11px] font-semibold ${tone === 'neutral' && value >= 0 ? 'text-muted-foreground' : toneClass}`}>
         {label}
       </span>
       <span className={`mt-0.5 block text-xs font-extrabold tabular ${toneClass}`}>
@@ -94,8 +100,9 @@ export function ReportBreakdowns({ report, initialLoading }: ReportBreakdownsPro
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 text-start">
+                  <div className="grid grid-cols-2 gap-2 text-start sm:grid-cols-4">
                     <ShareCell label={t.ui.reports.totalIncome} value={tech.totalRevenue} tone="neutral" />
+                    <ShareCell label={t.ui.partsCost.reports.netProfit} value={tech.netProfit} tone="neutral" />
                     <ShareCell label={t.ui.reports.myShareShort} value={tech.myShare} tone="primary" />
                     <ShareCell label={t.ui.reports.partnerShareShort} value={tech.partnerShare} tone="partner" />
                   </div>
@@ -145,12 +152,22 @@ export function ReportBreakdowns({ report, initialLoading }: ReportBreakdownsPro
                       <span className="font-bold text-foreground">{formatCurrency(cat.totalRevenue)}</span>
                     </div>
                     <div>
+                      <span className="block text-[10px] text-muted-foreground">{t.ui.partsCost.reports.netWord}</span>
+                      <span className={cat.netProfit < 0 ? 'font-bold text-danger' : 'font-bold text-foreground'}>
+                        {formatCurrency(cat.netProfit)}
+                      </span>
+                    </div>
+                    <div>
                       <span className="block text-[10px] text-primary">{t.ui.reports.myShareShort}</span>
-                      <span className="font-bold text-primary">{formatCurrency(cat.myShare)}</span>
+                      <span className={cat.myShare < 0 ? 'font-bold text-danger' : 'font-bold text-primary'}>
+                        {formatCurrency(cat.myShare)}
+                      </span>
                     </div>
                     <div>
                       <span className="block text-[10px] text-primary-to">{t.ui.reports.partnerWord}</span>
-                      <span className="font-bold text-primary-to">{formatCurrency(cat.partnerShare)}</span>
+                      <span className={cat.partnerShare < 0 ? 'font-bold text-danger' : 'font-bold text-primary-to'}>
+                        {formatCurrency(cat.partnerShare)}
+                      </span>
                     </div>
                   </div>
                 </motion.div>

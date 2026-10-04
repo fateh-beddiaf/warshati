@@ -3,6 +3,7 @@ import { useI18n } from '../../../lib/i18n'
 import { formatCurrency } from '../../../lib/utils'
 import type { TicketFullDetails, TicketStatus, PaymentType, UpdateTicketStatusDTO } from '../../../../shared/types'
 import { resolveProfitSplit } from './profitSplit'
+import { usePartsCostEditor } from './usePartsCostEditor'
 
 export type SettlementType = 'full' | 'credit' | 'partial'
 export type DeleteStep = 1 | 2 | 3
@@ -108,8 +109,11 @@ export function useTicketDetailsState({ isOpen, ticketDetails, onClose, onStatus
     }
   }
 
-  // Calculate live or stored profit split
+  // Calculate live or stored profit split (on the net profit)
   const profitSplit = useMemo(() => resolveProfitSplit(ticketDetails), [ticketDetails])
+
+  // Parts cost add / edit / clear (any status)
+  const partsCost = usePartsCostEditor({ isOpen, ticketDetails, onSaved: onStatusUpdated })
 
   const handleUpdateStatus = async (newStatus: TicketStatus, paymentUpdate?: { amount_paid?: number; payment_type?: PaymentType }): Promise<void> => {
     if (!ticketDetails) return
@@ -228,6 +232,7 @@ export function useTicketDetailsState({ isOpen, ticketDetails, onClose, onStatus
     errorMessage,
     successMessage,
     profitSplit,
+    partsCost,
     // delivery
     isDeliveryDialogOpen,
     openDeliveryDialog,

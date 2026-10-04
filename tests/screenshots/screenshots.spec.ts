@@ -91,6 +91,11 @@ async function openByBarcode(page: Page, barcode: string): Promise<void> {
   await page.getByTestId('details-close').waitFor()
 }
 
+/** The details modal is taller than the screenshot window: scroll its profit block into view. */
+async function scrollToCost(page: Page): Promise<void> {
+  await page.getByTestId('parts-cost-section').evaluate((el) => el.scrollIntoView({ block: 'center' }))
+}
+
 async function closeDetails(page: Page): Promise<void> {
   await page.getByTestId('details-close').click()
   await page.getByTestId('details-close').waitFor({ state: 'hidden' })
@@ -101,6 +106,8 @@ interface ListRow {
   status: string
   is_overdue: boolean
   amount_remaining: number
+  price: number
+  parts_cost_missing: boolean
 }
 
 test.describe.configure({ mode: 'serial' })
@@ -118,6 +125,15 @@ for (const theme of THEMES) {
         const freshReady = rows.find((r) => r.status === 'ready' && !r.is_overdue)
         const deliveredDebt = rows.find((r) => r.status === 'delivered' && r.amount_remaining > 0)
         expect(overdueReady && inProgress && freshReady && deliveredDebt, 'demo data has every status').toBeTruthy()
+        // T004 demo tickets: a ready one still missing its cost, delivered ones with a cost / without one / at a loss
+        const readyMissingCost = rows.find((r) => r.status === 'ready' && r.parts_cost_missing)
+        const deliveredWithCost = rows.find((r) => r.status === 'delivered' && r.price === 5500)
+        const deliveredProvisional = rows.find((r) => r.status === 'delivered' && r.parts_cost_missing)
+        const deliveredLoss = rows.find((r) => r.status === 'delivered' && r.price === 3500)
+        expect(
+          readyMissingCost && deliveredWithCost && deliveredProvisional && deliveredLoss,
+          'demo data has the parts-cost cases'
+        ).toBeTruthy()
 
         // --- Tickets list
         await nav(page, 'tickets')
@@ -128,6 +144,8 @@ for (const theme of THEMES) {
         await setWidth(app, 1280)
         await page.getByTestId('filter-overdue').click()
         await shot(page, 'tickets-overdue-filter', theme, lang, 500)
+        await page.getByTestId('filter-missing_cost').click()
+        await shot(page, 'tickets-missing-cost-filter', theme, lang, 500)
         await page.getByTestId('filter-all').click()
         const search = page.getByTestId('tickets-search')
         await search.fill('zzzzzz-no-such-ticket')
@@ -145,12 +163,30 @@ for (const theme of THEMES) {
         await shot(page, 'new-ticket-autocomplete', theme, lang, 500)
         await page.keyboard.press('Escape')
 
+        // The first category (screens) requires a cost: the field is there, masked (dots), no profit shown
+        const costInput = page.getByTestId('parts-cost-input')
+        await costInput.fill('2600')
+        await costInput.evaluate((el) => el.scrollIntoView({ block: 'center' }))
+        await shot(page, 'new-ticket-cost', theme, lang, 500)
+        // A cost above the price asks for a confirmation (nothing is saved)
+        await textInputs.nth(3).fill('Samsung')
+        await textInputs.nth(4).fill('Galaxy A54')
+        await page.locator('[data-testid="new-ticket-form"] input[type="number"]').nth(0).fill('2000')
+        await page.locator('[data-testid="new-ticket-form"] button[type="submit"]').click()
+        await page.getByTestId('loss-confirm-dialog').waitFor()
+        await shot(page, 'new-ticket-loss-dialog', theme, lang, 500)
+        await page.getByTestId('loss-confirm-cancel').click()
+
         // --- Reports
         await nav(page, 'reports')
         for (const period of ['this_month', 'all_time']) {
           await page.getByTestId(`period-${period}`).click()
           await shot(page, `reports-${period}`, theme, lang, 1100)
         }
+        // "N delivered tickets without a cost": the ledger can be narrowed to those tickets
+        await page.getByTestId('report-provisional-toggle').click()
+        await shot(page, 'reports-provisional-filter', theme, lang, 600)
+        await page.getByTestId('report-provisional-toggle').click()
 
         // --- Settings tabs
         await nav(page, 'settings')
@@ -158,6 +194,13 @@ for (const theme of THEMES) {
           await page.getByTestId(`settings-tab-${tab}`).click()
           await shot(page, `settings-${tab}`, theme, lang, 600)
         }
+        // The add / edit dialog of a category that requires a parts cost (switch on + example with a cost)
+        await page.getByTestId('settings-tab-categories').click()
+        await page.getByTestId('settings-category-edit').first().click()
+        await page.getByTestId('settings-category-dialog').waitFor()
+        await shot(page, 'settings-category-dialog', theme, lang, 500)
+        await page.keyboard.press('Escape')
+        await page.getByTestId('settings-category-dialog').waitFor({ state: 'hidden' })
 
         // --- Dialogs
         await nav(page, 'tickets')
@@ -177,6 +220,36 @@ for (const theme of THEMES) {
 
         await openByBarcode(page, deliveredDebt!.barcode_code)
         await shot(page, 'details-delivered-debt', theme, lang)
+        await closeDetails(page)
+
+        // --- Parts cost: ready ticket still without its cost (provisional warning in the delivery dialog)
+        await openByBarcode(page, readyMissingCost!.barcode_code)
+        await scrollToCost(page)
+        await shot(page, 'details-ready-missing-cost', theme, lang)
+        await page.getByTestId('open-delivery').click()
+        await shot(page, 'delivery-dialog-provisional', theme, lang)
+        await page.keyboard.press('Escape')
+        await closeDetails(page)
+
+        // delivered with a cost (hidden by default), then revealed with the eye
+        await openByBarcode(page, deliveredWithCost!.barcode_code)
+        await scrollToCost(page)
+        await shot(page, 'details-delivered-cost', theme, lang)
+        await page.getByTestId('parts-cost-edit').click()
+        await page.getByTestId('parts-cost-dialog').waitFor()
+        await shot(page, 'parts-cost-dialog', theme, lang, 500)
+        await page.keyboard.press('Escape')
+        await page.getByTestId('parts-cost-dialog').waitFor({ state: 'hidden' })
+        await closeDetails(page)
+
+        // delivered without the cost: provisional profit; delivered at a loss: danger colour
+        await openByBarcode(page, deliveredProvisional!.barcode_code)
+        await scrollToCost(page)
+        await shot(page, 'details-delivered-provisional', theme, lang)
+        await closeDetails(page)
+        await openByBarcode(page, deliveredLoss!.barcode_code)
+        await scrollToCost(page)
+        await shot(page, 'details-delivered-loss', theme, lang)
         await closeDetails(page)
 
         expect(problems, 'no renderer errors while taking screenshots').toEqual([])

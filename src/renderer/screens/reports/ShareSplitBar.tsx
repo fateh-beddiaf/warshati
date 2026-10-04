@@ -11,7 +11,8 @@ export function ShareSplitBar({ report }: { report: FinancialReportResult | null
   const total = report.totalMyShare + report.totalPartnerShare
   if (total <= 0) return null
 
-  const minePct = (report.totalMyShare / total) * 100
+  // A negative share (a loss) cannot be drawn as a proportion: the bar is then clamped, the numbers stay exact
+  const minePct = Math.min(100, Math.max(0, (report.totalMyShare / total) * 100))
   const partnerPct = 100 - minePct
 
   return (
@@ -33,7 +34,7 @@ export function ShareSplitBar({ report }: { report: FinancialReportResult | null
             <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-primary" />
             {t.ui.reports.myShareShort}
             <span className="flex items-center gap-2 tabular text-muted-foreground">
-              <span>{formatCurrency(report.totalMyShare)}</span>
+              <span className={report.totalMyShare < 0 ? 'text-danger' : undefined}>{formatCurrency(report.totalMyShare)}</span>
               <span dir="ltr">{Math.round(minePct)}%</span>
             </span>
           </span>
@@ -41,7 +42,9 @@ export function ShareSplitBar({ report }: { report: FinancialReportResult | null
             <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-primary-to" />
             {t.ui.reports.partnerShareShort}
             <span className="flex items-center gap-2 tabular text-muted-foreground">
-              <span>{formatCurrency(report.totalPartnerShare)}</span>
+              <span className={report.totalPartnerShare < 0 ? 'text-danger' : undefined}>
+                {formatCurrency(report.totalPartnerShare)}
+              </span>
               <span dir="ltr">{Math.round(partnerPct)}%</span>
             </span>
           </span>

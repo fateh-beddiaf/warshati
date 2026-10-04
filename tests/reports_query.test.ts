@@ -169,17 +169,50 @@ const filters: { name: string; filter: ReportFilterDTO }[] = [
   { name: 'April + partner + category 1', filter: { period: 'custom', startDate: '2026-04-01', endDate: '2026-04-30', technicianFilter: String(partnerTech), categoryFilter: cat1 } }
 ]
 
+// T004 added cost-related fields. Without any parts cost entered they must be neutral (net = revenue,
+// nothing provisional, no loss) and everything ELSE must still be identical to the legacy output.
+function withoutCostFields<T extends Record<string, unknown>>(report: T): Record<string, unknown> {
+  const { totalPartsCost, totalNetProfit, provisionalTicketsCount, lossTicketsCount, ...rest } = report as Record<string, unknown>
+  void totalPartsCost, totalNetProfit, provisionalTicketsCount, lossTicketsCount
+  const strip = (rows: unknown): unknown =>
+    (rows as Record<string, unknown>[]).map((r) => {
+      const { partsCost, netProfit, ...kept } = r
+      void partsCost, netProfit
+      return kept
+    })
+  return { ...rest, technicianBreakdown: strip(rest.technicianBreakdown), categoryBreakdown: strip(rest.categoryBreakdown) }
+}
+function withoutTicketCostFields(rows: unknown[]): unknown[] {
+  return (rows as Record<string, unknown>[]).map((r) => {
+    const { net_profit, is_provisional, is_loss, parts_cost_missing, ...kept } = r
+    void net_profit, is_provisional, is_loss, parts_cost_missing
+    return kept
+  })
+}
+
 for (const { name, filter } of filters) {
   const next = getFinancialReport(db, filter)
   const legacy = getFinancialReportLegacy(db, filter)
-  const { tickets: nextTickets, ...nextRest } = next
+  check(
+    `[${name}] cost fields are neutral without costs (net = revenue, no cost, nothing provisional/loss)`,
+    next.totalPartsCost === 0 &&
+      next.totalNetProfit === next.totalRevenue &&
+      next.provisionalTicketsCount === 0 &&
+      next.lossTicketsCount === 0 &&
+      next.tickets.every((t) => t.net_profit === t.price && !t.is_provisional && !t.is_loss && !t.parts_cost_missing)
+  )
+  const { tickets: nextTickets, ...nextRest } = withoutCostFields(next as unknown as Record<string, unknown>) as {
+    tickets: unknown[]
+  } & Record<string, unknown>
+  const nextTicketsPlain = withoutTicketCostFields(next.tickets)
+  void nextTickets
   const { tickets: legacyTickets, ...legacyRest } = legacy
   check(`[${name}] totals, counts, breakdowns and range are identical to legacy`, same(nextRest, legacyRest), `\nnew=${JSON.stringify(nextRest)}\nold=${JSON.stringify(legacyRest)}`)
   const displayed = legacyTickets.filter((t) => t.status === 'delivered')
   check(
     `[${name}] returned tickets == legacy's delivered tickets (same rows, order, fields)`,
-    same(nextTickets, displayed),
-    `\nnew=${nextTickets.map((t) => t.id)} old=${displayed.map((t) => t.id)}`
+    same(nextTicketsPlain, displayed),
+    `\nnew=${next.tickets.map((t) => t.id)} old=${displayed.map((t) => t.id)}`
   )
 }
 

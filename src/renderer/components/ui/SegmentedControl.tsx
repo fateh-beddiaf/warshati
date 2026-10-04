@@ -9,7 +9,7 @@ export interface SegmentedItem<T extends string> {
   icon?: React.ReactNode
   testId?: string
   /** Colour the label/pill when active: neutral (default), or a ticket-status tone */
-  tone?: 'default' | 'in-progress' | 'ready' | 'delivered' | 'overdue'
+  tone?: 'default' | 'in-progress' | 'ready' | 'delivered' | 'overdue' | 'warning'
 }
 
 interface SegmentedControlProps<T extends string> {
@@ -27,7 +27,8 @@ const ACTIVE_TONE: Record<NonNullable<SegmentedItem<string>['tone']>, string> = 
   'in-progress': 'text-status-in-progress-soft-foreground',
   ready: 'text-status-ready-soft-foreground',
   delivered: 'text-status-delivered-soft-foreground',
-  overdue: 'text-status-overdue-soft-foreground'
+  overdue: 'text-status-overdue-soft-foreground',
+  warning: 'text-warning-soft-foreground'
 }
 
 const PILL_TONE: Record<NonNullable<SegmentedItem<string>['tone']>, string> = {
@@ -35,7 +36,8 @@ const PILL_TONE: Record<NonNullable<SegmentedItem<string>['tone']>, string> = {
   'in-progress': 'bg-status-in-progress-soft shadow-soft',
   ready: 'bg-status-ready-soft shadow-soft',
   delivered: 'bg-status-delivered-soft shadow-soft',
-  overdue: 'bg-status-overdue-soft shadow-soft'
+  overdue: 'bg-status-overdue-soft shadow-soft',
+  warning: 'bg-warning-soft shadow-soft'
 }
 
 /** Pill-style filter / switcher with a sliding active indicator (used for status filters, report periods, ...). */

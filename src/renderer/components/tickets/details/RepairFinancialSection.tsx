@@ -4,6 +4,7 @@ import { useI18n } from '../../../lib/i18n'
 import { cn, formatCurrency, formatDate } from '../../../lib/utils'
 import { SectionCard } from './SectionCard'
 import { DebtPaymentSection } from './DebtPaymentSection'
+import { PartsCostSection } from './PartsCostSection'
 import type { TicketFullDetails } from '../../../../shared/types'
 import type { TicketDetailsState } from './useTicketDetailsState'
 
@@ -34,7 +35,6 @@ export function RepairFinancialSection({
 }): React.JSX.Element {
   const { t } = useI18n()
   const { ticket, category } = ticketDetails
-  const { profitSplit } = state
   const owes = ticket.amount_remaining > 0
 
   return (
@@ -67,21 +67,8 @@ export function RepairFinancialSection({
         </Field>
       </div>
 
-      {/* Compact profit split (the delivery dialog shows it large before confirming) */}
-      <div className="grid grid-cols-1 gap-2 rounded-lg border border-border bg-card p-3 sm:grid-cols-2 sm:gap-4">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-semibold text-muted-foreground">{t.profit.ownerShareLabel}</span>
-          <strong className="tabular text-sm font-bold text-primary">
-            {formatCurrency(profitSplit.myShare)} <span dir="ltr">({profitSplit.myPercentage}%)</span>
-          </strong>
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-semibold text-muted-foreground">{t.profit.partnerShareLabel}</span>
-          <strong className="tabular text-sm font-bold text-primary-to">
-            {formatCurrency(profitSplit.partnerShare)} <span dir="ltr">({profitSplit.partnerPercentage}%)</span>
-          </strong>
-        </div>
-      </div>
+      {/* Price / cost (hidden) / net profit / both shares (the delivery dialog shows them large before confirming) */}
+      <PartsCostSection ticketDetails={ticketDetails} state={state} />
 
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-border pt-3 text-xs text-muted-foreground">
         <span>

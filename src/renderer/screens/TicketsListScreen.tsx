@@ -12,6 +12,7 @@ import { TicketsToolbar } from './tickets/TicketsToolbar'
 import { TicketsTable } from './tickets/TicketsTable'
 import { TicketsSkeleton } from './tickets/TicketsSkeleton'
 import { OverdueBanner } from './tickets/OverdueBanner'
+import { MissingCostBanner } from './tickets/MissingCostBanner'
 import { ThresholdPanel } from './tickets/ThresholdPanel'
 import type { TicketListItem } from '../../shared/types'
 
@@ -35,6 +36,7 @@ export function TicketsListScreen({
   const { tickets, loading, loaded, searchQuery, statusFilter } = list
 
   const overdueCount = tickets.filter((ticket) => ticket.is_overdue).length
+  const missingCostCount = tickets.filter((ticket) => ticket.parts_cost_missing).length
   const hasActiveFilters = searchQuery.trim() !== '' || statusFilter !== 'all'
 
   const clearFilters = (): void => {
@@ -88,6 +90,13 @@ export function TicketsListScreen({
 
       <AnimatePresence initial={false}>
         {threshold.isOpen && <ThresholdPanel key="threshold" state={threshold} onSaved={list.fetchTickets} />}
+        {missingCostCount > 0 && statusFilter !== 'missing_cost' && (
+          <MissingCostBanner
+            key="missing-cost"
+            count={missingCostCount}
+            onShowMissing={() => list.setStatusFilter('missing_cost')}
+          />
+        )}
         {overdueCount > 0 && statusFilter !== 'overdue' && (
           <OverdueBanner
             key="overdue"
