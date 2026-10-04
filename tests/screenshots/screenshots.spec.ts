@@ -183,6 +183,11 @@ for (const theme of THEMES) {
           await page.getByTestId(`period-${period}`).click()
           await shot(page, `reports-${period}`, theme, lang, 1100)
         }
+        // The ledger must fit the minimum window width
+        await setWidth(app, 1024)
+        await page.locator('table').evaluate((el) => el.scrollIntoView({ block: 'start' }))
+        await shot(page, 'reports-1024', theme, lang, 900)
+        await setWidth(app, 1280)
         // "N delivered tickets without a cost": the ledger can be narrowed to those tickets
         await page.getByTestId('report-provisional-toggle').click()
         await shot(page, 'reports-provisional-filter', theme, lang, 600)
@@ -207,7 +212,9 @@ for (const theme of THEMES) {
         await openByBarcode(page, overdueReady!.barcode_code)
         await shot(page, 'details-ready-overdue', theme, lang)
         await page.getByTestId('open-delivery').click()
-        await shot(page, 'delivery-dialog', theme, lang)
+        await shot(page, 'delivery-dialog', theme, lang) // profit split hidden (the customer is at the counter)
+        await page.getByTestId('delivery-profit-toggle').click()
+        await shot(page, 'delivery-dialog-revealed', theme, lang, 500)
         await page.keyboard.press('Escape')
         await page.getByTestId('details-reprint').click()
         await shot(page, 'print-modal', theme, lang)
@@ -227,6 +234,7 @@ for (const theme of THEMES) {
         await scrollToCost(page)
         await shot(page, 'details-ready-missing-cost', theme, lang)
         await page.getByTestId('open-delivery').click()
+        await page.getByTestId('delivery-profit-toggle').click()
         await shot(page, 'delivery-dialog-provisional', theme, lang)
         await page.keyboard.press('Escape')
         await closeDetails(page)
@@ -234,7 +242,10 @@ for (const theme of THEMES) {
         // delivered with a cost (hidden by default), then revealed with the eye
         await openByBarcode(page, deliveredWithCost!.barcode_code)
         await scrollToCost(page)
-        await shot(page, 'details-delivered-cost', theme, lang)
+        await shot(page, 'details-delivered-cost', theme, lang) // cost, net profit and shares hidden
+        await page.getByTestId('parts-cost-reveal').click()
+        await shot(page, 'details-delivered-cost-revealed', theme, lang, 400)
+        await page.getByTestId('parts-cost-reveal').click()
         await page.getByTestId('parts-cost-edit').click()
         await page.getByTestId('parts-cost-dialog').waitFor()
         await shot(page, 'parts-cost-dialog', theme, lang, 500)
@@ -249,6 +260,7 @@ for (const theme of THEMES) {
         await closeDetails(page)
         await openByBarcode(page, deliveredLoss!.barcode_code)
         await scrollToCost(page)
+        await page.getByTestId('parts-cost-reveal').click()
         await shot(page, 'details-delivered-loss', theme, lang)
         await closeDetails(page)
 

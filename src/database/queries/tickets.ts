@@ -42,18 +42,19 @@ interface ProfitContext {
 /** Category + technician facts the profit calculation needs for a ticket. */
 function getProfitContext(
   db: Database.Database,
-  ticket: { repair_category_id: number; technician_id: number }
+  ticket: { repair_category_id: number; technician_id: number; parts_cost_required?: number | boolean | null }
 ): ProfitContext {
   const category = db
-    .prepare(`SELECT default_split_percentage, requires_parts_cost FROM RepairCategory WHERE id = ?`)
-    .get(ticket.repair_category_id) as { default_split_percentage: number; requires_parts_cost: number } | undefined
+    .prepare(`SELECT default_split_percentage FROM RepairCategory WHERE id = ?`)
+    .get(ticket.repair_category_id) as { default_split_percentage: number } | undefined
   const technician = db
     .prepare(`SELECT is_partner FROM Technician WHERE id = ?`)
     .get(ticket.technician_id) as { is_partner: number } | undefined
   return {
     isPartner: Boolean(technician?.is_partner),
     categorySplitPercentage: category?.default_split_percentage ?? 50.0,
-    requiresPartsCost: Boolean(category?.requires_parts_cost)
+    // the snapshot taken at creation, never the category's current switch
+    requiresPartsCost: Boolean(ticket.parts_cost_required)
   }
 }
 
@@ -66,6 +67,11 @@ export function createTicket(db: Database.Database, dto: CreateTicketDTO): { tic
     const paymentType = amountRemaining > 0 ? 'credit' : dto.ticket.payment_type
     // Optional: leaving it empty is allowed (the UI warns); a given value must be a valid amount
     const partsCost = normalizePartsCost(dto.ticket.parts_cost)
+    // Snapshot of the category switch at this moment (see schema: parts_cost_required)
+    const categoryRow = db
+      .prepare(`SELECT requires_parts_cost FROM RepairCategory WHERE id = ?`)
+      .get(dto.ticket.repair_category_id) as { requires_parts_cost: number } | undefined
+    const costRequired = categoryRow?.requires_parts_cost ? 1 : 0
 
     // 2. Resolve stable reference identities and preserve their current names as ticket snapshots.
     const technician = db
@@ -128,8 +134,9 @@ export function createTicket(db: Database.Database, dto: CreateTicketDTO): { tic
         status,
         my_share,
         partner_share,
-        parts_cost
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?)
+        parts_cost,
+        parts_cost_required
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?)
     `)
 
     const ticketResult = insertTicket.run(
@@ -144,7 +151,8 @@ export function createTicket(db: Database.Database, dto: CreateTicketDTO): { tic
       amountPaid,
       amountRemaining,
       status,
-      partsCost
+      partsCost,
+      costRequired
     )
 
     const ticketId = Number(ticketResult.lastInsertRowid)
@@ -432,7 +440,7 @@ export function getTicketsList(
       t.created_at,
       t.my_share,
       t.partner_share,
-      (rc.requires_parts_cost = 1 AND t.parts_cost IS NULL) AS parts_cost_missing,
+      (t.parts_cost_required = 1 AND t.parts_cost IS NULL) AS parts_cost_missing,
       (
         SELECT timestamp 
         FROM StatusLog 

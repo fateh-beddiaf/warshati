@@ -27,7 +27,7 @@ export function resolveProfitSplit(ticketDetails: TicketFullDetails | null): Dis
   const computed = calculateProfitSplit({
     price: ticket.price,
     partsCost: ticket.parts_cost ?? null,
-    requiresPartsCost: Boolean(category?.requires_parts_cost),
+    requiresPartsCost: Boolean(ticket.parts_cost_required),
     isPartner: Boolean(ticket.technician_is_partner),
     categorySplitPercentage: category?.default_split_percentage ?? 50.0,
     appliedSplitPercentage: delivered ? (ticket.split_percentage_applied ?? null) : null

@@ -28,6 +28,18 @@ test.afterEach(() => {
   expect(l.problems, 'renderer errors').toEqual([])
 })
 
+/** The profit split in the delivery dialog is hidden until asked for. */
+async function revealDelivery(): Promise<void> {
+  const toggle = l.page.getByTestId('delivery-profit-toggle')
+  if ((await toggle.getAttribute('aria-pressed')) !== 'true') await toggle.click()
+}
+
+/** Cost, net profit and shares in the ticket details are hidden until asked for. */
+async function revealDetails(): Promise<void> {
+  const eye = l.page.getByTestId('parts-cost-reveal')
+  if ((await eye.getAttribute('aria-pressed')) !== 'true') await eye.click()
+}
+
 const go = async (tab: 'tickets' | 'new-ticket' | 'reports' | 'settings'): Promise<void> => {
   await l.page.getByTestId(`nav-${tab}`).click()
 }
@@ -227,12 +239,14 @@ test('(d) delivered without a cost: provisional shares, then adding the cost rec
 
   // the delivery dialog warns that the profit is provisional but does not block
   await expect(l.page.getByTestId('delivery-provisional-warning')).toBeVisible()
+  await revealDelivery()
   await expect(l.page.getByTestId('share-owner-amount')).toContainText('2.000')
   await expect(l.page.getByTestId('share-partner-amount')).toContainText('2.000')
   await l.page.getByTestId('confirm-delivery').click()
   await l.page.getByTestId('status-back-to-ready').waitFor()
 
   await expect(l.page.getByTestId('profit-provisional-badge')).toBeVisible()
+  await revealDetails()
   await expect(l.page.getByTestId('compact-my-share')).toContainText('2.000')
   await expect(l.page.getByTestId('parts-cost-value')).toHaveText('لم تُدخل بعد')
   await expect(l.page.getByTestId('parts-cost-edit')).toContainText('إضافة')
@@ -253,9 +267,6 @@ test('(d) delivered without a cost: provisional shares, then adding the cost rec
   await saveCostFromDetails('2600')
   await expect(l.page.getByTestId('parts-cost-dialog')).toHaveCount(0)
 
-  await expect(l.page.getByTestId('compact-my-share')).toHaveText(/^700\b/)
-  await expect(l.page.getByTestId('compact-partner-share')).toHaveText(/^700\b/)
-  await expect(l.page.getByTestId('net-profit-value')).toContainText('1.400')
   await expect(l.page.getByTestId('profit-provisional-badge')).toHaveCount(0)
   await expect(l.page.getByTestId('parts-cost-edit')).toContainText('تعديل')
 
@@ -263,10 +274,14 @@ test('(d) delivered without a cost: provisional shares, then adding the cost rec
   const value = l.page.getByTestId('parts-cost-value')
   await expect(value).toHaveAttribute('data-masked', 'true')
   await expect(value).not.toContainText('2.600')
+  await expect(l.page.getByTestId('net-profit-value')).not.toContainText('1.400')
+  await expect(l.page.getByTestId('compact-my-share')).not.toContainText('700')
   const modalText = await l.page.getByRole('dialog').first().innerText()
-  expect(modalText).not.toContain('2.600')
-  expect(modalText).not.toContain('2600')
+  for (const needle of ['2.600', '2600', '1.400', '1400']) expect(modalText).not.toContain(needle)
   await l.page.getByTestId('parts-cost-reveal').click()
+  await expect(l.page.getByTestId('compact-my-share')).toHaveText(/^700\b/)
+  await expect(l.page.getByTestId('compact-partner-share')).toHaveText(/^700\b/)
+  await expect(l.page.getByTestId('net-profit-value')).toContainText('1.400')
   await expect(value).toContainText('2.600')
   await expect(value).toHaveAttribute('data-masked', 'false')
   await l.page.getByTestId('details-close-footer').focus() // focus leaves the eye
@@ -296,6 +311,7 @@ test('(d) delivered without a cost: provisional shares, then adding the cost rec
 test('(d) editing the cost again moves the shares; clearing it makes the profit provisional again', async () => {
   await openDetailsByBarcode(l.page, barcodeNoCost)
   await saveCostFromDetails('2000')
+  await revealDetails()
   await expect(l.page.getByTestId('compact-my-share')).toHaveText(/^1\.000\b/)
   await expect(l.page.getByTestId('net-profit-value')).toContainText('2.000')
 
@@ -303,9 +319,11 @@ test('(d) editing the cost again moves the shares; clearing it makes the profit 
   await l.page.getByTestId('parts-cost-clear').click()
   await expect(l.page.getByTestId('parts-cost-dialog')).toHaveCount(0)
   await expect(l.page.getByTestId('profit-provisional-badge')).toBeVisible()
+  await revealDetails()
   await expect(l.page.getByTestId('compact-my-share')).toHaveText(/^2\.000\b/)
 
   await saveCostFromDetails('2600') // back to the documented example
+  await revealDetails()
   await expect(l.page.getByTestId('compact-my-share')).toHaveText(/^700\b/)
 
   // invalid text is refused inside the dialog and nothing changes
@@ -314,6 +332,7 @@ test('(d) editing the cost again moves the shares; clearing it makes the profit 
   await l.page.getByTestId('parts-cost-save').click()
   await expect(l.page.getByTestId('parts-cost-error')).toBeVisible()
   await l.page.keyboard.press('Escape')
+  await revealDetails()
   await expect(l.page.getByTestId('compact-my-share')).toHaveText(/^700\b/)
   await closeDetails(l.page)
 })
@@ -347,12 +366,14 @@ test('(e) a cost above the price asks for a confirmation; the loss is shared lik
   await l.page.getByTestId('status-to-ready').click()
   await l.page.getByTestId('open-delivery').click()
   await expect(l.page.getByTestId('delivery-loss-note')).toBeVisible()
+  await revealDelivery()
   await expect(l.page.getByTestId('share-owner-amount')).toContainText('250')
   await expect(l.page.getByTestId('share-owner-amount')).toContainText(MINUS)
   await expect(l.page.getByTestId('share-partner-amount')).toContainText(MINUS)
   await l.page.getByTestId('confirm-delivery').click()
   await l.page.getByTestId('status-back-to-ready').waitFor()
   await expect(l.page.getByTestId('profit-loss-badge')).toBeVisible()
+  await revealDetails()
   await expect(l.page.getByTestId('compact-my-share')).toContainText('250')
   await expect(l.page.getByTestId('compact-my-share')).toContainText(MINUS)
   await expect(l.page.getByTestId('net-profit-value')).toContainText('500')
@@ -365,6 +386,7 @@ test('(e) a cost above the price asks for a confirmation; the loss is shared lik
   await l.page.getByTestId('parts-cost-save').click()
   await l.page.getByTestId('loss-confirm-accept').click()
   await expect(l.page.getByTestId('parts-cost-dialog')).toHaveCount(0)
+  await revealDetails()
   await expect(l.page.getByTestId('net-profit-value')).toContainText('200')
   await expect(l.page.getByTestId('compact-my-share')).toContainText('100')
   await closeDetails(l.page)
@@ -451,4 +473,117 @@ test('(d) reports: the ledger with its net-profit column still fits at 1280 and 
       )
       .toBe(true)
   }
+})
+
+// ---------------------------------------------------------------------------------------------
+// T004b
+async function apiTicket(category: number, price: number, cost: number | null): Promise<{ id: number; barcode: string }> {
+  return l.page.evaluate(
+    async ([cat, p, c]) => {
+      const res = await (window as unknown as { api: { createTicket: (d: unknown) => Promise<{ data: { ticketId: number; barcode: string } }> } }).api.createTicket({
+        customer: { name: `API ${Math.random()}`, phone: `0555${Math.floor(Math.random() * 900000 + 100000)}` },
+        device: { brand: 'Realme', model: 'C51' },
+        ticket: { repair_category_id: cat, price: p, payment_type: 'credit', amount_paid: 1000, technician_id: 1, parts_cost: c }
+      })
+      return { id: res.data.ticketId, barcode: res.data.barcode }
+    },
+    [category, price, cost] as [number, number, number | null]
+  )
+}
+
+test('(T004b) turning the category switch on does not make old tickets "missing a cost"', async () => {
+  // category 4 (general) has its switch off: an old ticket is created now
+  const oldTicket = await apiTicket(4, 2000, null)
+  await go('settings')
+  await l.page.getByTestId('settings-tab-categories').click()
+  const card = l.page.getByTestId('settings-category-card').filter({ hasText: PLAIN_CATEGORY })
+  await card.getByTestId('settings-category-requires-cost').click()
+  await expect(card.getByTestId('settings-category-cost-badge')).toBeVisible()
+
+  await go('tickets')
+  await l.page.getByTestId('filter-missing_cost').click()
+  const rows = l.page.locator('tbody tr')
+  await expect(rows.filter({ hasText: oldTicket.barcode })).toHaveCount(0)
+
+  // a ticket created AFTER the switch is on does count
+  const fresh = await apiTicket(4, 2000, null)
+  await go('settings')
+  await l.page.getByTestId('settings-tab-categories').waitFor()
+  await go('tickets')
+  await l.page.getByTestId('tickets-search').waitFor()
+  await expect(rows.filter({ hasText: fresh.barcode })).toHaveCount(1) // listed (unfiltered) first
+  await l.page.getByTestId('filter-missing_cost').click()
+  await expect(rows.filter({ hasText: fresh.barcode })).toHaveCount(1)
+  await expect(rows.filter({ hasText: oldTicket.barcode })).toHaveCount(0)
+  await l.page.getByTestId('filter-all').click()
+  await expect(rows.filter({ hasText: oldTicket.barcode }).getByTestId('row-missing-cost')).toHaveCount(0)
+
+  // the cost can still be added by hand to the old ticket (net profit as usual)
+  await openDetailsByBarcode(l.page, oldTicket.barcode)
+  await saveCostFromDetails('500')
+  await expect(l.page.getByTestId('parts-cost-dialog')).toHaveCount(0)
+  await revealDetails()
+  await expect(l.page.getByTestId('net-profit-value')).toContainText('1.500')
+  await closeDetails(l.page)
+
+  // switching it off again does not touch existing tickets either
+  await go('settings')
+  await l.page.getByTestId('settings-tab-categories').click()
+  await card.getByTestId('settings-category-requires-cost').click()
+  await expect(l.page.getByTestId('settings-category-cost-badge')).toHaveCount(1) // only the first category still requires one
+  await go('tickets')
+  await l.page.getByTestId('tickets-search').waitFor()
+  await l.page.getByTestId('filter-missing_cost').click()
+  await expect(rows.filter({ hasText: fresh.barcode })).toHaveCount(1)
+  await l.page.getByTestId('filter-all').click()
+})
+
+test('(T004b) the delivery dialog hides the profit split until asked, and hides it again on close', async () => {
+  const t = await apiTicket(2, 4000, 2600)
+  await go('tickets')
+  await openDetailsByBarcode(l.page, t.barcode)
+  await l.page.getByTestId('status-to-ready').click()
+  await l.page.getByTestId('open-delivery').click()
+  const dialog = l.page.getByRole('dialog').last()
+
+  // before the click: not in the visible DOM (no shares, no net profit, no percentage), debt + options are
+  await expect(l.page.getByTestId('delivery-profit-hidden')).toBeVisible()
+  await expect(l.page.getByTestId('profit-shares')).toHaveCount(0)
+  await expect(l.page.getByTestId('share-owner-amount')).toHaveCount(0)
+  const hiddenText = await dialog.innerText()
+  for (const needle of ['700', '1.400', '1400', '50%', '2.600']) expect(hiddenText).not.toContain(needle)
+  expect(await dialog.innerHTML()).not.toContain('1.400')
+  await expect(dialog).toContainText('3.000') // the amount the customer still owes is always visible
+  await expect(l.page.getByTestId('settle-full')).toBeVisible()
+  await expect(l.page.getByTestId('settle-credit')).toBeVisible()
+  await expect(l.page.getByTestId('confirm-delivery')).toBeEnabled()
+
+  // after the click: shown
+  await l.page.getByTestId('delivery-profit-toggle').click()
+  await expect(l.page.getByTestId('share-owner-amount')).toContainText('700')
+  await expect(l.page.getByTestId('share-partner-amount')).toContainText('700')
+  await expect(l.page.getByTestId('profit-shares')).toContainText('1.400')
+
+  // closing the dialog hides it again
+  await l.page.keyboard.press('Escape')
+  await l.page.getByTestId('open-delivery').click()
+  await expect(l.page.getByTestId('delivery-profit-hidden')).toBeVisible()
+  await expect(l.page.getByTestId('share-owner-amount')).toHaveCount(0)
+
+  // delivering without ever showing it works
+  await l.page.getByTestId('confirm-delivery').click()
+  await l.page.getByTestId('status-back-to-ready').waitFor()
+
+  // the details: price visible; cost, net profit and shares are hidden until the eye is pressed
+  await expect(l.page.getByTestId('parts-cost-section')).toContainText('4.000')
+  await expect(l.page.getByTestId('net-profit-value')).not.toContainText('1.400')
+  await expect(l.page.getByTestId('compact-my-share')).not.toContainText('700')
+  await expect(l.page.getByTestId('parts-cost-value')).not.toContainText('2.600')
+  const section = await l.page.getByTestId('parts-cost-section').innerText()
+  for (const needle of ['2.600', '1.400', '700']) expect(section).not.toContain(needle)
+  await l.page.getByTestId('parts-cost-reveal').click()
+  await expect(l.page.getByTestId('parts-cost-value')).toContainText('2.600')
+  await expect(l.page.getByTestId('net-profit-value')).toContainText('1.400')
+  await expect(l.page.getByTestId('compact-my-share')).toContainText('700')
+  await closeDetails(l.page)
 })

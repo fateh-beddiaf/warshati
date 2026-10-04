@@ -53,14 +53,14 @@ export function ReportLedger({ tickets, initialLoading, onOpenTicketDetails }: R
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               {/* Compact: related fields share a column, so the extra net-profit column costs no width */}
-              <TableHead className="px-3">{table.ticketNumber}</TableHead>
-              <TableHead className="px-3">{table.customer}</TableHead>
-              <TableHead className="px-3">{`${table.device} / ${table.category}`}</TableHead>
-              <TableHead className="px-3">{`${table.technician} / ${table.date}`}</TableHead>
-              <TableHead className="px-3">{`${table.price} / ${table.paymentStatus}`}</TableHead>
-              <TableHead className="px-3">{t.ui.partsCost.reports.netColumn}</TableHead>
-              <TableHead className="px-3 text-primary">{table.myShare}</TableHead>
-              <TableHead className="px-3 text-primary-to">{table.partnerShare}</TableHead>
+              <TableHead className="px-2">{`${table.ticketNumber} / ${table.date}`}</TableHead>
+              <TableHead className="px-2">{table.customer}</TableHead>
+              <TableHead className="px-2">{`${table.device} / ${table.category}`}</TableHead>
+              <TableHead className="px-2">{`${table.price} / ${table.paymentStatus}`}</TableHead>
+              <TableHead className="px-2">{t.ui.partsCost.reports.netColumn}</TableHead>
+              <TableHead className="px-2">
+                <span className="text-primary">{table.myShare}</span> / <span className="text-primary-to">{table.partnerShare}</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -74,15 +74,16 @@ export function ReportLedger({ tickets, initialLoading, onOpenTicketDetails }: R
                 }}
                 className="cursor-pointer focus-visible:bg-accent/50 focus-visible:outline-none"
               >
-                <TableCell className="px-3 py-3">
+                <TableCell className="px-2 py-3">
                   <Mono className="block text-xs font-bold text-foreground">{tItem.barcode_code}</Mono>
                   <StatusBadge status={tItem.status} className="mt-1 px-2 py-0 text-[10px]" />
+                  <span className="mt-1 block text-[11px] tabular text-muted-foreground">{formatDate(tItem.created_at)}</span>
                 </TableCell>
-                <TableCell className="px-3 py-3">
+                <TableCell className="whitespace-normal px-2 py-3">
                   <span className="block text-xs font-bold text-foreground">{tItem.customer_name}</span>
                   <Mono className="text-[11px] text-muted-foreground">{tItem.customer_phone}</Mono>
                 </TableCell>
-                <TableCell className="px-3 py-3">
+                <TableCell className="whitespace-normal px-2 py-3">
                   <span className="block text-xs font-semibold text-foreground">
                     {tItem.brand} {tItem.model}
                   </span>
@@ -92,14 +93,14 @@ export function ReportLedger({ tickets, initialLoading, onOpenTicketDetails }: R
                     </Mono>
                     <span className="text-[11px] font-semibold text-foreground">{tItem.category_name}</span>
                   </span>
-                </TableCell>
-                <TableCell className="px-3 py-3">
-                  <Badge variant={tItem.technician_is_partner ? 'secondary' : 'outline'} className="text-[11px] font-bold">
+                  <Badge
+                    variant={tItem.technician_is_partner ? 'secondary' : 'outline'}
+                    className="mt-1 text-[11px] font-bold"
+                  >
                     {tItem.technician}
                   </Badge>
-                  <span className="mt-1 block text-[11px] tabular text-muted-foreground">{formatDate(tItem.created_at)}</span>
                 </TableCell>
-                <TableCell className="px-3 py-3">
+                <TableCell className="px-2 py-3">
                   <span className="block text-xs font-extrabold tabular text-foreground">{formatCurrency(tItem.price)}</span>
                   {tItem.amount_remaining > 0 ? (
                     <Badge variant="warning" className="mt-1 rounded-md text-[11px] font-bold tabular">
@@ -111,7 +112,7 @@ export function ReportLedger({ tickets, initialLoading, onOpenTicketDetails }: R
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell className="px-3 py-3 text-xs font-extrabold tabular" data-testid="ledger-net">
+                <TableCell className="px-2 py-3 text-xs font-extrabold tabular" data-testid="ledger-net">
                   <span className={cn('block', tItem.is_loss ? 'text-danger' : 'text-foreground')}>
                     {formatCurrency(tItem.net_profit ?? tItem.price)}
                   </span>
@@ -128,15 +129,13 @@ export function ReportLedger({ tickets, initialLoading, onOpenTicketDetails }: R
                     </Badge>
                   )}
                 </TableCell>
-                <TableCell
-                  className={cn('px-3 py-3 text-xs font-extrabold tabular', (tItem.my_share ?? 0) < 0 ? 'text-danger' : 'text-primary')}
-                >
-                  {formatCurrency(tItem.my_share ?? 0)}
-                </TableCell>
-                <TableCell
-                  className={cn('px-3 py-3 text-xs font-extrabold tabular', (tItem.partner_share ?? 0) < 0 ? 'text-danger' : 'text-primary-to')}
-                >
-                  {formatCurrency(tItem.partner_share ?? 0)}
+                <TableCell className="px-2 py-3 text-xs font-extrabold tabular">
+                  <span className={cn('block', (tItem.my_share ?? 0) < 0 ? 'text-danger' : 'text-primary')}>
+                    {formatCurrency(tItem.my_share ?? 0)}
+                  </span>
+                  <span className={cn('mt-1 block', (tItem.partner_share ?? 0) < 0 ? 'text-danger' : 'text-primary-to')}>
+                    {formatCurrency(tItem.partner_share ?? 0)}
+                  </span>
                 </TableCell>
               </TableRow>
             ))}

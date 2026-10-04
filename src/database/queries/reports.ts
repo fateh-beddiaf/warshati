@@ -119,7 +119,7 @@ export function getFinancialReport(
       rc.id AS repair_category_id,
       rc.name AS category_name,
       rc.default_split_percentage AS category_split_percentage,
-      rc.requires_parts_cost AS category_requires_parts_cost,
+      t.parts_cost_required AS ticket_parts_cost_required,
       t.price,
       t.parts_cost,
       t.split_percentage_applied,
@@ -158,7 +158,7 @@ export function getFinancialReport(
 
   const rows = (empty ? [] : db.prepare(query).all(...params)) as (TicketListItem & {
     category_split_percentage?: number
-    category_requires_parts_cost?: number | null
+    ticket_parts_cost_required?: number | null
     parts_cost?: number | null
     split_percentage_applied?: number | null
     delivered_at?: string | null
@@ -220,7 +220,7 @@ export function getFinancialReport(
     const split = calculateProfitSplit({
       price,
       partsCost: row.parts_cost ?? null,
-      requiresPartsCost: Boolean(row.category_requires_parts_cost),
+      requiresPartsCost: Boolean(row.ticket_parts_cost_required),
       isPartner: Boolean(row.technician_is_partner),
       categorySplitPercentage: row.category_split_percentage ?? 50.0,
       appliedSplitPercentage: row.split_percentage_applied ?? null
@@ -283,7 +283,7 @@ export function getFinancialReport(
     const {
       parts_cost: _partsCost,
       split_percentage_applied: _applied,
-      category_requires_parts_cost: _requires,
+      ticket_parts_cost_required: _requires,
       ...publicRow
     } = row
     enrichedTickets.push({

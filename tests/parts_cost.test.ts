@@ -417,12 +417,12 @@ console.log('\n--- Section 8: ticket list and details ---')
   eq(typeof byId.get(idMissing)!.parts_cost_missing, 'boolean', 'the flag is a boolean')
   setPartsCost(db, idMissing, 80)
   eq(getTicketsList(db).find((x) => x.id === idMissing)!.parts_cost_missing, false, 'entering the cost clears the flag')
-  // switching the category's requirement off clears the flag everywhere
+  // the flag follows the ticket's own snapshot, not the category's current switch (T004b)
   const probe = mk({ price: 100, cat: screen.id })
   updateRepairCategory(db, screen.id, 'شاشات (اختبار)', 50, false)
-  eq(getTicketsList(db).find((x) => x.id === probe)!.parts_cost_missing, false, 'turning the category switch off un-flags its tickets')
+  eq(getTicketsList(db).find((x) => x.id === probe)!.parts_cost_missing, true, 'turning the category switch off does NOT change an existing ticket (snapshot)')
   updateRepairCategory(db, screen.id, 'شاشات (اختبار)', 50, true)
-  eq(getTicketsList(db).find((x) => x.id === probe)!.parts_cost_missing, true, 'turning it on flags them again')
+  eq(getTicketsList(db).find((x) => x.id === probe)!.parts_cost_missing, true, 'turning it back on changes nothing either')
 
   const details = getTicketById(db, idZero)!
   eq(details.ticket.parts_cost, 0, 'details carry the ticket cost (owner screen)')
