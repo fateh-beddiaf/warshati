@@ -3,6 +3,7 @@ import type { ElectronApplication, Page } from '@playwright/test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join, resolve } from 'path'
+import { isTicketCode } from '../../src/shared/ticket-code'
 
 // Shared helpers for the e2e specs that need real tickets (details / print modals).
 
@@ -58,7 +59,7 @@ export async function createTicket(
   await form.locator('button[type="submit"]').click()
   await page.waitForSelector('[data-testid="ticket-created-banner"]')
   const barcode = ((await page.getByTestId('ticket-created-barcode').textContent()) ?? '').trim()
-  if (!/^WSH[A-Z0-9]+$/.test(barcode)) throw new Error(`unexpected barcode: ${barcode}`)
+  if (!isTicketCode(barcode)) throw new Error(`unexpected barcode: ${barcode}`)
   return barcode
 }
 

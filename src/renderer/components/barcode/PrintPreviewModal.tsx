@@ -84,10 +84,10 @@ export function PrintPreviewModal({
         .then((res) => {
           if (res.success && res.data) {
             setPrinters(res.data)
-            const defaultP = res.data.find((p) => p.isDefault)
-            if (defaultP) {
-              setSelectedPrinter(defaultP.name)
-            }
+            // The remembered label printer first (the OS default is often the receipt printer), then the default
+            // ('' = the system default entry, also when the remembered printer is no longer installed)
+            const preferred = res.data.find((p) => p.isLabelPrinter) ?? res.data.find((p) => p.isDefault)
+            setSelectedPrinter(preferred?.name ?? '')
           }
         })
         .catch(console.error)
@@ -250,7 +250,8 @@ export function PrintPreviewModal({
                       .filter((p) => p.name !== '')
                       .map((p) => (
                         <SelectItem key={p.name} value={p.name}>
-                          {p.displayName || p.name} {p.isDefault ? t.ui.details.defaultMark : ''}
+                          {p.displayName || p.name} {p.isLabelPrinter ? t.ui.details.labelPrinterMark : ''}{' '}
+                          {p.isDefault ? t.ui.details.defaultMark : ''}
                         </SelectItem>
                       ))}
                   </SelectContent>

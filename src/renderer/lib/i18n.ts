@@ -12,7 +12,7 @@ import { partsCostAr, partsCostEn } from './locales/partsCost'
 export type Language = 'ar' | 'en'
 
 export const ar = {
-  // New T003 strings, one namespace per area: t.ui.layout.x, t.ui.tickets.x, ...
+  // Screen strings, one namespace per area (src/renderer/lib/locales): t.ui.layout.x, t.ui.tickets.x, ...
   ui: {
     layout: layoutAr,
     tickets: ticketsAr,
@@ -252,8 +252,8 @@ export const ar = {
   scanner: {
     readyBadge: 'قارئ الباركود (Henex) نشط',
     scanningPrompt: 'وجّه قارئ الباركود على أي ملصق لفتح التذكرة فوراً',
-    ticketNotFound: 'لم يتم العثور على تذكرة مطابقة لهذا الباركود',
-    simulateInputPlaceholder: 'محاكاة مسح باركود (WSH...)...',
+    ticketNotFound: 'لا توجد تذكرة بهذا الرمز',
+    simulateInputPlaceholder: 'امسح أو اكتب رمز التذكرة...',
     simulateButton: 'مسح'
   },
   ticketDetails: {
@@ -639,8 +639,8 @@ export const en: typeof ar = {
   scanner: {
     readyBadge: 'Barcode Scanner (Henex) Active',
     scanningPrompt: 'Scan any ticket barcode sticker to open details immediately',
-    ticketNotFound: 'No ticket found matching barcode',
-    simulateInputPlaceholder: 'Simulate barcode scan (WSH...)...',
+    ticketNotFound: 'No ticket with this code',
+    simulateInputPlaceholder: 'Scan or type a ticket code...',
     simulateButton: 'Scan'
   },
   ticketDetails: {

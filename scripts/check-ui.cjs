@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Design-system guard for src/renderer (T003):
+// Design-system guard for src/renderer (keeps the design tokens, RTL-safe classes and file size rules):
 //   1. no raw palette colours / hex / rgb / hsl literals (use the tokens from index.css)
 //   2. no Tailwind v4-only classes (this project is on Tailwind 3.4)
 //   3. no physical ml-/mr-/pl-/pr-/left-/right-/text-left/text-right (use ms-/me-/ps-/pe-/start-/end-/text-start/text-end)

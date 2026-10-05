@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Wrench,
@@ -25,8 +25,13 @@ interface LayoutProps {
   activeTab: TabId
   onTabChange: (tab: TabId) => void
   onManualBarcodeScan?: (barcode: string) => void
+  /** The last code read by the scanner: shown in the scan box with a short highlight */
+  scannedCode?: { value: string; seq: number } | null
   children: React.ReactNode
 }
+
+/** How long the scan box stays highlighted after a scan (ms) */
+const SCAN_FLASH_MS = 1200
 
 interface NavItemProps {
   testId: string
@@ -54,10 +59,12 @@ function NavItem({ testId, icon: Icon, label, active, onClick }: NavItemProps): 
       )}
     >
       {active && (
+        // pointer-events-none: while it glides to the newly active item, the pill passes over the other items;
+        // it must not catch a click meant for one of them (it belongs to the active button)
         <motion.span
           layoutId={`${LAYOUT_IDS.navPill}-sidebar`}
           transition={transitions.spring}
-          className="absolute inset-0 rounded-lg bg-gradient-primary shadow-card"
+          className="pointer-events-none absolute inset-0 rounded-lg bg-gradient-primary shadow-card"
         />
       )}
       <Icon className="relative h-5 w-5 shrink-0 transition-transform duration-150 group-hover:scale-110" />
@@ -66,9 +73,25 @@ function NavItem({ testId, icon: Icon, label, active, onClick }: NavItemProps): 
   )
 }
 
-export function Layout({ activeTab, onTabChange, onManualBarcodeScan, children }: LayoutProps): React.JSX.Element {
+export function Layout({
+  activeTab,
+  onTabChange,
+  onManualBarcodeScan,
+  scannedCode,
+  children
+}: LayoutProps): React.JSX.Element {
   const { t } = useI18n()
   const [barcodeInput, setBarcodeInput] = useState('')
+  const [scanFlash, setScanFlash] = useState(false)
+
+  // A scan made anywhere in the app shows up here, so the user sees what the reader sent
+  useEffect(() => {
+    if (!scannedCode) return
+    setBarcodeInput(scannedCode.value)
+    setScanFlash(true)
+    const timer = setTimeout(() => setScanFlash(false), SCAN_FLASH_MS)
+    return () => clearTimeout(timer)
+  }, [scannedCode])
 
   const handleBarcodeSubmit = (e: React.FormEvent): void => {
     e.preventDefault()
@@ -163,11 +186,15 @@ export function Layout({ activeTab, onTabChange, onManualBarcodeScan, children }
                   type="text"
                   data-barcode-input="true"
                   data-testid="header-barcode-input"
+                  data-scan-flash={scanFlash ? 'true' : undefined}
                   aria-label={t.ui.layout.scanInputAria}
                   value={barcodeInput}
                   onChange={(e) => setBarcodeInput(e.target.value)}
                   placeholder={t.scanner.simulateInputPlaceholder}
-                  className="h-8 w-64 bg-muted ps-8 pe-3 text-xs font-semibold focus-visible:bg-card"
+                  className={cn(
+                    'h-8 w-64 bg-muted ps-8 pe-3 text-xs font-semibold transition-colors duration-300 focus-visible:bg-card',
+                    scanFlash && 'bg-success-soft ring-2 ring-success'
+                  )}
                 />
                 <Search className="pointer-events-none absolute start-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
               </div>

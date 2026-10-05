@@ -44,7 +44,7 @@ export function ThemeSelector({ className }: { className?: string }): React.JSX.
               <motion.span
                 layoutId="theme-selector-pill"
                 transition={transitions.spring}
-                className="absolute inset-0 rounded-md bg-card shadow-soft"
+                className="pointer-events-none absolute inset-0 rounded-md bg-card shadow-soft"
               />
             )}
             <Icon className="relative h-4 w-4" />

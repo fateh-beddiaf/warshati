@@ -14,7 +14,7 @@ function assert(condition: boolean, message: string): void {
   console.log(`✅ Passed: ${message}`)
 }
 
-console.log('🚀 Running Unit & Integration Tests for Milestone 4: Profit Logic & Reporting...\n')
+console.log('🚀 Running Unit & Integration Tests for the profit logic & reporting...\n')
 
 // =========================================================================
 // SECTION 1: Pure Unit Tests for calculateProfitSplit

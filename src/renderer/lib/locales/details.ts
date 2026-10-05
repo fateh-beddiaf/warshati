@@ -1,4 +1,4 @@
-// New UI strings for the "details" area (T003): ticket details modal + print preview.
+// UI strings for the "details" area: ticket details modal + print preview.
 // Add keys here, never inline text in JSX.
 // `en` is typed against `ar`, so both languages must define every key.
 export const detailsAr = {
@@ -28,6 +28,7 @@ export const detailsAr = {
   // Print preview modal
   labelSize: '40 × 20 mm',
   defaultMark: '(الافتراضية)',
+  labelPrinterMark: '(طابعة الملصقات)',
   shortLabelPlaceholder: 'SA A54...',
   previewNote: 'يظهر الملصق دائماً بخلفية بيضاء كما سيُطبع، بغض النظر عن وضع الواجهة.',
   scaleAria: 'حجم المعاينة'
@@ -59,6 +60,7 @@ export const detailsEn: typeof detailsAr = {
 
   labelSize: '40 × 20 mm',
   defaultMark: '(default)',
+  labelPrinterMark: '(label printer)',
   shortLabelPlaceholder: 'SA A54...',
   previewNote: 'The label is always shown black on white, exactly as it will be printed, whatever the app theme.',
   scaleAria: 'Preview size'

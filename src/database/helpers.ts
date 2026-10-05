@@ -1,3 +1,6 @@
+import type Database from 'better-sqlite3'
+import { generateTicketCode } from '../shared/ticket-code'
+
 /**
  * Calculates amount_remaining accurately.
  * Guaranteed to be non-negative.
@@ -10,16 +13,14 @@ export function calculateRemaining(price: number, amountPaid: number): number {
 }
 
 /**
- * Generates a unique, Code128-compatible barcode code for a ticket.
- * Format: WSH-YYMMDD-XXXX where XXXX is a unique sequence/random alphanumeric segment.
+ * A ticket code that no ticket uses yet, neither as its code nor as its legacy (pre-migration) code.
+ * Format and reasons: src/shared/ticket-code.ts.
  */
-export function generateBarcodeCode(): string {
-  const now = new Date()
-  const year = String(now.getFullYear()).slice(-2)
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000).toString()
-  const randomAlpha = Math.random().toString(36).substring(2, 4).toUpperCase()
-
-  return `WSH${year}${month}${day}${randomAlpha}${randomSuffix}`
+export function generateUniqueTicketCode(db: Database.Database): string {
+  const taken = db.prepare(`SELECT 1 FROM Ticket WHERE barcode_code = ? OR legacy_barcode_code = ?`)
+  for (let attempt = 0; attempt < 1000; attempt++) {
+    const code = generateTicketCode()
+    if (!taken.get(code, code)) return code
+  }
+  throw new Error('تعذر توليد رمز تذكرة فريد. أعد المحاولة.')
 }

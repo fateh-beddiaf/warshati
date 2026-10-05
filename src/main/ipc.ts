@@ -14,6 +14,7 @@ import {
   assertUpdateTicketStatusDTO
 } from './ipc-validate'
 import { listPrinters } from './printers'
+import { LABEL_PRINTER_SETTING_KEY } from '../shared/types'
 
 export function registerIpcHandlers(): void {
   // Tickets
@@ -170,7 +171,8 @@ export function registerIpcHandlers(): void {
   // Printer
   ipcMain.handle('printer:getPrinters', async (event) => {
     try {
-      return { success: true, data: await listPrinters(event.sender) }
+      const labelPrinter = dbService.getSetting(LABEL_PRINTER_SETTING_KEY, '')
+      return { success: true, data: await listPrinters(event.sender, labelPrinter) }
     } catch (error: unknown) {
       console.error('Failed to get printers:', error)
       return {
@@ -185,6 +187,11 @@ export function registerIpcHandlers(): void {
       assertPrintLabelData(labelData)
       const { printTicketLabel } = await import('./printer')
       const result = await printTicketLabel(labelData)
+      // Remember the printer a label actually printed on: the next print dialog preselects it (the OS default is
+      // often the receipt printer, not the label printer)
+      if (result.success && labelData.printerName) {
+        dbService.setSetting(LABEL_PRINTER_SETTING_KEY, labelData.printerName)
+      }
       return result
     } catch (error: unknown) {
       console.error('Failed to print label:', error)

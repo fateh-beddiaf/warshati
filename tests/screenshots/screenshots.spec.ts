@@ -127,7 +127,7 @@ for (const theme of THEMES) {
         const freshReady = rows.find((r) => r.status === 'ready' && !r.is_overdue)
         const deliveredDebt = rows.find((r) => r.status === 'delivered' && r.amount_remaining > 0)
         expect(overdueReady && inProgress && freshReady && deliveredDebt, 'demo data has every status').toBeTruthy()
-        // T004 demo tickets: a ready one still missing its cost, delivered ones with a cost / without one / at a loss
+        // Parts cost demo tickets: a ready one still missing its cost, delivered ones with a cost / without one / at a loss
         const readyMissingCost = rows.find((r) => r.status === 'ready' && r.parts_cost_missing)
         const deliveredWithCost = rows.find((r) => r.status === 'delivered' && r.price === 5500)
         const deliveredProvisional = rows.find((r) => r.status === 'delivered' && r.parts_cost_missing)

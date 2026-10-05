@@ -1,4 +1,4 @@
-// Manual acceptance script (not part of `npm test`), T004: builds a database with the REAL older code
+// Manual acceptance script (not part of `npm test`) for the parts cost migration: builds a database with the REAL older code
 // (main @ 33b4cfc or main @ 2410a27, extracted next to this repo so node_modules resolve) and opens it
 // with the current code.
 //

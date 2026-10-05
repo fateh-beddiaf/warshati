@@ -55,7 +55,8 @@ export function BarcodeLabel({
 
         {/* Center: Barcode & Code */}
         <div className="flex flex-col items-center justify-center my-[0.2mm] flex-1">
-          <svg ref={svgRef} data-testid="barcode-svg" className="w-full max-h-[8mm]" />
+          {/* Real size in mm from drawBarcode: never stretched (see shared/label-barcode.ts) */}
+          <svg ref={svgRef} data-testid="barcode-svg" className="block flex-none" />
           <span className="font-mono font-bold text-[6px] tracking-wider text-black mt-[0.2mm] leading-none">
             {barcode}
           </span>
@@ -91,7 +92,7 @@ export function BarcodeLabel({
 
       {/* Center: Barcode & Code */}
       <div className="flex flex-col items-center justify-center my-1 flex-1">
-        <svg ref={svgRef} data-testid="barcode-svg" className="w-full max-h-[44px]" />
+        <svg ref={svgRef} data-testid="barcode-svg" className="block flex-none" />
         <span className="font-mono font-black text-xs tracking-widest text-black mt-1">{barcode}</span>
       </div>
 

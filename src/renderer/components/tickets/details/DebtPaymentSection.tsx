@@ -15,7 +15,7 @@ type Props = {
   >
 }
 
-/** Debt payment (T002 recordPayment): delivered tickets that still carry a remaining balance. */
+/** Debt payment (recordPayment): delivered tickets that still carry a remaining balance. */
 export function DebtPaymentSection({ ticketDetails, state }: Props): React.JSX.Element | null {
   const { t } = useI18n()
   const { ticket } = ticketDetails

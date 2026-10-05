@@ -1,6 +1,6 @@
 import { parseCostInput, isCostLoss } from '../src/shared/parts-cost'
 
-// T004: parsing of the (masked) parts-cost text box and the "cost above price" check.
+// Parsing of the (masked) parts-cost text box and the "cost above price" check.
 
 let failures = 0
 function eq<T>(actual: T, expected: T, message: string): void {

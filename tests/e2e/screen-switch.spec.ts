@@ -1,0 +1,73 @@
+import { test, expect } from '@playwright/test'
+import { launchApp, shutdownApp, type Launched } from './helpers'
+
+// Rapid tab switching: whatever the click sequence, the screen shown is the active tab's, alone, within a second.
+// With real mouse clicks a click could be lost: the sidebar's active "pill" glides to the newly active item over
+// the other items and caught the click (it belongs to the previously clicked button), so the old screen stayed up.
+
+const TABS = ['tickets', 'new-ticket', 'reports', 'settings'] as const
+
+let l: Launched
+
+test.beforeAll(async () => {
+  l = await launchApp('screen-switch')
+})
+test.afterAll(async () => {
+  await shutdownApp(l)
+})
+test.afterEach(() => {
+  expect(l.problems, 'renderer errors').toEqual([])
+})
+
+/** The screens currently in the DOM, and the tab the sidebar marks active. */
+async function shown(): Promise<{ screens: string[]; active: string | null }> {
+  return l.page.evaluate(() => ({
+    screens: [...document.querySelectorAll('[data-testid^="screen-"]')].map((el) =>
+      (el.getAttribute('data-testid') ?? '').replace('screen-', '')
+    ),
+    active:
+      document
+        .querySelector('[data-testid^="nav-"][aria-current="page"]')
+        ?.getAttribute('data-testid')
+        ?.replace('nav-', '') ?? null
+  }))
+}
+
+test('20 rapid clicks: only the active screen is shown within 1 second (5 rounds)', async () => {
+  let seed = 7
+  const next = (): number => (seed = (seed * 1103515245 + 12345) % 2 ** 31)
+  for (let round = 0; round < 5; round++) {
+    let last: (typeof TABS)[number] = 'tickets'
+    for (let i = 0; i < 20; i++) {
+      const candidates = TABS.filter((t) => t !== last)
+      last = candidates[next() % candidates.length]
+      // dispatched in-page: no waiting for animations between clicks, like a quick user
+      await l.page.evaluate(
+        (tab) => (document.querySelector(`[data-testid="nav-${tab}"]`) as HTMLElement).click(),
+        last
+      )
+      if (next() % 3 === 0) await l.page.waitForTimeout(next() % 120)
+    }
+    const started = Date.now()
+    await expect.poll(shown, { timeout: 1000, intervals: [50] }).toEqual({ screens: [last], active: last })
+    console.log(`round ${round}: settled on ${last} in ${Date.now() - started}ms`)
+  }
+})
+
+test('20 rapid real mouse clicks: only the active screen is shown within 1 second (5 rounds)', async () => {
+  let seed = 11
+  const next = (): number => (seed = (seed * 1103515245 + 12345) % 2 ** 31)
+  for (let round = 0; round < 5; round++) {
+    let last: (typeof TABS)[number] = 'tickets'
+    for (let i = 0; i < 20; i++) {
+      const candidates = TABS.filter((t) => t !== last)
+      last = candidates[next() % candidates.length]
+      // a real pointer click (pointerdown/up: the buttons have a tap animation), not waiting for the screen
+      const box = await l.page.getByTestId(`nav-${last}`).boundingBox()
+      await l.page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2)
+    }
+    const started = Date.now()
+    await expect.poll(shown, { timeout: 1000, intervals: [50] }).toEqual({ screens: [last], active: last })
+    console.log(`mouse round ${round}: settled on ${last} in ${Date.now() - started}ms`)
+  }
+})

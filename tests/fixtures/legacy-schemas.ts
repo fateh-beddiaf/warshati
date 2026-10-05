@@ -3,7 +3,7 @@
  * they are NOT the current schema and must never be edited to follow it.
  */
 
-/** Schema of main @ 33b4cfc (and main @ 2410a27: schema.ts is identical): before T004 (no parts cost). */
+/** Schema of main @ 33b4cfc (and main @ 2410a27: schema.ts is identical): before the parts cost columns. */
 export const LEGACY_SCHEMA_BEFORE_PARTS_COST = `
   PRAGMA foreign_keys = ON;
 
@@ -111,7 +111,7 @@ export const LEGACY_SCHEMA_BEFORE_PARTS_COST = `
 
 /**
  * An older database than any of the above: no technician_id / brand_id / model_id / is_partner and no
- * profit-share columns, so the identity migration and the T004 migration have to run together.
+ * profit-share columns, so the identity migration and the parts cost migration have to run together.
  */
 export const LEGACY_SCHEMA_ANCIENT = `
   CREATE TABLE Customer (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, phone TEXT NOT NULL, notes TEXT);

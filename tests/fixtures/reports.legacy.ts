@@ -7,7 +7,7 @@ import type {
   TicketListItem
 } from '../../src/shared/types'
 /**
- * FROZEN REFERENCE: the report query as it was before the T002 rework (every status returned,
+ * FROZEN REFERENCE: the report query as it was before it was reworked (every status returned,
  * correlated subqueries per row). Used only by tests/reports_query.test.ts to prove the new
  * implementation yields identical numbers. The only change: custom dates are parsed as local
  * dates (same as the new code) so the comparison does not depend on the machine's timezone.

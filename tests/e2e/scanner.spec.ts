@@ -49,8 +49,15 @@ const ARABIC_LETTERS: Record<string, string> = {
 }
 const ARABIC_DIGITS = '٠١٢٣٤٥٦٧٨٩'
 
-/** Sends a scanner burst: every character as fast as possible, then Enter. */
-async function scan(code: string, layout: 'latin' | 'arabic', withEnter = true): Promise<void> {
+type Suffix = 'Enter' | 'NumpadEnter' | 'Tab' | null
+const SUFFIX_KEYS = {
+  Enter: { key: 'Enter', text: '\r', vk: 13 },
+  NumpadEnter: { key: 'Enter', text: '\r', vk: 13 },
+  Tab: { key: 'Tab', text: '', vk: 9 }
+}
+
+/** Sends a scanner burst: every character as fast as possible, then the suffix the reader is configured with. */
+async function scan(code: string, layout: 'latin' | 'arabic', suffix: Suffix = 'Enter'): Promise<void> {
   const sends: Promise<unknown>[] = []
   for (const ch of code) {
     const isDigit = /[0-9]/.test(ch)
@@ -82,28 +89,18 @@ async function scan(code: string, layout: 'latin' | 'arabic', withEnter = true):
       )
     )
   }
-  if (withEnter) {
+  if (suffix) {
+    const { key, text, vk } = SUFFIX_KEYS[suffix]
     sends.push(
       cdp.send(
         'Input.dispatchKeyEvent' as never,
-        {
-          type: 'keyDown',
-          key: 'Enter',
-          code: 'Enter',
-          text: '\r',
-          windowsVirtualKeyCode: 13
-        } as never
+        { type: 'keyDown', key, code: suffix, text, windowsVirtualKeyCode: vk } as never
       )
     )
     sends.push(
       cdp.send(
         'Input.dispatchKeyEvent' as never,
-        {
-          type: 'keyUp',
-          key: 'Enter',
-          code: 'Enter',
-          windowsVirtualKeyCode: 13
-        } as never
+        { type: 'keyUp', key, code: suffix, windowsVirtualKeyCode: vk } as never
       )
     )
   }
@@ -194,7 +191,7 @@ test('setup: create a ticket and read its barcode', async () => {
   await form.locator('button[type="submit"]').click()
   await page.waitForSelector('[data-testid="ticket-created-banner"]')
   barcode = ((await page.getByTestId('ticket-created-barcode').textContent()) ?? '').trim()
-  expect(barcode).toMatch(/^WSH[A-Z0-9]+$/)
+  expect(barcode).toMatch(/^2\d{7}$/)
   await installEnterProbe()
 })
 
@@ -248,13 +245,13 @@ test('normal human typing in a field is unaffected', async () => {
   await page.keyboard.type('Ali Ben', { delay: 150 })
   await expect(name).toHaveValue('Ali Ben')
 
-  // slow typing of a WSH-looking string (slower than scanner speed) is not a scan
+  // slow typing of a ticket code (slower than scanner speed) is not a scan
   await name.fill('')
-  await page.keyboard.type('WSH1234567', { delay: 100 })
-  await expect(name).toHaveValue('WSH1234567')
+  await page.keyboard.type(barcode, { delay: 110 })
+  await expect(name).toHaveValue(barcode)
   await expect(page.getByTestId('details-close')).toBeHidden()
 
-  // a fast burst that is NOT WSH-prefixed: left alone, Enter is not intercepted
+  // a fast burst that is NOT a ticket code: left alone, Enter is not intercepted
   await name.fill('')
   await name.focus()
   const before = await probe()
@@ -321,4 +318,81 @@ test('delete-confirmation field (data-barcode-input) receives the scan instead o
   for (let i = 0; i < 3; i++) await page.getByTestId('delete-back').click()
   await expect(page.getByTestId('delete-back')).toHaveCount(0)
   await closeDetailsIfOpen()
+})
+
+test('outside any field, ANY scan lands in the scan box and is looked up (product barcode: not found)', async () => {
+  await go('tickets')
+  const header = page.getByTestId('header-barcode-input')
+  await header.fill('')
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+
+  await scan('6130000000017', 'arabic') // an EAN-13 product barcode, Arabic layout
+  await expect(header).toHaveValue('6130000000017')
+  await expect(header).toHaveAttribute('data-scan-flash', 'true')
+  await expect(page.getByTestId('scan-alert')).toContainText('لا توجد تذكرة بهذا الرمز: 6130000000017')
+  await expect(page.getByTestId('details-close')).toBeHidden()
+  // the highlight is short
+  await expect(header).not.toHaveAttribute('data-scan-flash', 'true', { timeout: 3000 })
+})
+
+test('outside any field, a ticket code opens the ticket (Enter, NumpadEnter or Tab suffix)', async () => {
+  for (const suffix of ['Enter', 'NumpadEnter', 'Tab'] as const) {
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+    await scan(barcode, 'latin', suffix)
+    await page.getByTestId('details-close').waitFor()
+    await expect(page.locator('strong', { hasText: barcode })).toBeVisible()
+    await expect(page.getByTestId('header-barcode-input')).toHaveValue(barcode)
+    await closeDetailsIfOpen()
+  }
+})
+
+test('inside the customer-name field, a product barcode stays in the field', async () => {
+  await go('new-ticket')
+  const name = page.getByTestId('new-ticket-form').locator('input[type="text"]').nth(0)
+  await name.fill('')
+  await name.focus()
+  await scan('6130000000017', 'latin', 'Tab')
+  await expect(name).toHaveValue('6130000000017')
+  await expect(page.getByTestId('details-close')).toBeHidden()
+  await expect(page.getByTestId('scan-alert')).toBeHidden()
+  await name.fill('')
+})
+
+test('Settings > reader test shows what the reader sent and what the app makes of it', async () => {
+  await page.getByTestId('nav-settings').click()
+  await page.getByTestId('settings-tab-preferences').click()
+  const input = page.getByTestId('scanner-test-input')
+  const result = page.getByTestId('scanner-test-result')
+
+  // a ticket code under an Arabic layout: received as Arabic digits, read as the code, not intercepted
+  await input.focus()
+  await scan(barcode, 'arabic')
+  await expect(result).toHaveAttribute('data-verdict', 'ok')
+  await expect(page.getByTestId('scanner-test-read-as')).toHaveText(barcode)
+  await expect(page.getByTestId('scanner-test-chars')).toHaveText(
+    [...barcode].map((d) => ARABIC_DIGITS[Number(d)]).join('')
+  )
+  await expect(page.getByTestId('scanner-test-suffix')).toHaveText('Enter')
+  await expect(page.getByTestId('scanner-test-kind')).toContainText('رمز تذكرة')
+  await expect(page.getByTestId('details-close')).toBeHidden()
+  await expect(input).toBeFocused()
+
+  // a product barcode with a Tab suffix
+  await input.fill('')
+  await scan('6130000000017', 'latin', 'Tab')
+  await expect(page.getByTestId('scanner-test-suffix')).toHaveText('Tab')
+  await expect(page.getByTestId('scanner-test-kind')).toContainText('ليس رمز تذكرة')
+  await expect(input).toBeFocused()
+
+  // a reader that sends no suffix at all
+  await input.fill('')
+  await scan(barcode, 'latin', null)
+  await expect(result).toHaveAttribute('data-verdict', 'no-suffix')
+
+  // human typing is reported as too slow
+  await input.fill('')
+  await page.keyboard.type(barcode, { delay: 110 })
+  await page.keyboard.press('Enter')
+  await expect(result).toHaveAttribute('data-verdict', 'slow')
+  await expect(page.getByTestId('details-close')).toBeHidden()
 })
