@@ -16,6 +16,8 @@ const SETTINGS_TABS = ['categories', 'brandsModels', 'accessories', 'technicians
 
 let demoDir: string
 let emptyDir: string
+/** Demo data for the automatic backup screens (its backup settings must not leak into the other screens) */
+let backupDemoDir: string
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const electronBinary: string = require('electron')
 
@@ -23,14 +25,17 @@ test.beforeAll(() => {
   mkdirSync(OUT_DIR, { recursive: true })
   demoDir = mkdtempSync(join(tmpdir(), 'warshati-shots-demo-'))
   emptyDir = mkdtempSync(join(tmpdir(), 'warshati-shots-empty-'))
-  const res = spawnSync(electronBinary, ['-r', 'tsx', 'tests/fixtures/seed-demo.run.ts', demoDir], {
-    encoding: 'utf8'
-  })
-  if (res.status !== 0) throw new Error(`demo seed failed: ${res.stdout}\n${res.stderr}`)
+  backupDemoDir = mkdtempSync(join(tmpdir(), 'warshati-shots-backup-'))
+  for (const dir of [demoDir, backupDemoDir]) {
+    const res = spawnSync(electronBinary, ['-r', 'tsx', 'tests/fixtures/seed-demo.run.ts', dir], {
+      encoding: 'utf8'
+    })
+    if (res.status !== 0) throw new Error(`demo seed failed: ${res.stdout}\n${res.stderr}`)
+  }
 })
 
 test.afterAll(() => {
-  for (const dir of [demoDir, emptyDir]) {
+  for (const dir of [demoDir, emptyDir, backupDemoDir]) {
     try {
       rmSync(dir, { recursive: true, force: true })
     } catch {
@@ -80,6 +85,11 @@ async function setWidth(app: ElectronApplication, width: number): Promise<void> 
   await app.evaluate(({ BrowserWindow }, w) => {
     BrowserWindow.getAllWindows()[0].setSize(w, 800)
   }, width)
+}
+
+/** The page body keeps its scroll position across screens: start each shot at the top. */
+async function scrollToTop(page: Page): Promise<void> {
+  await page.evaluate(() => document.querySelectorAll('main .overflow-y-auto').forEach((el) => el.scrollTo(0, 0)))
 }
 
 async function nav(page: Page, tab: 'tickets' | 'new-ticket' | 'reports' | 'settings'): Promise<void> {
@@ -267,6 +277,45 @@ for (const theme of THEMES) {
         await closeDetails(page)
 
         expect(problems, 'no renderer errors while taking screenshots').toEqual([])
+      } finally {
+        await app.close()
+      }
+    })
+
+    test(`automatic backup ${theme}-${lang}`, async () => {
+      const { app, page, problems } = await launch(backupDemoDir)
+      // The folder dialog answers with a folder next to the data (same drive: the hint shows)
+      const folder = join(backupDemoDir, 'backups')
+      mkdirSync(folder, { recursive: true })
+      await app.evaluate(({ dialog }, dir) => {
+        dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [dir] })) as typeof dialog.showOpenDialog
+      }, folder)
+      try {
+        await configure(page, theme, lang)
+        await nav(page, 'settings')
+        await page.getByTestId('settings-tab-backup').click()
+        await page.getByTestId('backup-choose-dir').click()
+        await page.getByTestId('backup-dir').waitFor()
+        const toggle = page.getByTestId('backup-auto-switch')
+        if ((await toggle.getAttribute('data-state')) !== 'checked') await toggle.click()
+        await page.getByTestId('backup-run-now').click()
+        await page.getByTestId('backup-list-row').first().waitFor()
+        await page.mouse.move(5, 5)
+        await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 15_000 })
+        await scrollToTop(page)
+        await shot(page, 'settings-backup-configured', theme, lang, 300)
+
+        // USB drive removed: the warning banner over the tickets list, and the settings card explaining it
+        rmSync(folder, { recursive: true, force: true })
+        await nav(page, 'tickets')
+        await page.getByTestId('backup-warning-banner').waitFor()
+        await scrollToTop(page)
+        await shot(page, 'backup-banner', theme, lang)
+        await page.getByTestId('backup-warning-open-settings').click()
+        await page.getByTestId('backup-dir-unavailable').waitFor()
+        await scrollToTop(page)
+        await shot(page, 'settings-backup-unavailable', theme, lang)
+        expect(problems).toEqual([])
       } finally {
         await app.close()
       }

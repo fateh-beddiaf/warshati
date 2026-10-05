@@ -38,9 +38,9 @@ function TabPanel({ value, children }: { value: SettingsTabId; children: React.R
   )
 }
 
-export function SettingsScreen(): React.JSX.Element {
+export function SettingsScreen({ initialTab = 'categories' }: { initialTab?: SettingsTabId }): React.JSX.Element {
   const { t } = useI18n()
-  const [activeTab, setActiveTab] = useState<SettingsTabId>('categories')
+  const [activeTab, setActiveTab] = useState<SettingsTabId>(initialTab)
   const { data, loading, reload, overdueDays, setOverdueDays } = useSettingsData()
 
   const tabProps: SettingsTabProps = { data, loading, reload, notify }

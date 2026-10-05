@@ -8,6 +8,9 @@ import { Skeleton } from '../../../components/ui/Skeleton'
 import type { SettingsTabProps } from '../types'
 import { ImportConfirmDialog } from './ImportConfirmDialog'
 import { Mono } from '../../../components/ui/Mono'
+import { useBackupStatus } from '../../../hooks/useBackupStatus'
+import { AutoBackupCard } from './AutoBackupCard'
+import { BackupListCard } from './BackupListCard'
 
 function InfoCell({ label, children }: { label: string; children: React.ReactNode }): React.JSX.Element {
   return (
@@ -25,6 +28,10 @@ export function BackupTab({ data, loading, reload, notify }: SettingsTabProps): 
   const [confirmOpen, setConfirmOpen] = useState(false)
   const m = t.ui.settings.msg
   const { dbInfo } = data
+  const backup = useBackupStatus()
+  const afterRestore = async (): Promise<void> => {
+    await Promise.all([reload(), backup.refresh()])
+  }
 
   const handleExport = async (): Promise<void> => {
     setExporting(true)
@@ -53,7 +60,7 @@ export function BackupTab({ data, loading, reload, notify }: SettingsTabProps): 
           msg += ` (${t.settings.backup.safetyBackupNotice.replace('{path}', res.safetyBackupPath)})`
         }
         notify('success', msg)
-        await reload()
+        await afterRestore()
       } else if (!res.canceled) {
         notify('error', res.error || m.importFailed)
       }
@@ -66,6 +73,9 @@ export function BackupTab({ data, loading, reload, notify }: SettingsTabProps): 
 
   return (
     <div className="space-y-6">
+      <AutoBackupCard status={backup.status} onStatus={backup.setStatus} notify={notify} />
+      <BackupListCard status={backup.status} notify={notify} onRestored={afterRestore} />
+
       <Card className="bg-gradient-header">
         <CardHeader>
           <div className="flex items-center gap-2.5">
