@@ -65,7 +65,7 @@ export function SettingsScreen(): React.JSX.Element {
                 <motion.span
                   layoutId="settings-tab-pill"
                   transition={transitions.spring}
-                  className="absolute inset-0 rounded-md bg-card shadow-soft"
+                  className="pointer-events-none absolute inset-0 rounded-md bg-card shadow-soft"
                 />
               )}
               <span className="relative [&_svg]:h-4 [&_svg]:w-4">{TAB_ICONS[id]}</span>

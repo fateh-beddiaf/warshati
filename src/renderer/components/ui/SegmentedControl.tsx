@@ -75,7 +75,7 @@ export function SegmentedControl<T extends string>({
               <motion.span
                 layoutId={`segmented-${layoutGroup}`}
                 transition={transitions.spring}
-                className={cn('absolute inset-0 rounded-md', PILL_TONE[tone])}
+                className={cn('pointer-events-none absolute inset-0 rounded-md', PILL_TONE[tone])}
               />
             )}
             {item.icon && <span className="relative [&_svg]:h-3.5 [&_svg]:w-3.5">{item.icon}</span>}

@@ -59,10 +59,12 @@ function NavItem({ testId, icon: Icon, label, active, onClick }: NavItemProps): 
       )}
     >
       {active && (
+        // pointer-events-none: while it glides to the newly active item, the pill passes over the other items;
+        // it must not catch a click meant for one of them (it belongs to the active button)
         <motion.span
           layoutId={`${LAYOUT_IDS.navPill}-sidebar`}
           transition={transitions.spring}
-          className="absolute inset-0 rounded-lg bg-gradient-primary shadow-card"
+          className="pointer-events-none absolute inset-0 rounded-lg bg-gradient-primary shadow-card"
         />
       )}
       <Icon className="relative h-5 w-5 shrink-0 transition-transform duration-150 group-hover:scale-110" />
