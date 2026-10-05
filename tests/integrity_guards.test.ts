@@ -20,6 +20,10 @@ import {
 import { importDatabaseBackup } from '../src/main/backup'
 import type { CreateTicketDTO } from '../src/shared/types'
 
+// Data integrity guards: payments can never be negative or exceed the price (creation and delivery),
+// technicians / brands / models are referenced by id (renaming keeps the delete guards; the identity migration is
+// strict and all-or-nothing), and a backup import stops before touching anything when the safety copy fails.
+
 function assert(condition: boolean, message: string): void {
   if (!condition) throw new Error(`Assertion failed: ${message}`)
   console.log(`✅ ${message}`)
@@ -245,7 +249,7 @@ async function run(): Promise<void> {
   testPaymentBounds()
   testStableReferenceIdentitiesAndStrictMigration()
   await testBackupFailureStopsImport()
-  console.log('\n🎉 اكتملت اختبارات إصلاحات المراجعة بنجاح.\n')
+  console.log('\n🎉 اكتملت اختبارات حدود الدفع وثبات الهويات وحماية الاستيراد بنجاح.\n')
   process.exit(0)
 }
 

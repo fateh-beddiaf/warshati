@@ -1,6 +1,6 @@
 import { calculateProfitSplit, roundMoney } from '../src/shared/profit'
 
-// T004: the profit rule with a parts cost. Pure-function tests only (no DB, no UI).
+// The profit rule with a parts cost. Pure-function tests only (no DB, no UI).
 //   net profit = price - (parts_cost ?? 0); shares are taken from the net; my + partner = net exactly.
 
 let failures = 0
@@ -15,7 +15,7 @@ function eq<T>(actual: T, expected: T, message: string): void {
 }
 const cents = (n: number): number => Math.round(n * 100)
 
-console.log("--- T004 Section 1: the user's own examples ---")
+console.log("--- Section 1: the user's own examples ---")
 {
   // Realme C51 screen: price 4000, screen cost 2600, 50% => net 1400 => 700 / 700
   const r = calculateProfitSplit({
@@ -49,7 +49,7 @@ console.log("--- T004 Section 1: the user's own examples ---")
   eq(r.netProfit, 1400, 'partner: net profit 1400')
 }
 
-console.log('\n--- T004 Section 2: missing vs explicit-zero cost ---')
+console.log('\n--- Section 2: missing vs explicit-zero cost ---')
 {
   const missing = calculateProfitSplit({
     price: 4000,
@@ -123,7 +123,7 @@ console.log('\n--- T004 Section 2: missing vs explicit-zero cost ---')
   )
 }
 
-console.log('\n--- T004 Section 3: losses (cost > price) ---')
+console.log('\n--- Section 3: losses (cost > price) ---')
 {
   const r = calculateProfitSplit({
     price: 3000,
@@ -181,7 +181,7 @@ console.log('\n--- T004 Section 3: losses (cost > price) ---')
   )
 }
 
-console.log('\n--- T004 Section 4: fractions, rounding, exact totals ---')
+console.log('\n--- Section 4: fractions, rounding, exact totals ---')
 {
   // 70%: 1255.50 - 100.25 = 1155.25 => 808.675 -> 808.68 (half away from zero) ; partner takes the exact rest
   const r = calculateProfitSplit({
@@ -234,7 +234,7 @@ console.log('\n--- T004 Section 4: fractions, rounding, exact totals ---')
   eq(roundMoney(1400), 1400, 'roundMoney leaves exact values alone')
 }
 
-console.log('\n--- T004 Section 5: frozen percentage beats the current category percentage ---')
+console.log('\n--- Section 5: frozen percentage beats the current category percentage ---')
 {
   // Delivered at 50%. The category is later changed to 90%. Editing the cost must keep 50%.
   const afterCategoryChange = calculateProfitSplit({
@@ -304,7 +304,7 @@ console.log('\n--- T004 Section 5: frozen percentage beats the current category 
   eq([lossFrozen.myShare, lossFrozen.partnerShare], [-350, -150], 'loss with a frozen 70% => -350 / -150')
 }
 
-console.log('\n--- T004 Section 6: defensive input handling ---')
+console.log('\n--- Section 6: defensive input handling ---')
 {
   eq(
     calculateProfitSplit({
@@ -386,7 +386,7 @@ console.log('\n--- T004 Section 6: defensive input handling ---')
   )
 }
 
-console.log('\n--- T004 Section 7: invariants over many combinations ---')
+console.log('\n--- Section 7: invariants over many combinations ---')
 {
   // Deterministic pseudo-random sweep: the identity my + partner = net must hold to the cent in every case,
   // and a partner ticket must never give the owner anything.

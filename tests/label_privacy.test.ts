@@ -8,7 +8,7 @@ import { createTicket, getTicketById, getTicketsList, updateTicketStatus } from 
 import { buildLabelHtml } from '../src/main/printer'
 import type { PrintLabelData } from '../src/shared/types'
 
-// T004 privacy: the parts cost must never reach the customer. The printed label (and its preview) is
+// Privacy: the parts cost must never reach the customer. The printed label (and its preview) is
 // built only from the barcode, customer name / phone and short label, never from money. This test
 // proves it three ways: the label HTML for a ticket with a distinctive cost, a structural check of the
 // label data type, and a source guard over every file that renders or prints the label.

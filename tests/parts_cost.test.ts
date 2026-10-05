@@ -18,7 +18,7 @@ import {
 } from '../src/database/queries/metadata'
 import type { CreateTicketDTO } from '../src/shared/types'
 
-// T004: parts cost on the database side: category switch, ticket cost, delivery on the net profit,
+// Parts cost on the database side: category switch, ticket cost, delivery on the net profit,
 // setPartsCost (delivered / not delivered / partner / loss / invalid), reports and list flags.
 
 let failures = 0
@@ -587,7 +587,7 @@ console.log('\n--- Section 8: ticket list and details ---')
   eq(typeof byId.get(idMissing)!.parts_cost_missing, 'boolean', 'the flag is a boolean')
   setPartsCost(db, idMissing, 80)
   eq(getTicketsList(db).find((x) => x.id === idMissing)!.parts_cost_missing, false, 'entering the cost clears the flag')
-  // the flag follows the ticket's own snapshot, not the category's current switch (T004b)
+  // the flag follows the ticket's own snapshot, not the category's current switch
   const probe = mk({ price: 100, cat: screen.id })
   updateRepairCategory(db, screen.id, 'شاشات (اختبار)', 50, false)
   eq(

@@ -12,7 +12,7 @@ import { partsCostAr, partsCostEn } from './locales/partsCost'
 export type Language = 'ar' | 'en'
 
 export const ar = {
-  // New T003 strings, one namespace per area: t.ui.layout.x, t.ui.tickets.x, ...
+  // Screen strings, one namespace per area (src/renderer/lib/locales): t.ui.layout.x, t.ui.tickets.x, ...
   ui: {
     layout: layoutAr,
     tickets: ticketsAr,

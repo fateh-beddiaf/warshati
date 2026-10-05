@@ -2,10 +2,11 @@ import { test, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { launchApp, shutdownApp, openDetailsByBarcode, closeDetails, type Launched } from './helpers'
 
-// T004: parts cost, end to end on the built app.
+// Parts cost, end to end on the built app.
 //  (a) the category switch in Settings          (b) a ticket without a cost: warning + list flag + filter
 //  (c) the field is masked by default            (d) delivered without a cost, cost added later -> shares + report
 //  (e) a loss needs a confirmation               (f) the cost never reaches the label / print preview
+//  (g) "requires a cost" is snapshotted per ticket (h) the delivery dialog hides the profit split until asked
 
 test.describe.configure({ mode: 'serial' })
 
@@ -515,7 +516,7 @@ test('(d) reports: the ledger with its net-profit column still fits at 1280 and 
 })
 
 // ---------------------------------------------------------------------------------------------
-// T004b
+// (g) and (h): the "requires a parts cost" snapshot taken at ticket creation, and the hidden profit split
 async function apiTicket(
   category: number,
   price: number,
@@ -545,7 +546,7 @@ async function apiTicket(
   )
 }
 
-test('(T004b) turning the category switch on does not make old tickets "missing a cost"', async () => {
+test('(g) turning the category switch on does not make old tickets "missing a cost"', async () => {
   // category 4 (general) has its switch off: an old ticket is created now
   const oldTicket = await apiTicket(4, 2000, null)
   await go('settings')
@@ -592,7 +593,7 @@ test('(T004b) turning the category switch on does not make old tickets "missing 
   await l.page.getByTestId('filter-all').click()
 })
 
-test('(T004b) the delivery dialog hides the profit split until asked, and hides it again on close', async () => {
+test('(h) the delivery dialog hides the profit split until asked, and hides it again on close', async () => {
   const t = await apiTicket(2, 4000, 2600)
   await go('tickets')
   await openDetailsByBarcode(l.page, t.barcode)

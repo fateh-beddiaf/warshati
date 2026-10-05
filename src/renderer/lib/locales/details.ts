@@ -1,4 +1,4 @@
-// New UI strings for the "details" area (T003): ticket details modal + print preview.
+// UI strings for the "details" area: ticket details modal + print preview.
 // Add keys here, never inline text in JSX.
 // `en` is typed against `ar`, so both languages must define every key.
 export const detailsAr = {

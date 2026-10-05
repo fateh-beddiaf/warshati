@@ -1,4 +1,4 @@
-// UI strings for the parts cost feature (T004), one namespace per area. Add keys here, never inline text in JSX.
+// UI strings for the parts cost feature, one namespace per area. Add keys here, never inline text in JSX.
 // `en` is typed against `ar`, so both languages must define every key.
 export const partsCostAr = {
   // Shared by the masked input

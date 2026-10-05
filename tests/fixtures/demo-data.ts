@@ -10,7 +10,7 @@ import type { CreateTicketDTO, PaymentType } from '../../src/shared/types'
  * Realistic demo shop data for visual review (screenshots) — NOT used by the app itself.
  * 14 tickets: in progress, ready (two overdue), delivered over the last three weeks,
  * cash and credit, both technicians, a couple of unpaid debts.
- * T004: the screen (1) and charging-port (2) categories require a parts cost. Most of their tickets carry
+ * Parts cost: the screen (1) and charging-port (2) categories require a parts cost. Most of their tickets carry
  * one; three are still missing it (in progress, ready, and one DELIVERED = provisional profit) and one
  * delivered ticket is a loss (cost above the price).
  * Run via: electron -r tsx tests/fixtures/seed-demo.run.ts <dataDir>

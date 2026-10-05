@@ -243,7 +243,7 @@ function runMigrations(db: Database.Database): void {
   migrateLegacySchema()
 }
 
-/** T002: stable technician / brand / model identities for databases from the original app. */
+/** Stable technician / brand / model identities (ids instead of names) for databases from the original app. */
 function migrateLegacyIdentities(
   db: Database.Database,
   ticketColumns: string[],
@@ -316,7 +316,7 @@ function migrateLegacyIdentities(
 }
 
 /**
- * T004: parts cost.
+ * Parts cost columns.
  *  - RepairCategory.requires_parts_cost (0 for every existing category: the user opts in from Settings)
  *  - Ticket.parts_cost (NULL = not entered yet)
  *  - Ticket.split_percentage_applied, back-filled for tickets already delivered: before this change
@@ -371,7 +371,7 @@ function migratePartsCost(db: Database.Database, ticketColumns: string[], catego
 }
 
 /**
- * T004b: Ticket.parts_cost_required is a snapshot of the category's "requires a parts cost" switch taken
+ * Ticket.parts_cost_required is a snapshot of the category's "requires a parts cost" switch taken
  * when the ticket is CREATED. Everything about "missing cost / provisional" reads this snapshot, so turning
  * the switch on later never turns old tickets into "missing cost".
  * Existing tickets get 0 (even if their category requires a cost now), except tickets that already HAVE a

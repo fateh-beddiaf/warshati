@@ -12,7 +12,7 @@ import {
 import { getFinancialReport } from '../src/database/queries/reports'
 import { LEGACY_SCHEMA_BEFORE_PARTS_COST } from './fixtures/legacy-schemas'
 
-// T004b: "requires a parts cost" is snapshotted on the ticket at creation. Turning the category switch on
+// "Requires a parts cost" is snapshotted on the ticket at creation. Turning the category switch on
 // (or off) later never changes which existing tickets are "missing a cost" / provisional.
 
 let failures = 0
@@ -102,7 +102,7 @@ eq(
 )
 eq(flag(oldInProgress), false, 'unchanged flag for the untouched old ticket')
 
-console.log('--- migration of a T004 database ---')
+console.log('--- migration of a database from before the snapshot ---')
 {
   const m = new Database(':memory:')
   m.exec(LEGACY_SCHEMA_BEFORE_PARTS_COST)
@@ -113,8 +113,8 @@ console.log('--- migration of a T004 database ---')
     INSERT INTO Model (brand_id, name) VALUES (1, 'A');
     INSERT INTO Customer (name, phone) VALUES ('z', '1');
   `)
-  initializeSchema(m) // adds the T004 columns and (T004b) the snapshot
-  m.exec(`ALTER TABLE Ticket DROP COLUMN parts_cost_required`) // back to the exact T004 shape
+  initializeSchema(m) // adds the parts cost columns and the snapshot
+  m.exec(`ALTER TABLE Ticket DROP COLUMN parts_cost_required`) // back to the exact shape before the snapshot
   const ins = (code: string, cost: number | null): void => {
     m.prepare(
       `INSERT INTO Ticket (barcode_code, customer_id, created_at, technician, technician_id, repair_category_id, price, payment_type, amount_paid, amount_remaining, status, parts_cost)
@@ -124,7 +124,7 @@ console.log('--- migration of a T004 database ---')
   ins('A', null)
   ins('B', 2600)
   ins('C', 0)
-  m.prepare(`UPDATE RepairCategory SET requires_parts_cost = 1`).run() // already enabled by the user on T004
+  m.prepare(`UPDATE RepairCategory SET requires_parts_cost = 1`).run() // already enabled by the user before the snapshot
   const probe = `SELECT id, price, parts_cost, status, my_share FROM Ticket ORDER BY id`
   const before = JSON.stringify(m.prepare(probe).all())
   initializeSchema(m)
@@ -135,7 +135,7 @@ console.log('--- migration of a T004 database ---')
       { c: 'B', r: 1 },
       { c: 'C', r: 1 }
     ],
-    'T004 database: no cost => 0 (not retroactive); with a cost (even 0) => 1'
+    'pre-snapshot database: no cost => 0 (not retroactive); with a cost (even 0) => 1'
   )
   eq(JSON.stringify(m.prepare(probe).all()), before, 'migration loses nothing')
   const snapshot = JSON.stringify(m.prepare(`SELECT * FROM Ticket ORDER BY id`).all())

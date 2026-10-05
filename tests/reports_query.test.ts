@@ -195,7 +195,7 @@ const filters: { name: string; filter: ReportFilterDTO }[] = [
   }
 ]
 
-// T004 added cost-related fields. Without any parts cost entered they must be neutral (net = revenue,
+// The parts cost added cost-related fields. Without any parts cost entered they must be neutral (net = revenue,
 // nothing provisional, no loss) and everything ELSE must still be identical to the legacy output.
 function withoutCostFields<T extends Record<string, unknown>>(report: T): Record<string, unknown> {
   const { totalPartsCost, totalNetProfit, provisionalTicketsCount, lossTicketsCount, ...rest } = report as Record<

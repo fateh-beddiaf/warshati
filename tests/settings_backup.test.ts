@@ -43,8 +43,8 @@ function assert(condition: boolean, message: string): void {
   console.log(`✅ Passed: ${message}`)
 }
 
-async function runMilestone5Tests(): Promise<void> {
-  console.log('🚀 Running Unit & Integration Tests for Milestone 5: Settings, Backup & i18n...\n')
+async function runSettingsBackupTests(): Promise<void> {
+  console.log('🚀 Running Unit & Integration Tests for Settings CRUD, Backup & i18n...\n')
 
   // =========================================================================
   // SECTION 1: Settings CRUD Operations & Guard Rules
@@ -212,7 +212,7 @@ async function runMilestone5Tests(): Promise<void> {
   // =========================================================================
   console.log('\n--- Section 2: Database Backup & Full Restore Verification ---')
 
-  const tempDir = mkdtempSync(join(tmpdir(), 'warshati-milestone5-'))
+  const tempDir = mkdtempSync(join(tmpdir(), 'warshati-settings-backup-'))
 
   const originalDbPath = join(tempDir, 'original.db')
   const backupDbPath = join(tempDir, 'exported-backup.db')
@@ -305,12 +305,12 @@ async function runMilestone5Tests(): Promise<void> {
   console.log('✅ All Arabic and English translation keys are 100% symmetric and fully mapped.')
 
   console.log(
-    '\n🎉 ALL MILESTONE 5 TESTS (SETTINGS CRUD, REFERENCE GUARDS, BACKUP/RESTORE & i18n) PASSED SUCCESSFULLY! 🎉\n'
+    '\n🎉 ALL SETTINGS TESTS (SETTINGS CRUD, REFERENCE GUARDS, BACKUP/RESTORE & i18n) PASSED SUCCESSFULLY! 🎉\n'
   )
   process.exit(0)
 }
 
-runMilestone5Tests().catch((err) => {
+runSettingsBackupTests().catch((err) => {
   console.error('Test run failed:', err)
   process.exit(1)
 })

@@ -12,7 +12,7 @@ import { closeDatabase } from '../src/database'
 import { calculateProfitSplit } from '../src/shared/profit'
 import { LEGACY_SCHEMA_ANCIENT, LEGACY_SCHEMA_BEFORE_PARTS_COST } from './fixtures/legacy-schemas'
 
-// T004 migration: databases from main @ 33b4cfc / main @ 2410a27 (identical schema) and from an older
+// Parts cost migration: databases from main @ 33b4cfc / main @ 2410a27 (identical schema) and from an older
 // layout are upgraded without losing anything; the back-fill is right; a second launch changes nothing;
 // a failing migration rolls EVERYTHING back (one transaction).
 
@@ -147,7 +147,7 @@ async function main(): Promise<void> {
       eq(
         legacyCols.includes('parts_cost') || legacyCols.includes('split_percentage_applied'),
         false,
-        'precondition: the legacy Ticket has no T004 columns'
+        'precondition: the legacy Ticket has no parts cost columns'
       )
       eq(
         columns(pre, 'RepairCategory').includes('requires_parts_cost'),
@@ -354,7 +354,7 @@ async function main(): Promise<void> {
           t.includes(c)
         ),
         true,
-        'all identity, profit and T004 columns exist'
+        'all identity, profit and parts cost columns exist'
       )
       eq(columns(db, 'RepairCategory').includes('requires_parts_cost'), true, 'category switch exists')
       eq(all(db, `SELECT COUNT(*) c FROM Ticket`)[0].c, 2, 'tickets kept')
@@ -432,7 +432,7 @@ async function main(): Promise<void> {
       const srcPath = join(dir, 'old-backup.db')
       buildLegacyV1(srcPath)
       const res = await importDatabaseFromFile(srcPath, livePath, { safetyBackupPath: join(dir, 'safety.db') })
-      eq(res.success, true, `importing a pre-T004 backup succeeds (${res.error ?? ''})`)
+      eq(res.success, true, `importing a backup from before the parts cost succeeds (${res.error ?? ''})`)
       const imported = new Database(livePath, { readonly: true })
       eq(
         columns(imported, 'Ticket').includes('parts_cost') &&
