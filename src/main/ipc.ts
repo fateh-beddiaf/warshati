@@ -15,6 +15,7 @@ import {
 } from './ipc-validate'
 import { listPrinters } from './printers'
 import { LABEL_PRINTER_SETTING_KEY } from '../shared/types'
+import { BACKUP_SETTING_PREFIX } from '../shared/auto-backup'
 
 export function registerIpcHandlers(): void {
   // Tickets
@@ -222,6 +223,8 @@ export function registerIpcHandlers(): void {
     try {
       assertString(key, 'key')
       assertString(value, 'value')
+      // The backup folder and status are only written by the main process (auto-backup.ts), never by the renderer
+      if (key.startsWith(BACKUP_SETTING_PREFIX)) throw new Error(`Invalid input: ${key} is managed by the app`)
       dbService.setSetting(key, value)
       return { success: true }
     } catch (error: unknown) {
@@ -548,11 +551,11 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('backup:import', async (event) => {
     try {
-      const { importDatabaseBackup } = await import('./backup')
+      const { importKeepingBackupSettings } = await import('./auto-backup')
       const { BrowserWindow } = await import('electron')
       const win = BrowserWindow.fromWebContents(event.sender)
-      const res = await importDatabaseBackup(win)
-      return res
+      // Opens in the backup folder, and keeps the backup settings across the replaced database
+      return await importKeepingBackupSettings(win)
     } catch (error: unknown) {
       return { success: false, error: error instanceof Error ? error.message : 'Failed to import backup' }
     }

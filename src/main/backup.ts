@@ -9,6 +9,8 @@ export type { SafetyBackupCreator }
 
 export interface ImportDatabaseBackupOptions {
   createSafetyBackup?: SafetyBackupCreator
+  /** Folder the file dialog opens in (the backup folder). Without it Electron 43+ opens Downloads. */
+  defaultPath?: string
 }
 
 function formatBytes(bytes: number): string {
@@ -115,6 +117,7 @@ export async function importDatabaseBackup(
       const win = targetWindow || BrowserWindow.getFocusedWindow() || undefined
       const openResult = await dialog.showOpenDialog(win!, {
         title: 'استيراد واستعادة قاعدة بيانات ورشتي',
+        defaultPath: options.defaultPath,
         properties: ['openFile'],
         filters: [
           { name: 'ملفات قواعد بيانات SQLite (*.db, *.sqlite)', extensions: ['db', 'sqlite', 'sqlite3'] },

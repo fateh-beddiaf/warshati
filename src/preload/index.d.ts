@@ -12,6 +12,8 @@ import type {
   FinancialReportResult
 } from '../shared/types'
 
+import type { BackupRunResult, BackupStatus, BackupStatusEvent } from '../shared/auto-backup'
+
 export type { PrinterInfo }
 
 export interface IElectronAPI {
@@ -128,6 +130,26 @@ export interface IElectronAPI {
     canceled?: boolean
     error?: string
   }>
+
+  // Automatic backups (folder, schedule, list, restore)
+  getBackupStatus: () => Promise<{ success: boolean; data?: BackupStatus; error?: string }>
+  chooseBackupDir: () => Promise<{ success: boolean; data?: BackupStatus; canceled?: boolean; error?: string }>
+  setAutoBackupEnabled: (enabled: boolean) => Promise<{ success: boolean; data?: BackupStatus; error?: string }>
+  setBackupKeep: (keep: number) => Promise<{ success: boolean; data?: BackupStatus; error?: string }>
+  runBackupNow: () => Promise<{
+    success: boolean
+    data?: { result: BackupRunResult; status: BackupStatus }
+    error?: string
+  }>
+  restoreBackup: (name: string) => Promise<{
+    success: boolean
+    filePath?: string
+    safetyBackupPath?: string
+    canceled?: boolean
+    error?: string
+  }>
+  /** Status pushed after every backup run and periodic check; returns the unsubscribe function */
+  onBackupStatus: (listener: (event: BackupStatusEvent) => void) => () => void
 
   // Printer
   getPrinters: () => Promise<{ success: boolean; data?: PrinterInfo[]; error?: string }>

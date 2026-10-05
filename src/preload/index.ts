@@ -98,6 +98,22 @@ const api = {
   exportBackup: () => ipcRenderer.invoke('backup:export'),
   importBackup: () => ipcRenderer.invoke('backup:import'),
 
+  // Automatic backups
+  getBackupStatus: () => ipcRenderer.invoke('backup:auto:status'),
+  chooseBackupDir: () => ipcRenderer.invoke('backup:auto:chooseDir'),
+  setAutoBackupEnabled: (enabled: boolean) => ipcRenderer.invoke('backup:auto:setEnabled', enabled),
+  setBackupKeep: (keep: number) => ipcRenderer.invoke('backup:auto:setKeep', keep),
+  runBackupNow: () => ipcRenderer.invoke('backup:auto:runNow'),
+  restoreBackup: (name: string) => ipcRenderer.invoke('backup:auto:restore', name),
+  onBackupStatus: (listener: (event: unknown) => void) => {
+    // Only the payload crosses to the page, never the IPC event (it carries the sender)
+    const handler = (_event: Electron.IpcRendererEvent, payload: unknown): void => listener(payload)
+    ipcRenderer.on('backup:status', handler)
+    return () => {
+      ipcRenderer.removeListener('backup:status', handler)
+    }
+  },
+
   // Printer
   getPrinters: () => ipcRenderer.invoke('printer:getPrinters'),
   printLabel: (labelData: import('../shared/types').PrintLabelData & { svgContent?: string }) =>
