@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3'
 import { calculateProfitSplit } from '../shared/profit'
+import { generateUniqueTicketCode } from './helpers'
 
 export function initializeSchema(db: Database.Database): void {
   db.exec(`
@@ -68,6 +69,7 @@ export function initializeSchema(db: Database.Database): void {
       parts_cost REAL DEFAULT NULL CHECK(parts_cost IS NULL OR parts_cost >= 0),
       split_percentage_applied REAL DEFAULT NULL,
       parts_cost_required INTEGER NOT NULL DEFAULT 0 CHECK(parts_cost_required IN (0, 1)),
+      legacy_barcode_code TEXT DEFAULT NULL,
       FOREIGN KEY (customer_id) REFERENCES Customer(id),
       FOREIGN KEY (repair_category_id) REFERENCES RepairCategory(id),
       FOREIGN KEY (technician_id) REFERENCES Technician(id) ON DELETE RESTRICT
@@ -129,8 +131,18 @@ export function initializeSchema(db: Database.Database): void {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_technician_single_partner
     ON Technician(is_partner)
     WHERE is_partner = 1;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_ticket_legacy_barcode
+    ON Ticket(legacy_barcode_code)
+    WHERE legacy_barcode_code IS NOT NULL;
   `)
 }
+
+/** Tickets whose code is not in the current format (src/shared/ticket-code.ts: "2" + 7 digits). */
+const OLD_FORMAT_TICKETS_SQL = `
+  SELECT id, barcode_code, legacy_barcode_code FROM Ticket
+  WHERE NOT (length(barcode_code) = 8 AND barcode_code GLOB '2[0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
+  ORDER BY id
+`
 
 function getColumnNames(db: Database.Database, table: string): string[] {
   return (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((column) => column.name)
@@ -202,8 +214,16 @@ function runMigrations(db: Database.Database): void {
     !categoryColumns.includes('requires_parts_cost')
 
   const needsCostRequiredMigration = !ticketColumns.includes('parts_cost_required')
+  const needsTicketCodeMigration =
+    !ticketColumns.includes('legacy_barcode_code') || db.prepare(OLD_FORMAT_TICKETS_SQL).get() !== undefined
 
-  if (!needsLegacyIdentityMigration && !needsProfitMigration && !needsPartsCostMigration && !needsCostRequiredMigration)
+  if (
+    !needsLegacyIdentityMigration &&
+    !needsProfitMigration &&
+    !needsPartsCostMigration &&
+    !needsCostRequiredMigration &&
+    !needsTicketCodeMigration
+  )
     return
 
   // One transaction for every step: a failure leaves the database exactly as it was.
@@ -217,6 +237,7 @@ function runMigrations(db: Database.Database): void {
     if (needsLegacyIdentityMigration) migrateLegacyIdentities(db, ticketColumns, deviceColumns, technicianColumns)
     if (needsPartsCostMigration) migratePartsCost(db, ticketColumns, categoryColumns)
     if (needsCostRequiredMigration) migrateCostRequiredSnapshot(db)
+    if (needsTicketCodeMigration) migrateTicketCodes(db, ticketColumns)
   })
 
   migrateLegacySchema()
@@ -361,4 +382,25 @@ function migrateCostRequiredSnapshot(db: Database.Database): void {
     `ALTER TABLE Ticket ADD COLUMN parts_cost_required INTEGER NOT NULL DEFAULT 0 CHECK(parts_cost_required IN (0, 1))`
   ).run()
   db.prepare(`UPDATE Ticket SET parts_cost_required = 1 WHERE parts_cost IS NOT NULL`).run()
+}
+
+/**
+ * Ticket codes in the current scannable format (src/shared/ticket-code.ts). Every ticket whose code is in another
+ * format (the old "WSH…" codes, whose labels could not be scanned) gets a new unique code; the old one moves to
+ * Ticket.legacy_barcode_code, where search and scanning still find it. Runs again only if such a ticket exists
+ * (e.g. after importing an old backup), so a second launch changes nothing.
+ */
+function migrateTicketCodes(db: Database.Database, ticketColumns: string[]): void {
+  if (!ticketColumns.includes('legacy_barcode_code')) {
+    db.prepare(`ALTER TABLE Ticket ADD COLUMN legacy_barcode_code TEXT DEFAULT NULL`).run()
+  }
+  const oldFormat = db.prepare(OLD_FORMAT_TICKETS_SQL).all() as {
+    id: number
+    barcode_code: string
+    legacy_barcode_code: string | null
+  }[]
+  const recode = db.prepare(`UPDATE Ticket SET barcode_code = ?, legacy_barcode_code = ? WHERE id = ?`)
+  for (const row of oldFormat) {
+    recode.run(generateUniqueTicketCode(db), row.legacy_barcode_code ?? row.barcode_code, row.id)
+  }
 }

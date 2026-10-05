@@ -125,11 +125,11 @@ console.log('--- migration of a T004 database ---')
   ins('B', 2600)
   ins('C', 0)
   m.prepare(`UPDATE RepairCategory SET requires_parts_cost = 1`).run() // already enabled by the user on T004
-  const probe = `SELECT id, barcode_code, price, parts_cost, status, my_share FROM Ticket ORDER BY id`
+  const probe = `SELECT id, price, parts_cost, status, my_share FROM Ticket ORDER BY id`
   const before = JSON.stringify(m.prepare(probe).all())
   initializeSchema(m)
   eq(
-    m.prepare(`SELECT barcode_code c, parts_cost_required r FROM Ticket ORDER BY id`).all(),
+    m.prepare(`SELECT legacy_barcode_code c, parts_cost_required r FROM Ticket ORDER BY id`).all(),
     [
       { c: 'A', r: 0 },
       { c: 'B', r: 1 },

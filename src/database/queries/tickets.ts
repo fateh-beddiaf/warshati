@@ -7,7 +7,7 @@ import type {
   Ticket
 } from '../../shared/types'
 import { findOrCreateCustomer } from './customers'
-import { calculateRemaining, generateBarcodeCode } from '../helpers'
+import { calculateRemaining, generateUniqueTicketCode } from '../helpers'
 import { generateShortLabel } from '../../shared/device-utils'
 import { calculateProfitSplit, roundMoney } from '../../shared/profit'
 import { getOverdueThresholdDays } from './settings'
@@ -112,14 +112,8 @@ export function createTicket(db: Database.Database, dto: CreateTicketDTO): { tic
     // 3. Find or create customer only after all validation passes.
     const customerId = findOrCreateCustomer(db, dto.customer)
 
-    // 4. Generate unique barcode code
-    let barcode = generateBarcodeCode()
-    // Verify uniqueness
-    let exists = db.prepare(`SELECT id FROM Ticket WHERE barcode_code = ?`).get(barcode)
-    while (exists) {
-      barcode = generateBarcodeCode()
-      exists = db.prepare(`SELECT id FROM Ticket WHERE barcode_code = ?`).get(barcode)
-    }
+    // 4. Generate a unique ticket code (what the label's barcode encodes)
+    const barcode = generateUniqueTicketCode(db)
 
     const createdAt = new Date().toISOString()
     const status = 'in_progress'
@@ -493,8 +487,8 @@ export function getTicketsList(db: Database.Database, searchQuery?: string, stat
 
   if (searchQuery && searchQuery.trim()) {
     const term = `%${searchQuery.trim()}%`
-    query += ` AND (c.name LIKE ? OR c.phone LIKE ? OR t.barcode_code LIKE ? OR td.model LIKE ?)`
-    params.push(term, term, term, term)
+    query += ` AND (c.name LIKE ? OR c.phone LIKE ? OR t.barcode_code LIKE ? OR t.legacy_barcode_code LIKE ? OR td.model LIKE ?)`
+    params.push(term, term, term, term, term)
   }
 
   query += ` ORDER BY t.id DESC`
@@ -607,8 +601,11 @@ export function getTicketById(db: Database.Database, ticketId: number): TicketFu
 
 export function getTicketByBarcode(db: Database.Database, barcode: string): TicketFullDetails | null {
   const cleanBarcode = barcode.trim()
-  const ticket = db.prepare(`SELECT id FROM Ticket WHERE barcode_code = ?`).get(cleanBarcode) as
-    { id: number } | undefined
+  if (!cleanBarcode) return null
+  // The current code, or the code a ticket had before the format change (old WSH labels still work)
+  const ticket = db
+    .prepare(`SELECT id FROM Ticket WHERE barcode_code = ? OR legacy_barcode_code = ? ORDER BY barcode_code = ? DESC`)
+    .get(cleanBarcode, cleanBarcode.toUpperCase(), cleanBarcode) as { id: number } | undefined
   if (!ticket) return null
 
   return getTicketById(db, ticket.id)

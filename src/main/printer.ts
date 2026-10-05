@@ -1,8 +1,10 @@
 import { BrowserWindow } from 'electron'
 import type { PrintLabelData } from '../shared/types'
 import { withTimeout } from '../shared/with-timeout'
+import { buildLabelBarcode } from '../shared/label-barcode'
 
 export interface PrintOptions extends PrintLabelData {
+  /** The renderer's preview drawing: accepted for compatibility, never printed (see buildLabelHtml) */
   svgContent?: string
 }
 
@@ -41,11 +43,15 @@ export function printTicketLabel(data: PrintOptions, timeoutMs: number = PRINT_T
 /**
  * The 40x20mm label as HTML. It is built ONLY from the customer name, short label, phone and barcode:
  * the ticket's money (price, parts cost, profit) never reaches this function, so it can never be printed.
+ * The barcode SVG is drawn here from `barcode` (exact printer-dot geometry, see shared/label-barcode.ts), never
+ * taken from the renderer's `svgContent`, so a stretched or stale drawing cannot reach the printer.
+ * Throws when the barcode cannot be drawn: an unreadable label is not printed.
  */
 export function buildLabelHtml(data: PrintOptions): string {
+  const barcode = buildLabelBarcode(data.barcode)
   return `
     <!DOCTYPE html>
-    <html lang="ar" dir="rtl">
+    <html lang="ar">
     <head>
       <meta charset="utf-8">
       <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
@@ -59,10 +65,20 @@ export function buildLabelHtml(data: PrintOptions): string {
           margin: 0;
           padding: 0;
         }
+        /* html and body stay LTR and unpadded: the 40mm page is anchored at the paper's left edge, which the
+           barcode is positioned from. (An RTL body would make the whole viewport RTL and right-align the page when
+           the viewport is wider than 40mm.) The label's own layout and RTL text live in .label. */
         html, body {
           width: 40mm;
           height: 20mm;
           margin: 0;
+          padding: 0;
+          overflow: hidden;
+          background-color: #ffffff;
+        }
+        .label {
+          width: 40mm;
+          height: 20mm;
           padding: 1mm 1.2mm;
           font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
           color: #000000;
@@ -109,9 +125,17 @@ export function buildLabelHtml(data: PrintOptions): string {
           margin: 0.4mm 0;
           flex: 1;
         }
-        .barcode-container svg {
+        /* The SVG carries its exact size in mm (whole printer dots per module, quiet zones included): stretching or
+           shrinking it would make the bars unreadable (see shared/label-barcode.ts). The slot keeps its place in the
+           layout; the SVG itself is placed from the paper's left edge (html and body are not positioned) at a whole
+           number of dots, so every bar edge falls on a dot boundary. */
+        .barcode-slot {
+          flex: none;
           width: 100%;
-          max-height: 8.5mm;
+        }
+        .barcode-slot svg {
+          display: block;
+          position: absolute;
         }
         .barcode-text {
           font-family: monospace, ui-monospace;
@@ -140,17 +164,19 @@ export function buildLabelHtml(data: PrintOptions): string {
       </style>
     </head>
     <body>
-      <div class="header">
-        <span class="customer-name">${escapeHtml(data.customerName)}</span>
-        <span class="short-label">${escapeHtml(data.shortLabel)}</span>
-      </div>
-      <div class="barcode-container">
-        ${data.svgContent || `<div class="barcode-text">${escapeHtml(data.barcode)}</div>`}
-        <div class="barcode-text">${escapeHtml(data.barcode)}</div>
-      </div>
-      <div class="footer">
-        <span>ورشتي</span>
-        ${data.customerPhone ? `<span class="footer-phone">${escapeHtml(data.customerPhone)}</span>` : ''}
+      <div class="label" dir="rtl">
+        <div class="header">
+          <span class="customer-name">${escapeHtml(data.customerName)}</span>
+          <span class="short-label">${escapeHtml(data.shortLabel)}</span>
+        </div>
+        <div class="barcode-container">
+          <div class="barcode-slot" style="height: ${barcode.heightMm}mm">${barcode.svg.replace('<svg ', `<svg style="left: ${barcode.leftMm}mm" `)}</div>
+          <div class="barcode-text">${escapeHtml(data.barcode)}</div>
+        </div>
+        <div class="footer">
+          <span>ورشتي</span>
+          ${data.customerPhone ? `<span class="footer-phone">${escapeHtml(data.customerPhone)}</span>` : ''}
+        </div>
       </div>
     </body>
     </html>

@@ -78,6 +78,7 @@ check(!/price|cost|share|profit|amount|paid/i.test(labelInterface), 'PrintLabelD
 // Source guard: nothing that renders / prints the label may reference the cost
 const guarded = [
   'src/main/printer.ts',
+  'src/shared/label-barcode.ts',
   ...readdirSync(resolve('src/renderer/components/barcode')).map((f) => join('src/renderer/components/barcode', f))
 ]
 for (const file of guarded) {

@@ -4,6 +4,7 @@ import { seedInitialData } from '../src/database/seed'
 import { createTicket, updateTicketStatus, getTicketById, getTicketsList } from '../src/database/queries/tickets'
 import { setSetting, getOverdueThresholdDays } from '../src/database/queries/settings'
 import type { CreateTicketDTO } from '../src/shared/types'
+import { isTicketCode } from '../src/shared/ticket-code'
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {
@@ -13,7 +14,7 @@ function assert(condition: boolean, message: string): void {
   console.log(`✅ Passed: ${message}`)
 }
 
-console.log('🚀 Running Unit Tests for Milestone 3: Ticket Lifecycle & Status Transitions...\n')
+console.log('🚀 Running Unit Tests for the ticket lifecycle & status transitions...\n')
 
 // Use in-memory SQLite database for fast, isolated testing
 const db = new Database(':memory:')
@@ -46,7 +47,7 @@ const sampleDTO: CreateTicketDTO = {
 
 const { ticketId, barcode } = createTicket(db, sampleDTO)
 assert(ticketId > 0, `Ticket created with ID: ${ticketId}`)
-assert(barcode.startsWith('WSH'), `Barcode format is correct: ${barcode}`)
+assert(isTicketCode(barcode), `Ticket code format is correct: ${barcode}`)
 
 let details = getTicketById(db, ticketId)
 assert(details !== null, 'Ticket details retrieved successfully')

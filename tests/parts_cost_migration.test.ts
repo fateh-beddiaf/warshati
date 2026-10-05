@@ -189,11 +189,16 @@ async function main(): Promise<void> {
       // Nothing lost: every legacy column of every row is identical
       const postTickets = all(db, `SELECT * FROM Ticket ORDER BY id`)
       eq(postTickets.length, preTickets.length, 'same number of tickets')
-      const legacyOnly = (rows: Row[]): Row[] => rows.map((r) => Object.fromEntries(legacyCols.map((c) => [c, r[c]])))
+      // barcode_code is the one exception: old-format codes are replaced by scannable ones and kept, unchanged,
+      // in legacy_barcode_code (see ticket_codes.test.ts)
+      const legacyOnly = (rows: Row[]): Row[] =>
+        rows.map((r) =>
+          Object.fromEntries(legacyCols.map((c) => [c, c === 'barcode_code' ? r.legacy_barcode_code : r[c]]))
+        )
       eq(
         JSON.stringify(legacyOnly(postTickets)),
         JSON.stringify(preTickets),
-        'every legacy ticket column is byte-identical after the upgrade'
+        'every legacy ticket column is byte-identical after the upgrade (old code kept in legacy_barcode_code)'
       )
       const postCategories = all(db, `SELECT * FROM RepairCategory ORDER BY id`)
       eq(
@@ -442,7 +447,7 @@ async function main(): Promise<void> {
       )
       eq(all(imported, `SELECT COUNT(*) c FROM Ticket`)[0].c, 9, 'imported backup kept all 9 tickets')
       eq(
-        all(imported, `SELECT split_percentage_applied a FROM Ticket WHERE barcode_code = 'WSHMIG1'`)[0].a,
+        all(imported, `SELECT split_percentage_applied a FROM Ticket WHERE legacy_barcode_code = 'WSHMIG1'`)[0].a,
         70,
         'imported backup: frozen percentage back-filled'
       )

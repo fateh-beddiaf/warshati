@@ -1,8 +1,9 @@
 import { generateShortLabel } from '../src/shared/device-utils'
-import { calculateRemaining, generateBarcodeCode } from '../src/database/helpers'
+import { calculateRemaining } from '../src/database/helpers'
+import { generateTicketCode, isTicketCode } from '../src/shared/ticket-code'
 import { t } from '../src/renderer/lib/i18n'
 
-console.log('--- Running Unit Tests (Milestone 1 & 2) ---')
+console.log('--- Running Unit Tests (short labels, amounts, ticket codes, label size, scanner timing, i18n) ---')
 
 let passed = true
 
@@ -51,14 +52,15 @@ if (rem2 !== 0) {
   console.log(`[PASS] calculateRemaining(5000, 10000) = ${rem2}`)
 }
 
-// 3. Test generateBarcodeCode
-console.log('\n[TEST] generateBarcodeCode:')
-const code1 = generateBarcodeCode()
-const code2 = generateBarcodeCode()
-console.log(`[PASS] Generated Barcodes: ${code1}, ${code2}`)
-if (!code1.startsWith('WSH') || code1 === code2 || code1.length < 10) {
-  console.error(`[FAIL] Invalid or duplicate barcode: ${code1}, ${code2}`)
+// 3. Test generateTicketCode
+console.log('\n[TEST] generateTicketCode:')
+const codes = Array.from({ length: 200 }, () => generateTicketCode())
+const badCode = codes.find((c) => !isTicketCode(c))
+if (badCode !== undefined || new Set(codes).size < 195) {
+  console.error(`[FAIL] Invalid or repeated ticket codes: ${badCode ?? codes.join(',')}`)
   passed = false
+} else {
+  console.log(`[PASS] Generated ticket codes: ${codes.slice(0, 3).join(', ')}...`)
 }
 
 // 4. Test 40x20mm Thermal Printer Calculations (203 DPI / Xprinter)
@@ -107,8 +109,8 @@ if (evaluateScanBurst(humanTypingIntervals, 60)) {
   console.log('[PASS] Human typing (>100ms) correctly rejected by timing filter.')
 }
 
-// 6. Test i18n keys for Milestone 1 & 2
-console.log('\n[TEST] i18n structure for Milestone 1 & 2:')
+// 6. Test the i18n keys of the core screens (app shell, new ticket, list, print, scanner, details)
+console.log('\n[TEST] i18n structure of the core screens:')
 const requiredKeys = [
   t.app.title,
   t.newTicket.title,
@@ -125,7 +127,7 @@ if (requiredKeys.some((k) => !k)) {
   console.error('[FAIL] Missing required i18n keys')
   passed = false
 } else {
-  console.log('[PASS] All Milestone 1 & 2 i18n keys verified.')
+  console.log('[PASS] All core-screen i18n keys verified.')
 }
 
 if (passed) {

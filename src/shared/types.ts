@@ -31,6 +31,8 @@ export interface Ticket {
   parts_cost_required?: number | boolean
   my_share?: number | null
   partner_share?: number | null
+  /** The code the ticket had before the scannable ticket-code format (old WSH labels): still searchable */
+  legacy_barcode_code?: string | null
 }
 
 export interface TicketDevice {
