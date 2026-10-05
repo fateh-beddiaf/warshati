@@ -1,4 +1,4 @@
-import { _electron as electron } from '@playwright/test'
+import { _electron as electron, test } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
@@ -14,12 +14,35 @@ export interface Launched {
   problems: string[]
 }
 
-export async function launchApp(prefix: string): Promise<Launched> {
-  const dataDir = mkdtempSync(join(tmpdir(), `warshati-e2e-${prefix}-`))
+/**
+ * Starts the built app on a data directory. On CI it also records a Playwright trace (DOM snapshots, screenshots,
+ * actions): the config's `trace`/`screenshot` options only apply to the browser fixtures, never to an Electron app
+ * launched by hand. The trace is written when the app is closed, next to the test's other outputs.
+ */
+export async function launchElectron(dataDir: string): Promise<ElectronApplication> {
   const app = await electron.launch({
     args: [resolve('out/main/index.js')],
     env: { ...process.env, WARSHATI_DATA_DIR: dataDir }
   })
+  if (!process.env.CI) return app
+  const tracing = app.context().tracing
+  await tracing.start({ screenshots: true, snapshots: true, title: test.info().titlePath.join(' > ') })
+  const close = app.close.bind(app)
+  let traces = 0
+  app.close = async () => {
+    try {
+      await tracing.stop({ path: test.info().outputPath(`electron-trace-${traces++}.zip`) })
+    } catch {
+      // the app may already be gone; the test's own error is what matters
+    }
+    await close()
+  }
+  return app
+}
+
+export async function launchApp(prefix: string): Promise<Launched> {
+  const dataDir = mkdtempSync(join(tmpdir(), `warshati-e2e-${prefix}-`))
+  const app = await launchElectron(dataDir)
   const page = await app.firstWindow()
   const problems: string[] = []
   page.on('pageerror', (err) => problems.push(`pageerror: ${err.message}`))

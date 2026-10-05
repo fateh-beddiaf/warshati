@@ -1,8 +1,9 @@
-import { test, expect, _electron as electron } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
-import { join, resolve } from 'path'
+import { join } from 'path'
+import { launchElectron } from './helpers'
 
 // Tickets list screen: debounced search, one-shot overdue-threshold fetch, and a threshold
 // input that is never clobbered by a refetch. Runs on the built app with a temp data dir.
@@ -63,10 +64,7 @@ async function openList(): Promise<void> {
 
 test.beforeAll(async () => {
   dataDir = mkdtempSync(join(tmpdir(), 'warshati-e2e-list-'))
-  app = await electron.launch({
-    args: [resolve('out/main/index.js')],
-    env: { ...process.env, WARSHATI_DATA_DIR: dataDir }
-  })
+  app = await launchElectron(dataDir)
   page = await app.firstWindow()
   page.on('pageerror', (err) => problems.push(`pageerror: ${err.message}`))
   page.on('console', (msg) => {

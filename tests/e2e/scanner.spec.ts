@@ -1,8 +1,9 @@
-import { test, expect, _electron as electron } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import type { ElectronApplication, Page, CDPSession } from '@playwright/test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
-import { join, resolve } from 'path'
+import { join } from 'path'
+import { launchElectron } from './helpers'
 
 // Barcode scanner (HID keyboard wedge) behaviour, app-wide regardless of focus.
 // Bursts are sent through the DevTools protocol as real (trusted) key events carrying a
@@ -151,10 +152,7 @@ async function probe(): Promise<{ enters: number; prevented: boolean[]; submits:
 
 test.beforeAll(async () => {
   dataDir = mkdtempSync(join(tmpdir(), 'warshati-e2e-scan-'))
-  app = await electron.launch({
-    args: [resolve('out/main/index.js')],
-    env: { ...process.env, WARSHATI_DATA_DIR: dataDir }
-  })
+  app = await launchElectron(dataDir)
   page = await app.firstWindow()
   page.on('pageerror', (err) => problems.push(`pageerror: ${err.message}`))
   page.on('console', (msg) => {

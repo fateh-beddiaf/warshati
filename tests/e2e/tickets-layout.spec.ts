@@ -1,9 +1,10 @@
-import { test, expect, _electron as electron } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
 import { spawnSync } from 'child_process'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
-import { join, resolve } from 'path'
+import { join } from 'path'
+import { launchElectron } from './helpers'
 
 // The tickets table must fit the window without horizontal scrolling or clipping at every
 // width from the 1024px minimum up, in both languages, with realistic (long) data.
@@ -24,10 +25,7 @@ test.beforeAll(async () => {
   })
   if (seeded.status !== 0) throw new Error(`demo seed failed: ${seeded.stdout}\n${seeded.stderr}`)
 
-  app = await electron.launch({
-    args: [resolve('out/main/index.js')],
-    env: { ...process.env, WARSHATI_DATA_DIR: dataDir }
-  })
+  app = await launchElectron(dataDir)
   page = await app.firstWindow()
   page.on('pageerror', (err) => problems.push(`pageerror: ${err.message}`))
   page.on('console', (msg) => {

@@ -1,8 +1,9 @@
-import { test, expect, _electron as electron } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
-import { join, resolve } from 'path'
+import { join } from 'path'
+import { launchElectron } from './helpers'
 
 // Reports screen: local-date defaults for the custom range, visible error when the report
 // cannot be loaded (instead of stale numbers), and the ledger only lists delivered tickets.
@@ -29,10 +30,7 @@ async function openReports(): Promise<void> {
 
 test.beforeAll(async () => {
   dataDir = mkdtempSync(join(tmpdir(), 'warshati-e2e-reports-'))
-  app = await electron.launch({
-    args: [resolve('out/main/index.js')],
-    env: { ...process.env, WARSHATI_DATA_DIR: dataDir }
-  })
+  app = await launchElectron(dataDir)
   page = await app.firstWindow()
   page.on('pageerror', (err) => problems.push(`pageerror: ${err.message}`))
   await page.waitForSelector('[data-testid="nav-tickets"]')
