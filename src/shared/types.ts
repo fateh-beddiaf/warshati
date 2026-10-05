@@ -199,9 +199,14 @@ export interface PrinterInfo {
   name: string
   displayName: string
   description: string
-  /** The OS default printer: preselected in the print dialog */
+  /** The OS default printer: preselected in the print dialog when no label printer is remembered */
   isDefault: boolean
+  /** The remembered label printer (last one a label printed on, or chosen in Settings): preselected first */
+  isLabelPrinter: boolean
 }
+
+/** Setting holding the label printer's name ('' = none: the OS default is used) */
+export const LABEL_PRINTER_SETTING_KEY = 'label_printer'
 
 // Report Data Types
 export type ReportPeriod = 'today' | 'this_week' | 'this_month' | 'custom' | 'all_time'

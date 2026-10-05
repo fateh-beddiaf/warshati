@@ -10,6 +10,7 @@ import { ThemeSelector } from '../../../components/ThemeSelector'
 import type { Language } from '../../../lib/i18n'
 import type { Notify } from '../types'
 import { ScannerTestCard } from './ScannerTestCard'
+import { LabelPrinterCard } from './LabelPrinterCard'
 
 interface PreferencesTabProps {
   overdueDays: number
@@ -41,7 +42,7 @@ function CardTitleRow({
   )
 }
 
-/** "General" tab: appearance (theme), language, the overdue-ticket threshold and the barcode reader test. */
+/** "General" tab: appearance (theme), language, the overdue-ticket threshold, the label printer and the reader test. */
 export function PreferencesTab({ overdueDays, setOverdueDays, notify }: PreferencesTabProps): React.JSX.Element {
   const { t, language, setLanguage } = useI18n()
   const overdueId = React.useId()
@@ -116,6 +117,8 @@ export function PreferencesTab({ overdueDays, setOverdueDays, notify }: Preferen
           </form>
         </CardContent>
       </Card>
+
+      <LabelPrinterCard notify={notify} />
 
       <ScannerTestCard />
     </div>

@@ -44,7 +44,8 @@ assert(
   'only the OS default is marked'
 )
 assert(
-  JSON.stringify(Object.keys(list[0]).sort()) === JSON.stringify(['description', 'displayName', 'isDefault', 'name']),
+  JSON.stringify(Object.keys(list[0]).sort()) ===
+    JSON.stringify(['description', 'displayName', 'isDefault', 'isLabelPrinter', 'name']),
   'driver details (options) are not sent to the renderer'
 )
 assert(
@@ -54,6 +55,28 @@ assert(
 assert(
   toPrinterList(printers, 'Printer that was removed').every((p) => !p.isDefault),
   'a default that is no longer installed is not marked'
+)
+
+console.log('--- Remembered label printer ---')
+const withLabel = toPrinterList(printers, 'Xprinter XP-80', 'Xprinter XP-350B')
+assert(
+  withLabel
+    .filter((p) => p.isLabelPrinter)
+    .map((p) => p.name)
+    .join() === 'Xprinter XP-350B',
+  'the remembered label printer is marked (only it)'
+)
+assert(
+  withLabel.find((p) => p.isDefault)?.name === 'Xprinter XP-80',
+  'the OS default is still marked separately (receipt printer)'
+)
+assert(
+  toPrinterList(printers, null).every((p) => !p.isLabelPrinter),
+  'nothing remembered: no label printer marked'
+)
+assert(
+  toPrinterList(printers, null, 'Unplugged label printer').every((p) => !p.isLabelPrinter),
+  'a remembered printer that is no longer installed is not marked (the dialog falls back to the default)'
 )
 
 console.log('--- Reading the real setting never throws ---')

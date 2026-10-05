@@ -75,6 +75,19 @@ export const settingsAr = {
     overdueCardTitle: 'تنبيه التذاكر المتأخرة',
     overdueCardDescription: 'حدد بعد كم يوم تُعتبر التذكرة الجاهزة متأخرة'
   },
+  labelPrinter: {
+    title: 'طابعة الملصقات',
+    description:
+      'تُختار تلقائياً في نافذة الطباعة. يحفظها البرنامج عند كل طباعة ملصق ناجحة، ويمكنك اختيارها أو مسحها هنا.',
+    selectLabel: 'الطابعة',
+    none: 'لا شيء: استخدم الطابعة الافتراضية للنظام',
+    notInstalled: '{name} (غير موجودة الآن)',
+    notInstalledHelp: 'هذه الطابعة غير مثبتة حالياً: ستُختار الطابعة الافتراضية للنظام إلى أن تعود.',
+    clear: 'مسح',
+    saved: 'تم حفظ طابعة الملصقات',
+    cleared: 'تم مسح طابعة الملصقات: ستُستخدم الطابعة الافتراضية',
+    saveFailed: 'فشل حفظ طابعة الملصقات'
+  },
   scannerTest: {
     title: 'اختبار القارئ',
     description: 'امسح أي باركود هنا لترى ما يرسله القارئ بالضبط، وهل يتعرّف عليه البرنامج كمسح.',
@@ -172,6 +185,19 @@ export const settingsEn: typeof settingsAr = {
     languageCardDescription: 'Choose the app language and text direction',
     overdueCardTitle: 'Overdue ticket alert',
     overdueCardDescription: 'Set after how many days a ready ticket counts as overdue'
+  },
+  labelPrinter: {
+    title: 'Label printer',
+    description:
+      'Preselected in the print dialog. The app remembers it after every successful label print; choose or clear it here.',
+    selectLabel: 'Printer',
+    none: 'None: use the system default printer',
+    notInstalled: '{name} (not installed now)',
+    notInstalledHelp: 'This printer is not installed right now: the system default printer is used until it is back.',
+    clear: 'Clear',
+    saved: 'Label printer saved',
+    cleared: 'Label printer cleared: the default printer will be used',
+    saveFailed: 'Failed to save the label printer'
   },
   scannerTest: {
     title: 'Test the reader',

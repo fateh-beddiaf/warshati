@@ -34,20 +34,26 @@ export function getDefaultPrinterName(): Promise<string | null> {
   })
 }
 
-/** Only what the print dialog shows; `isDefault` marks the OS default printer (at most one). */
+/**
+ * Only what the print dialog shows. `isDefault` marks the OS default printer, `isLabelPrinter` the label printer
+ * remembered in settings (LABEL_PRINTER_SETTING_KEY); each matches at most one printer, and a remembered printer
+ * that is no longer installed matches none (the dialog then falls back to the OS default).
+ */
 export function toPrinterList(
   printers: Array<Pick<Electron.PrinterInfo, 'name' | 'displayName' | 'description'>>,
-  defaultName: string | null
+  defaultName: string | null,
+  labelPrinterName = ''
 ): PrinterInfo[] {
   return printers.map((p) => ({
     name: p.name,
     displayName: p.displayName,
     description: p.description,
-    isDefault: defaultName !== null && p.name === defaultName
+    isDefault: defaultName !== null && p.name === defaultName,
+    isLabelPrinter: labelPrinterName !== '' && p.name === labelPrinterName
   }))
 }
 
-export async function listPrinters(contents: WebContents): Promise<PrinterInfo[]> {
+export async function listPrinters(contents: WebContents, labelPrinterName = ''): Promise<PrinterInfo[]> {
   const [printers, defaultName] = await Promise.all([contents.getPrintersAsync(), getDefaultPrinterName()])
-  return toPrinterList(printers, defaultName)
+  return toPrinterList(printers, defaultName, labelPrinterName)
 }
