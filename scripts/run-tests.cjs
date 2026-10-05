@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Unit/integration test runner: every tests/*.test.ts, one process per file, with a per-file timeout.
 //
-// Each file runs in Electron's bundled Node (ELECTRON_RUN_AS_NODE=1) so better-sqlite3 uses the same
-// Electron-ABI binary as the app. Running as plain Node also means:
+// Each file runs in Electron's bundled Node (ELECTRON_RUN_AS_NODE=1), the same runtime as the app's main process,
+// so better-sqlite3 and Node APIs behave exactly as in production. Running as plain Node also means:
 //   - a file exits by itself when its work is done (no `process.exit(0)` needed to stop an Electron app),
 //   - an uncaught error exits with code 1 instead of opening Electron's blocking error dialog.
 // A file that still does not finish within the timeout is killed and reported as TIMEOUT.

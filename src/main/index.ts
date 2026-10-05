@@ -23,10 +23,9 @@ if (dataDirOverride) {
 // Dev only: the renderer console is not printed to the terminal by default,
 // so forward warnings/errors and process-level failures to stdout.
 function attachDevDiagnostics(win: BrowserWindow): void {
-  win.webContents.on('console-message', (_event, level, message, line, sourceId) => {
-    // level: 0 verbose, 1 info, 2 warning, 3 error
-    if (level >= 2) {
-      console.log(`[renderer:${level === 3 ? 'error' : 'warn'}] ${message} (${sourceId}:${line})`)
+  win.webContents.on('console-message', ({ level, message, lineNumber, sourceId }) => {
+    if (level === 'warning' || level === 'error') {
+      console.log(`[renderer:${level === 'error' ? 'error' : 'warn'}] ${message} (${sourceId}:${lineNumber})`)
     }
   })
   win.webContents.on('render-process-gone', (_event, details) => {

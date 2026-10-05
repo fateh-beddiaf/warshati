@@ -192,6 +192,15 @@ export interface PrintLabelData {
   printerName?: string
 }
 
+/** A printer as the print dialog lists it (see main/printers.ts). */
+export interface PrinterInfo {
+  name: string
+  displayName: string
+  description: string
+  /** The OS default printer: preselected in the print dialog */
+  isDefault: boolean
+}
+
 // Report Data Types
 export type ReportPeriod = 'today' | 'this_week' | 'this_month' | 'custom' | 'all_time'
 

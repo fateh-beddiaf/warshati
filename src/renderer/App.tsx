@@ -155,7 +155,7 @@ function AppContent(): React.JSX.Element {
       <ErrorBoundary scope={`screen:${activeTab}`} resetKey={activeTab}>
         <AnimatePresence mode="wait">
           {activeTab === 'tickets' && (
-            <motion.div key="tickets" {...pageTransition}>
+            <motion.div key="tickets" data-testid="screen-tickets" {...pageTransition}>
               <TicketsListScreen
                 onNewTicketClick={() => setActiveTab('new-ticket')}
                 onOpenTicketDetails={handleOpenTicketDetails}
@@ -166,19 +166,19 @@ function AppContent(): React.JSX.Element {
           )}
 
           {activeTab === 'new-ticket' && (
-            <motion.div key="new-ticket" {...pageTransition}>
+            <motion.div key="new-ticket" data-testid="screen-new-ticket" {...pageTransition}>
               <NewTicketScreen onTicketCreated={handleTicketCreated} />
             </motion.div>
           )}
 
           {activeTab === 'reports' && (
-            <motion.div key="reports" {...pageTransition}>
+            <motion.div key="reports" data-testid="screen-reports" {...pageTransition}>
               <ReportsScreen onOpenTicketDetails={handleOpenTicketDetails} />
             </motion.div>
           )}
 
           {activeTab === 'settings' && (
-            <motion.div key="settings" {...pageTransition}>
+            <motion.div key="settings" data-testid="screen-settings" {...pageTransition}>
               <SettingsScreen />
             </motion.div>
           )}
