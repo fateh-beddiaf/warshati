@@ -74,6 +74,27 @@ export const settingsAr = {
     languageCardDescription: 'اختر لغة واجهة التطبيق واتجاه العرض',
     overdueCardTitle: 'تنبيه التذاكر المتأخرة',
     overdueCardDescription: 'حدد بعد كم يوم تُعتبر التذكرة الجاهزة متأخرة'
+  },
+  scannerTest: {
+    title: 'اختبار القارئ',
+    description: 'امسح أي باركود هنا لترى ما يرسله القارئ بالضبط، وهل يتعرّف عليه البرنامج كمسح.',
+    inputLabel: 'حقل الاختبار',
+    inputPlaceholder: 'ضع المؤشر هنا ثم امسح باركوداً...',
+    waiting: 'لم يُمسح شيء بعد.',
+    chars: 'الأحرف كما وصلت',
+    readAs: 'كما يقرؤها البرنامج',
+    keyCodes: 'رموز المفاتيح (e.code)',
+    interval: 'متوسط الفاصل الزمني',
+    intervalValue: '{ms} ms بين المفاتيح ({count} مفتاح)',
+    suffix: 'اللاحقة',
+    noSuffix: 'لا شيء',
+    verdict: 'النتيجة',
+    verdictOk: 'يُعرف كمسح',
+    verdictSlow: 'أبطأ من القارئ (الحد {max} ms): سيُعامل ككتابة يدوية',
+    verdictShort: 'أقصر من {min} أحرف: لا يُعامل كمسح',
+    verdictNoSuffix: 'لم يرسل القارئ Enter أو Tab في النهاية: اضبطه ليضيف Enter بعد كل مسح',
+    ticketCode: 'رمز تذكرة: يفتح التذكرة من أي مكان',
+    otherCode: 'ليس رمز تذكرة (باركود منتج مثلاً): يظهر في صندوق المسح خارج الحقول، ويبقى في الحقل إن كان المؤشر داخله'
   }
 }
 
@@ -151,5 +172,27 @@ export const settingsEn: typeof settingsAr = {
     languageCardDescription: 'Choose the app language and text direction',
     overdueCardTitle: 'Overdue ticket alert',
     overdueCardDescription: 'Set after how many days a ready ticket counts as overdue'
+  },
+  scannerTest: {
+    title: 'Test the reader',
+    description: 'Scan any barcode here to see exactly what the reader sends and whether the app takes it as a scan.',
+    inputLabel: 'Test field',
+    inputPlaceholder: 'Click here, then scan a barcode...',
+    waiting: 'Nothing scanned yet.',
+    chars: 'Characters received',
+    readAs: 'As the app reads them',
+    keyCodes: 'Key codes (e.code)',
+    interval: 'Average key interval',
+    intervalValue: '{ms} ms between keys ({count} keys)',
+    suffix: 'Suffix',
+    noSuffix: 'none',
+    verdict: 'Result',
+    verdictOk: 'Recognised as a scan',
+    verdictSlow: 'Slower than a reader (limit {max} ms): treated as typing',
+    verdictShort: 'Shorter than {min} characters: not a scan',
+    verdictNoSuffix: 'The reader sent no Enter or Tab at the end: configure it to add Enter after each scan',
+    ticketCode: 'A ticket code: opens the ticket from anywhere',
+    otherCode:
+      'Not a ticket code (e.g. a product barcode): shown in the scan box outside fields, left in the field when typing in one'
   }
 }

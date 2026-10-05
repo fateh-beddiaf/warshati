@@ -9,6 +9,7 @@ import { SegmentedControl } from '../../../components/ui/SegmentedControl'
 import { ThemeSelector } from '../../../components/ThemeSelector'
 import type { Language } from '../../../lib/i18n'
 import type { Notify } from '../types'
+import { ScannerTestCard } from './ScannerTestCard'
 
 interface PreferencesTabProps {
   overdueDays: number
@@ -40,7 +41,7 @@ function CardTitleRow({
   )
 }
 
-/** "General" tab: appearance (theme), language and the overdue-ticket threshold. */
+/** "General" tab: appearance (theme), language, the overdue-ticket threshold and the barcode reader test. */
 export function PreferencesTab({ overdueDays, setOverdueDays, notify }: PreferencesTabProps): React.JSX.Element {
   const { t, language, setLanguage } = useI18n()
   const overdueId = React.useId()
@@ -115,6 +116,8 @@ export function PreferencesTab({ overdueDays, setOverdueDays, notify }: Preferen
           </form>
         </CardContent>
       </Card>
+
+      <ScannerTestCard />
     </div>
   )
 }

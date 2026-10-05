@@ -1,11 +1,13 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { classifyKey, ScanBuffer } from '../../shared/scanner'
+import { classifyKey, ScanBuffer, SCAN_MAX_INTERVAL_MS, SCAN_MIN_LENGTH } from '../../shared/scanner'
+import { looksLikeTicketCode } from '../../shared/ticket-code'
 
 export interface BarcodeScannerOptions {
   onScan: (barcode: string) => void
-  maxIntervalMs?: number // Max average time between keystrokes typical of HID scanners (default: 60ms)
-  minLength?: number // Minimum barcode length (default: 6)
-  prefix?: string // Required prefix of a scan (default: 'WSH', the prefix of every ticket barcode)
+  maxIntervalMs?: number // Max average time between keystrokes of a scan (default SCAN_MAX_INTERVAL_MS)
+  minLength?: number // Minimum barcode length (default SCAN_MIN_LENGTH)
+  /** Inside an ordinary text field, only scans this accepts are taken from the field (default: ticket codes) */
+  interceptInField?: (barcode: string) => boolean
 }
 
 type FieldEl = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -69,30 +71,31 @@ function restoreField(snap: FieldSnapshot, value: string): void {
 /**
  * Global keyboard listener for Henex / HID keyboard-wedge barcode scanners.
  *
- * The scanner "types" the code very fast (a few ms per key) and ends with Enter. This hook works
- * app-wide, REGARDLESS of where focus is:
+ * The scanner "types" the code very fast (a few ms per key) and ends with a suffix key (Enter, NumpadEnter or
+ * Tab, depending on how it is configured). This hook works app-wide, REGARDLESS of where focus is:
  *
  * - The buffer is built from `event.code` (physical key), so it is independent of the keyboard
  *   layout (Arabic / AZERTY). See classifyKey in src/shared/scanner.ts.
- * - When a burst arrives at scanner speed, starts with the prefix (WSH), and ends with Enter, it is
- *   intercepted (preventDefault + stopPropagation: no form submit, no Enter side effects) and
- *   passed to `onScan`.
- * - If focus was inside an input / textarea / select, the characters of the burst were already
- *   typed into it (keydown fires before the character is inserted and we can only know it was a
- *   scan at the final Enter). So the value the field had BEFORE the burst began is snapshotted at
- *   the first character of every burst and restored on a confirmed scan.
+ * - Focus outside any text field: EVERY burst at scanner speed ended by a suffix is a scan, whatever it contains
+ *   (a ticket code or a product barcode). It is intercepted (preventDefault + stopPropagation: no form submit,
+ *   no focus move) and passed to `onScan`, which shows it and looks it up.
+ * - Focus inside an input / textarea / select: only a burst that looks like a ticket code (`interceptInField`) is
+ *   taken. Its characters were already typed into the field (keydown fires before the character is inserted and
+ *   we can only know it was a scan at the suffix), so the value the field had BEFORE the burst began is
+ *   snapshotted at the first character of every burst and restored. Anything else (a product barcode scanned
+ *   into a name field, a paste, typing) is left to the field untouched.
  * - Exception: a field marked data-barcode-input="true" is waiting for a barcode (header search,
- *   delete-confirmation). A scan is NOT intercepted there: the field receives the code (rewritten
- *   from the physical keys so an Arabic/AZERTY layout cannot garble it), Enter keeps its normal
- *   behaviour (e.g. submitting the header form) and `onScan` is not called.
- * - Normal human typing is never touched: keys are never prevented, and nothing is restored unless
- *   a complete scanner-speed, WSH-prefixed burst ended with Enter.
+ *   delete-confirmation, reader test). A scan is NOT intercepted there: the field receives the code (rewritten
+ *   from the physical keys so an Arabic/AZERTY layout cannot garble it), the suffix keeps its normal
+ *   behaviour (e.g. Enter submits the header form) and `onScan` is not called.
+ * - Normal human typing is never touched: keys are never prevented, and nothing is restored unless a complete
+ *   scanner-speed burst ended with a suffix.
  */
 export function useBarcodeScanner({
   onScan,
-  maxIntervalMs = 60,
-  minLength = 6,
-  prefix = 'WSH'
+  maxIntervalMs = SCAN_MAX_INTERVAL_MS,
+  minLength = SCAN_MIN_LENGTH,
+  interceptInField = looksLikeTicketCode
 }: BarcodeScannerOptions): void {
   const bufferRef = useRef<ScanBuffer>(new ScanBuffer())
   const snapshotRef = useRef<FieldSnapshot | null>(null)
@@ -115,17 +118,19 @@ export function useBarcodeScanner({
         return
       }
 
-      if (k.kind === 'enter') {
-        const scanned = bufferRef.current.complete({ maxIntervalMs, minLength, prefix }, isBarcodeInput)
+      if (k.kind === 'suffix') {
+        const scanned = bufferRef.current.complete({ maxIntervalMs, minLength }, isBarcodeInput)
         const snap = snapshotRef.current
         snapshotRef.current = null
         if (scanned === null) return
 
         if (isBarcodeInput && field) {
-          // The field consumes the code itself: hand it the layout-independent text, let Enter through
+          // The field consumes the code itself: hand it the layout-independent text, let the suffix through
           restoreField(snapshotField(field), scanned)
           return
         }
+        // In an ordinary field, only ticket codes are taken; anything else stays the field's input
+        if (field && !interceptInField(scanned)) return
 
         e.preventDefault()
         e.stopPropagation()
@@ -134,11 +139,11 @@ export function useBarcodeScanner({
         return
       }
 
-      // Any other key (Backspace, arrows, Tab, shortcuts, events without key/code) breaks a burst
+      // Any other key (Backspace, arrows, shortcuts, events without key/code) breaks a burst
       bufferRef.current.reset()
       snapshotRef.current = null
     },
-    [onScan, maxIntervalMs, minLength, prefix]
+    [onScan, maxIntervalMs, minLength, interceptInField]
   )
 
   useEffect(() => {

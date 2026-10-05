@@ -63,13 +63,18 @@ function AppContent(): React.JSX.Element {
     [t]
   )
 
-  // Mount Dual-Approach Global Keyboard Listener for Henex Scanner
-  useBarcodeScanner({
-    onScan: handleBarcodeScanned,
-    maxIntervalMs: 60,
-    minLength: 6,
-    prefix: 'WSH'
-  })
+  // The last code read by the scanner, shown in the header's scan box (seq: the same code scanned twice still flashes)
+  const [scannedCode, setScannedCode] = useState<{ value: string; seq: number } | null>(null)
+  const handleScan = useCallback(
+    (code: string): void => {
+      setScannedCode((prev) => ({ value: code, seq: (prev?.seq ?? 0) + 1 }))
+      void handleBarcodeScanned(code)
+    },
+    [handleBarcodeScanned]
+  )
+
+  // Global keyboard listener for the HID scanner (Henex): see useBarcodeScanner for what counts as a scan
+  useBarcodeScanner({ onScan: handleScan })
 
   // Open ticket details by ID
   const handleOpenTicketDetails = async (ticketId: number): Promise<void> => {
@@ -134,7 +139,12 @@ function AppContent(): React.JSX.Element {
   }
 
   return (
-    <Layout activeTab={activeTab} onTabChange={setActiveTab} onManualBarcodeScan={handleBarcodeScanned}>
+    <Layout
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      onManualBarcodeScan={handleBarcodeScanned}
+      scannedCode={scannedCode}
+    >
       {/* Toast Notification when barcode not found */}
       <AnimatePresence>
         {scanAlert && (
