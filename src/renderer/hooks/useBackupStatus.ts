@@ -13,7 +13,12 @@ export function useBackupStatus(
   refreshKey?: unknown,
   onEvent?: (event: BackupStatusEvent) => void
 ): { status: BackupStatus | null; refresh: () => Promise<void>; setStatus: (status: BackupStatus) => void } {
-  const [status, setStatus] = useState<BackupStatus | null>(null)
+  const [status, setStatusState] = useState<BackupStatus | null>(null)
+  // The status is re-read on every screen switch: keep the same object when nothing changed, so the app does not
+  // re-render in the middle of a screen transition for nothing
+  const setStatus = useCallback((next: BackupStatus): void => {
+    setStatusState((prev) => (prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next))
+  }, [])
   const onEventRef = useRef(onEvent)
   useEffect(() => {
     onEventRef.current = onEvent
@@ -26,7 +31,7 @@ export function useBackupStatus(
     } catch (err) {
       console.warn('Failed to read the backup status:', err)
     }
-  }, [])
+  }, [setStatus])
 
   useEffect(() => {
     void refresh()
@@ -42,7 +47,7 @@ export function useBackupStatus(
       clearInterval(timer)
       unsubscribe()
     }
-  }, [refresh])
+  }, [refresh, setStatus])
 
   return { status, refresh, setStatus }
 }
