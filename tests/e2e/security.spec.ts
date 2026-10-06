@@ -17,7 +17,12 @@ test.afterEach(async () => {
 test('the main window is sandboxed and isolated, with a strict CSP and no violations', async () => {
   const { app, page, problems } = l
   const prefs = await app.evaluate(({ BrowserWindow }) => {
-    const p = BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences()
+    // getLastWebPreferences exists at runtime but is not in Electron's typings (there is no public getter for the
+    // preferences a window was created with): type just that one method
+    const contents = BrowserWindow.getAllWindows()[0].webContents as Electron.WebContents & {
+      getLastWebPreferences(): Electron.WebPreferences | null
+    }
+    const p = contents.getLastWebPreferences()
     return { sandbox: p?.sandbox, contextIsolation: p?.contextIsolation, nodeIntegration: p?.nodeIntegration }
   })
   expect(prefs).toEqual({ sandbox: true, contextIsolation: true, nodeIntegration: false })
