@@ -1,11 +1,12 @@
 import * as React from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Database, Globe, Layers, Smartphone, Sliders, Users, Wrench } from 'lucide-react'
 import { useI18n } from '../../lib/i18n'
 import { PageHeader } from '../../components/PageHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/Tabs'
 import { pageTransition, transitions } from '../../lib/motion'
+import { usePageScrollReset } from '../../lib/page-scroll'
 import type { SettingsTabId, SettingsTabProps } from './types'
 import { notify } from './notify'
 import { useSettingsData } from './useSettingsData'
@@ -42,6 +43,12 @@ export function SettingsScreen({ initialTab = 'categories' }: { initialTab?: Set
   const { t } = useI18n()
   const [activeTab, setActiveTab] = useState<SettingsTabId>(initialTab)
   const { data, loading, reload, overdueDays, setOverdueDays } = useSettingsData()
+
+  // A section starts at the top of the page, like a screen does, not at the previous section's scroll position
+  const resetPageScroll = usePageScrollReset()
+  useEffect(() => {
+    resetPageScroll()
+  }, [activeTab, resetPageScroll])
 
   const tabProps: SettingsTabProps = { data, loading, reload, notify }
 

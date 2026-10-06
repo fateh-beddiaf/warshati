@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Wrench,
@@ -15,6 +15,7 @@ import {
 import { useI18n } from '../lib/i18n'
 import { cn } from '../lib/utils'
 import { LAYOUT_IDS, transitions } from '../lib/motion'
+import { PageScrollResetContext } from '../lib/page-scroll'
 import { ThemeToggle } from './ThemeToggle'
 import { Input } from './ui/Input'
 import { Button } from './ui/Button'
@@ -87,9 +88,12 @@ export function Layout({
 
   // The page body is one scroll container shared by every screen: a new screen starts at the top, where its banners
   // and alerts are, not at the scroll position the previous screen was left at
-  useEffect(() => {
+  const scrollToTop = useCallback((): void => {
     if (bodyRef.current) bodyRef.current.scrollTop = 0
-  }, [activeTab])
+  }, [])
+  useEffect(() => {
+    scrollToTop()
+  }, [activeTab, scrollToTop])
 
   // A scan made anywhere in the app shows up here, so the user sees what the reader sent
   useEffect(() => {
@@ -214,7 +218,9 @@ export function Layout({
 
         {/* Scrollable Page Body */}
         <div ref={bodyRef} data-testid="page-body" className="flex-1 overflow-y-auto px-5 py-6">
-          <div className="mx-auto w-full max-w-7xl">{children}</div>
+          <PageScrollResetContext.Provider value={scrollToTop}>
+            <div className="mx-auto w-full max-w-7xl">{children}</div>
+          </PageScrollResetContext.Provider>
         </div>
       </main>
     </div>
