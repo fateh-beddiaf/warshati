@@ -1,0 +1,117 @@
+name: Release
+
+# Pushing a tag such as v1.0.0 runs the full checks, builds the Windows installer and opens a DRAFT GitHub release
+# with the installer and its SHA-256 checksum. Nothing is published until the draft is reviewed and published by hand.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Cache the Electron binary
+        uses: actions/cache@v6
+        with:
+          path: ~/AppData/Local/electron/Cache
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-
+
+      - name: The tag matches the version in package.json
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json version $version"
+            exit 1
+          fi
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint, format, typecheck, UI rules, unit tests
+        run: npm run verify
+
+      - name: End-to-end tests (Electron + Playwright)
+        run: npm run test:e2e
+
+      - name: Build the installer
+        run: npm run dist
+
+      - name: Smoke test of the packaged app (fuses, database, print dialog)
+        run: npm run test:packaged
+
+      - name: Checksums
+        working-directory: release
+        run: sha256sum Warshati-Setup-*.exe > SHA256SUMS.txt && cat SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: installer
+          path: |
+            release/Warshati-Setup-*.exe
+            release/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+
+  # Only this job can write to the repository, and it runs no project code: it attaches the built files to a draft
+  draft-release:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: installer
+          path: dist
+
+      - name: Release notes from CHANGELOG.md
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '
+            /^## / { if (found) exit; if (index($0, "[" v "]")) { found = 1; next } }
+            found && !/^\[/ { print }
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::error::CHANGELOG.md has no section for $version"
+            exit 1
+          fi
+
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --draft \
+            --verify-tag \
+            --title "Warshati $GITHUB_REF_NAME" \
+            --notes-file notes.md
