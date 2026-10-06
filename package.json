@@ -19,7 +19,7 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "dist": "electron-vite build && electron-builder --win --x64 --publish never",
+    "dist": "node scripts/build-license-txt.cjs && electron-vite build && electron-builder --win --x64 --publish never",
     "preview": "electron-vite preview",
     "test": "node scripts/run-tests.cjs",
     "test:e2e": "electron-vite build && playwright test",
