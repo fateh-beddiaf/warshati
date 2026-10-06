@@ -1,8 +1,9 @@
-import { test, expect, _electron as electron } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
-import { join, resolve } from 'path'
+import { join } from 'path'
+import { launchElectron } from './helpers'
 
 // Persistence across restarts: deleted seed items must not come back, and the full
 // brand catalog must be present and fast to search in the new-ticket form.
@@ -12,10 +13,7 @@ test.describe.configure({ mode: 'serial' })
 let dataDir: string
 
 async function launch(): Promise<{ app: ElectronApplication; page: Page; problems: string[] }> {
-  const app = await electron.launch({
-    args: [resolve('out/main/index.js')],
-    env: { ...process.env, WARSHATI_DATA_DIR: dataDir }
-  })
+  const app = await launchElectron(dataDir)
   const page = await app.firstWindow()
   const problems: string[] = []
   page.on('pageerror', (err) => problems.push(`pageerror: ${err.message}`))

@@ -15,21 +15,34 @@ interface ImportConfirmDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
+  /** Default: the import texts. A restore from the backup list names the backup instead. */
+  title?: string
+  description?: string
+  testId?: string
 }
 
 /** Warns that importing replaces the whole database (a safety backup is taken first by the main process). */
-export function ImportConfirmDialog({ open, onOpenChange, onConfirm }: ImportConfirmDialogProps): React.JSX.Element {
+export function ImportConfirmDialog({
+  open,
+  onOpenChange,
+  onConfirm,
+  title,
+  description,
+  testId = 'settings-import-dialog'
+}: ImportConfirmDialogProps): React.JSX.Element {
   const { t } = useI18n()
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent closeLabel={t.common.close} data-testid="settings-import-dialog">
+      <DialogContent closeLabel={t.common.close} data-testid={testId}>
         <DialogHeader className="flex-row items-start gap-4 space-y-0">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-warning-soft text-warning-soft-foreground">
             <AlertTriangle className="h-6 w-6" />
           </div>
           <div className="space-y-2 pe-6">
-            <DialogTitle>{t.settings.backup.importConfirmTitle}</DialogTitle>
-            <DialogDescription className="leading-relaxed">{t.settings.backup.importConfirmDesc}</DialogDescription>
+            <DialogTitle>{title ?? t.settings.backup.importConfirmTitle}</DialogTitle>
+            <DialogDescription className="leading-relaxed">
+              {description ?? t.settings.backup.importConfirmDesc}
+            </DialogDescription>
           </div>
         </DialogHeader>
         <DialogFooter className="border-t border-border pt-4">

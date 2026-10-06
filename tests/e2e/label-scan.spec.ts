@@ -10,7 +10,9 @@ import { generateTicketCode, isTicketCode } from '../../src/shared/ticket-code'
 // bitmap. The test then
 //   - decodes it with zxing (strict settings) and expects exactly the ticket code,
 //   - measures every bar and space: each must be a whole number of 3-dot modules (no 1.5-dot modules rounded
-//     differently from bar to bar), with >= 10 white modules on each side (Code128 quiet zone).
+//     differently from bar to bar), with >= 10 white modules on each side (Code128 quiet zone),
+//   - checks the text rows keep a side margin on BOTH edges of the 40mm paper: every text box and every text run
+//     measured in the page, and the ink itself (no dark dot in the outer 1mm on either side).
 // The printer list is stubbed with a printer name that does not exist.
 
 test.describe.configure({ mode: 'serial' })
@@ -23,6 +25,16 @@ const QUIET_MODULES = 10
 const LABEL_DOTS = Math.floor((40 / 25.4) * DPI)
 /** Longest name the customer field realistically gets; the header truncates it, the barcode must not move */
 const LONG_NAME = 'عبد الرحمان بن محمد الأمين بوعلام الشريف القسنطيني'
+/** Minimum white margin (mm) between any text and either side edge of the paper */
+const SIDE_MARGIN_MM = 1
+const MM_DOTS = DPI / 25.4
+
+/** A text box or text run of the printed page, in mm from the paper's left edge */
+interface TextRect {
+  what: string
+  left: number
+  right: number
+}
 
 interface Raster {
   barcode: string
@@ -30,6 +42,9 @@ interface Raster {
   bgra: string
   width: number
   height: number
+  /** the page's text boxes and runs, and the width of the page and of the label's content (mm) */
+  text: TextRect[]
+  pageWidthMm: number
 }
 
 let l: Launched
@@ -55,10 +70,42 @@ test.beforeAll(async () => {
           })
           const url = contents.getURL()
           const barcode = /data-barcode%3D%22([^%]+)%22/.exec(url)?.[1] ?? ''
+          let text: TextRect[] = []
+          let pageWidthMm = 0
           shot.webContents
             .loadURL(url)
             .then(() => new Promise((r) => setTimeout(r, 150)))
-            .then(() => shot.webContents.capturePage())
+            .then(() =>
+              // Boxes of the text elements, and the runs of text inside them (a Range: what the glyphs occupy)
+              shot.webContents.executeJavaScript(`(() => {
+                const mm = 25.4 / 96
+                const rects = []
+                for (const el of document.querySelectorAll('.label *')) {
+                  if (el.closest('svg')) continue
+                  for (const node of el.childNodes) {
+                    if (node.nodeType !== Node.TEXT_NODE || !node.textContent.trim()) continue
+                    const box = el.getBoundingClientRect()
+                    rects.push({ what: 'box ' + el.className, left: box.left * mm, right: box.right * mm })
+                    const range = document.createRange()
+                    range.selectNodeContents(node)
+                    const run = range.getBoundingClientRect()
+                    // a clipped run (the long name's ellipsis) only shows inside its box
+                    const clip = getComputedStyle(el).overflowX !== 'visible'
+                    const left = clip ? Math.max(run.left, box.left) : run.left
+                    const right = clip ? Math.min(run.right, box.right) : run.right
+                    rects.push({ what: 'text ' + node.textContent.trim(), left: left * mm, right: right * mm })
+                  }
+                }
+                // the page's own width (the viewport is wider) and anything overflowing the label
+                const page = document.documentElement.getBoundingClientRect().width
+                return { rects, pageWidthMm: Math.max(page, document.querySelector('.label').scrollWidth) * mm }
+              })()`)
+            )
+            .then((measured: { rects: TextRect[]; pageWidthMm: number }) => {
+              text = measured.rects
+              pageWidthMm = measured.pageWidthMm
+              return shot.webContents.capturePage()
+            })
             .then((image) => {
               const size = image.getSize(scale)
               g.__rasters.push({
@@ -66,7 +113,9 @@ test.beforeAll(async () => {
                 png: image.toPNG({ scaleFactor: scale }).toString('base64'),
                 bgra: Buffer.from(image.toBitmap({ scaleFactor: scale })).toString('base64'),
                 width: size.width,
-                height: size.height
+                height: size.height,
+                text,
+                pageWidthMm
               })
               shot.destroy()
               callback?.(true, '')
@@ -125,6 +174,31 @@ async function checkLabel(raster: Raster, expected: string): Promise<Buffer> {
   return png
 }
 
+/**
+ * Every text box and run stays >= SIDE_MARGIN_MM inside the 40mm paper on both sides, and so does the ink: no dark
+ * dot in the outer 1mm strips (the bars' quiet zones are white, so only text could put ink there).
+ */
+function checkSideMargins(raster: Raster, expectedTexts: string[]): void {
+  expect(raster.pageWidthMm, 'the page is not wider than the 40mm label').toBeLessThanOrEqual(40.01)
+  const texts = raster.text.filter((r) => r.what.startsWith('text ')).map((r) => r.what.slice(5))
+  for (const t of expectedTexts) expect(texts).toContain(t)
+  for (const r of raster.text) {
+    expect(r.left, `${r.what}: left margin`).toBeGreaterThanOrEqual(SIDE_MARGIN_MM)
+    expect(40 - r.right, `${r.what}: right margin`).toBeGreaterThanOrEqual(SIDE_MARGIN_MM)
+  }
+  const bgra = new Uint8Array(Buffer.from(raster.bgra, 'base64'))
+  const strip = Math.floor(SIDE_MARGIN_MM * MM_DOTS)
+  const labelHeight = Math.floor((20 / 25.4) * DPI)
+  const inked: string[] = []
+  for (let y = 0; y < labelHeight; y++) {
+    for (const x0 of [0, LABEL_DOTS - strip]) {
+      const m = measureBars(bgra, raster.width, y, x0, x0 + strip)
+      if (m.runs.length > 0) inked.push(`y=${y} x=${x0 + m.quietLeft}`)
+    }
+  }
+  expect(inked, 'ink in the outer 1mm of the label').toEqual([])
+}
+
 test('a label printed from the app scans back to its ticket code (203 DPI)', async () => {
   const barcode = await createTicket(l.page, {
     name: LONG_NAME,
@@ -145,6 +219,7 @@ test('a label printed from the app scans back to its ticket code (203 DPI)', asy
   const [raster] = await rasters()
   expect(raster.barcode).toBe(barcode)
   const png = await checkLabel(raster, barcode)
+  checkSideMargins(raster, ['ورشتي', '0555123456', 'SA A54'])
   writeFileSync(test.info().outputPath('label-203dpi.png'), png)
 
   await l.page.getByTestId('print-close').click()
@@ -170,10 +245,31 @@ test('three random ticket codes scan back exactly', async () => {
   }
 })
 
+test('text keeps its side margins with the longest name, with and without the phone', async () => {
+  for (const customerPhone of ['0555123456', undefined]) {
+    const result = await l.page.evaluate(
+      (phone) =>
+        window.api.printLabel({
+          barcode: '29876543',
+          customerName: 'عبد الرحمان بن محمد الأمين بوعلام الشريف القسنطيني',
+          shortLabel: 'IP 15PM',
+          customerPhone: phone
+        }),
+      customerPhone
+    )
+    expect(result).toEqual({ success: true })
+    const all = await rasters()
+    const raster = all[all.length - 1]
+    await checkLabel(raster, '29876543')
+    checkSideMargins(raster, customerPhone ? ['ورشتي', customerPhone, 'IP 15PM'] : ['ورشتي', 'IP 15PM'])
+    if (!customerPhone) expect(raster.text.some((r) => r.what.includes('footer-phone'))).toBe(false)
+  }
+})
+
 test('a code that cannot fit the label with readable bars is refused, not printed', async () => {
   const result = await l.page.evaluate(() =>
     window.api.printLabel({ barcode: 'WSH2610056T5197', customerName: 'زبون', shortLabel: 'X' })
   )
   expect(result.success).toBe(false)
-  expect(await rasters()).toHaveLength(4)
+  expect(await rasters()).toHaveLength(6)
 })

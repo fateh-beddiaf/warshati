@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { Layout } from './components/Layout'
 import { NewTicketScreen } from './screens/NewTicketScreen'
 import { TicketsListScreen } from './screens/TicketsListScreen'
@@ -18,6 +18,11 @@ import type { TicketFullDetails, TicketListItem } from '../shared/types'
 import { AlertCircle } from 'lucide-react'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { pageTransition, slideDown } from './lib/motion'
+import { useBackupStatus } from './hooks/useBackupStatus'
+import { BackupWarningBanner } from './components/BackupWarningBanner'
+import { toast } from './components/ui/Sonner'
+import { healthWarns, type BackupStatusEvent } from '../shared/auto-backup'
+import type { SettingsTabId } from './screens/settings/types'
 
 function AppContent(): React.JSX.Element {
   const { t } = useI18n()
@@ -37,6 +42,34 @@ function AppContent(): React.JSX.Element {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false)
 
   const [scanAlert, setScanAlert] = useState<string | null>(null)
+
+  // Automatic backups: a warning banner on every screen while the data is not protected, and a quiet toast when an
+  // automatic backup fails (only when the error is new: an unplugged USB drive does not toast every hour)
+  const lastBackupToast = useRef<string | null>(null)
+  const onBackupEvent = useCallback(
+    (event: BackupStatusEvent): void => {
+      const result = event.run?.result
+      if (!result) return
+      if (result.outcome !== 'failed') {
+        if (result.outcome === 'created' || result.outcome === 'unchanged') lastBackupToast.current = null
+        return
+      }
+      if (event.run?.trigger === 'manual' || lastBackupToast.current === result.error) return
+      lastBackupToast.current = result.error
+      toast.warning(t.ui.settings.autoBackup.autoFailed.replace('{error}', result.error), { duration: 8000 })
+    },
+    [t]
+  )
+  const { status: backupStatus } = useBackupStatus(activeTab, onBackupEvent)
+  // Settings opened from the banner start on the backup tab (the nonce remounts it when already on Settings)
+  const [settingsEntry, setSettingsEntry] = useState<{ tab: SettingsTabId; nonce: number }>({
+    tab: 'categories',
+    nonce: 0
+  })
+  const openBackupSettings = (): void => {
+    setSettingsEntry((prev) => ({ tab: 'backup', nonce: prev.nonce + 1 }))
+    setActiveTab('settings')
+  }
 
   // Fetch and open ticket by barcode
   const handleBarcodeScanned = useCallback(
@@ -160,6 +193,12 @@ function AppContent(): React.JSX.Element {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {backupStatus && healthWarns(backupStatus.health) && (
+          <BackupWarningBanner status={backupStatus} onOpenSettings={openBackupSettings} />
+        )}
+      </AnimatePresence>
+
       {/* Screen Views */}
       {/* resetKey: switching tabs clears a previous crash without remounting (keeps exit animations) */}
       <ErrorBoundary scope={`screen:${activeTab}`} resetKey={activeTab}>
@@ -189,7 +228,7 @@ function AppContent(): React.JSX.Element {
 
           {activeTab === 'settings' && (
             <motion.div key="settings" data-testid="screen-settings" {...pageTransition}>
-              <SettingsScreen />
+              <SettingsScreen key={settingsEntry.nonce} initialTab={settingsEntry.tab} />
             </motion.div>
           )}
         </AnimatePresence>

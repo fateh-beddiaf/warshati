@@ -4,19 +4,14 @@ import { join, dirname } from 'path'
 import { getDatabase, getDatabasePath } from '../database'
 import { importDatabaseFromFile, type SafetyBackupCreator } from './backup-core'
 import type { DatabaseInfo } from '../shared/types'
+import { formatBytes } from '../shared/format-bytes'
 
 export type { SafetyBackupCreator }
 
 export interface ImportDatabaseBackupOptions {
   createSafetyBackup?: SafetyBackupCreator
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
+  /** Folder the file dialog opens in (the backup folder). Without it Electron 43+ opens Downloads. */
+  defaultPath?: string
 }
 
 export function getDatabaseInfo(): DatabaseInfo {
@@ -115,6 +110,7 @@ export async function importDatabaseBackup(
       const win = targetWindow || BrowserWindow.getFocusedWindow() || undefined
       const openResult = await dialog.showOpenDialog(win!, {
         title: 'استيراد واستعادة قاعدة بيانات ورشتي',
+        defaultPath: options.defaultPath,
         properties: ['openFile'],
         filters: [
           { name: 'ملفات قواعد بيانات SQLite (*.db, *.sqlite)', extensions: ['db', 'sqlite', 'sqlite3'] },

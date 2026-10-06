@@ -3,6 +3,7 @@ import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { initDatabase } from '../database'
 import { registerIpcHandlers } from './ipc'
+import { startAutoBackup } from './auto-backup'
 import { applySecurityPolicy } from './security'
 import { applyThemePreference, loadThemePreference, registerThemeHandlers } from './theme'
 import {
@@ -113,6 +114,7 @@ app.whenReady().then(() => {
   const themePreference = loadThemePreference()
   const resolvedTheme = applyThemePreference(themePreference)
   createWindow(themePreference, resolvedTheme)
+  startAutoBackup()
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
