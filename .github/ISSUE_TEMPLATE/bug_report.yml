@@ -1,0 +1,54 @@
+name: مشكلة / Bug report
+description: شيء لا يعمل كما ينبغي / Something does not work as it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        شكراً على الإبلاغ. لا تضع أسماء أو أرقام هواتف زبائن حقيقيين في التقرير أو في الصور.
+        Thanks for reporting. Please keep real customers' names and phone numbers out of the report and screenshots.
+  - type: textarea
+    id: what
+    attributes:
+      label: ماذا حدث؟ / What happened?
+      description: ما الذي فعلته، وماذا توقعت، وماذا حدث بدلاً من ذلك / What you did, what you expected, what happened instead
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: إصدار ورشتي / Warshati version
+      description: Windows → الإعدادات/Settings → التطبيقات/Apps → Warshati
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: إصدار Windows / Windows version
+      placeholder: Windows 11 23H2
+    validations:
+      required: true
+  - type: input
+    id: printer
+    attributes:
+      label: طابعة الملصقات / Label printer
+      description: الطراز وحجم الملصق / Model and label size
+      placeholder: Xprinter XP-350B, 40×20mm
+  - type: input
+    id: scanner
+    attributes:
+      label: قارئ الباركود / Barcode scanner
+      placeholder: USB, keyboard mode (HID)
+  - type: textarea
+    id: scanner-test
+    attributes:
+      label: نتيجة "اختبار القارئ" / Scanner test result
+      description: |
+        إن كانت المشكلة في المسح: افتح الإعدادات ← التفضيلات واللغة ← اختبار القارئ، امسح ملصقاً، وأرفق لقطة شاشة للنتيجة.
+        If the problem is about scanning: open Settings → Preferences & Language → Scanner test, scan a label and attach a screenshot of the result.
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: لقطات شاشة / Screenshots
+      description: اسحب الصور إلى هنا / Drag images here

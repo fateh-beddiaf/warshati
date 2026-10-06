@@ -1,0 +1,27 @@
+name: طلب إذن استخدام تجاري / Commercial use request
+description: لاستخدام ورشتي في محل أو أي نشاط تجاري / To use Warshati in a shop or any business
+labels: [commercial-use]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ورشتي مجاني للاستخدام الشخصي وغير التجاري. أي استخدام في نشاط تجاري، بما فيه محلات التصليح، يحتاج إذناً مكتوباً من المالك.
+        Warshati is free for personal and noncommercial use. Any use in a business, repair shops included, needs written permission from the owner.
+  - type: input
+    id: who
+    attributes:
+      label: الاسم أو اسم المحل / Your name or business
+    validations:
+      required: true
+  - type: textarea
+    id: use
+    attributes:
+      label: كيف ستستخدمه؟ / How will you use it?
+      description: نوع النشاط، المدينة/البلد، عدد الأجهزة / Kind of business, city/country, number of computers
+    validations:
+      required: true
+  - type: input
+    id: contact
+    attributes:
+      label: وسيلة تواصل (اختياري) / How to reach you (optional)
+      description: تذكّر أن هذا الطلب عام / Remember this request is public
