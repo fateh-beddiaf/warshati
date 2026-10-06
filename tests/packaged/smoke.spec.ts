@@ -140,3 +140,11 @@ test('the print dialog shows the label and the installed printers', async () => 
   await expect(page.getByTestId('print-submit')).toBeHidden()
   expect(problems).toEqual([])
 })
+
+test('the main process loads jsbarcode from app.asar (a code too long for the label is refused, nothing printed)', async () => {
+  // The refusal comes from drawing the bars with jsbarcode, before any print window loads a page: no printer is used
+  const result = await page.evaluate(() =>
+    window.api.printLabel({ barcode: 'WSH2610056T5197', customerName: 'x', shortLabel: 'y' })
+  )
+  expect(result).toEqual({ success: false, error: 'barcode too long for the label' })
+})
