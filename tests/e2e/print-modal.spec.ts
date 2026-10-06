@@ -11,8 +11,12 @@ let l: Launched
 let barcodeA = ''
 let barcodeB = ''
 
+// One app for the file; beforeAll creates the two tickets every test uses, so any test can run alone.
 test.beforeAll(async () => {
   l = await launchApp('print')
+  barcodeA = await createTicket(l.page, { name: 'Alpha', phone: '0555000001', price: 5000, paid: 5000, type: 'cash' })
+  barcodeB = await createTicket(l.page, { name: 'Beta', phone: '0555000002', price: 3000, paid: 3000, type: 'cash' })
+  expect(barcodeA).not.toBe(barcodeB)
 })
 test.afterAll(async () => {
   await shutdownApp(l)
@@ -54,12 +58,6 @@ async function closePrintAndDetails(): Promise<void> {
   await l.page.getByTestId('print-submit').waitFor({ state: 'hidden' })
   await closeDetails(l.page)
 }
-
-test('setup: two tickets', async () => {
-  barcodeA = await createTicket(l.page, { name: 'Alpha', phone: '0555000001', price: 5000, paid: 5000, type: 'cash' })
-  barcodeB = await createTicket(l.page, { name: 'Beta', phone: '0555000002', price: 3000, paid: 3000, type: 'cash' })
-  expect(barcodeA).not.toBe(barcodeB)
-})
 
 test('switching tickets never shows a stale barcode', async () => {
   await openPrintFor(barcodeA)

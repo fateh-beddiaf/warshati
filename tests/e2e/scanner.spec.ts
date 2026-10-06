@@ -160,6 +160,7 @@ test.beforeAll(async () => {
   })
   await page.waitForSelector('[data-testid="nav-tickets"]')
   cdp = await page.context().newCDPSession(page)
+  await createTicketAndProbe()
 })
 
 test.afterAll(async () => {
@@ -175,7 +176,8 @@ test.afterEach(() => {
   expect(problems, 'renderer errors').toEqual([])
 })
 
-test('setup: create a ticket and read its barcode', async () => {
+/** The ticket every test scans, created through the form, and the Enter probe (in beforeAll: any test can run alone) */
+async function createTicketAndProbe(): Promise<void> {
   await go('new-ticket')
   const form = page.getByTestId('new-ticket-form')
   const textInputs = form.locator('input[type="text"]')
@@ -191,9 +193,10 @@ test('setup: create a ticket and read its barcode', async () => {
   barcode = ((await page.getByTestId('ticket-created-barcode').textContent()) ?? '').trim()
   expect(barcode).toMatch(/^2\d{7}$/)
   await installEnterProbe()
-})
+}
 
 test('scan under an Arabic layout while the customer-name field holds "abc"', async () => {
+  await go('new-ticket')
   const name = page.getByTestId('new-ticket-form').locator('input[type="text"]').nth(0)
   await name.fill('abc')
   await name.focus()
@@ -220,6 +223,7 @@ test('scan under an Arabic layout while the customer-name field holds "abc"', as
 })
 
 test('scan with a Latin layout also works from another field, and with no focus', async () => {
+  await go('new-ticket')
   const phone = page.getByTestId('new-ticket-form').locator('input[type="text"]').nth(1)
   await phone.fill('0555')
   await phone.focus()
@@ -235,6 +239,7 @@ test('scan with a Latin layout also works from another field, and with no focus'
 })
 
 test('normal human typing in a field is unaffected', async () => {
+  await go('new-ticket')
   const name = page.getByTestId('new-ticket-form').locator('input[type="text"]').nth(0)
   await name.fill('')
   await name.focus()

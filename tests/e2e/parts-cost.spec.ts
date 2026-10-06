@@ -7,8 +7,8 @@ import { launchApp, shutdownApp, openDetailsByBarcode, closeDetails, type Launch
 //  (c) the field is masked by default            (d) delivered without a cost, cost added later -> shares + report
 //  (e) a loss needs a confirmation               (f) the cost never reaches the label / print preview
 //  (g) "requires a cost" is snapshotted per ticket (h) the delivery dialog hides the profit split until asked
-
-test.describe.configure({ mode: 'serial' })
+// Every test starts its own app on fresh data and first creates what it starts from (the category switch, earlier
+// tickets) through the app's API, so any test can run alone.
 
 let l: Launched
 const CATEGORY = 'بطارية ومنفذ شحن' // seeded, 50% -> 4000 - 2600 = 1400 => 700 / 700
@@ -22,15 +22,63 @@ const withoutBarcodeArt = (html: string, barcode: string): string =>
     .split(barcode)
     .join('')
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   l = await launchApp('partscost')
 })
-test.afterAll(async () => {
-  await shutdownApp(l)
+test.afterEach(async () => {
+  try {
+    expect(l.problems, 'renderer errors').toEqual([])
+  } finally {
+    await shutdownApp(l)
+  }
 })
-test.afterEach(() => {
-  expect(l.problems, 'renderer errors').toEqual([])
-})
+
+/** Turns "requires a parts cost" on for a seeded category, through the API the Settings switch uses. */
+async function requireCost(name: string): Promise<void> {
+  const error = await l.page.evaluate(async (n) => {
+    const category = (await window.api.getRepairCategories()).data?.find((c) => c.name === n)
+    if (!category) return `no category ${n}`
+    const res = await window.api.updateRepairCategory(
+      category.id,
+      category.name,
+      category.default_split_percentage,
+      true
+    )
+    return res.success ? null : (res.error ?? 'update failed')
+  }, name)
+  expect(error).toBeNull()
+}
+
+/** A paid ticket of `category`, created and delivered through the API; returns its barcode. */
+async function deliveredTicket(category: string, price: number, cost: number | null): Promise<string> {
+  const result = await l.page.evaluate(
+    async ([name, p, c]) => {
+      const category = (await window.api.getRepairCategories()).data?.find((x) => x.name === name)
+      if (!category) return { error: `no category ${name}` }
+      const created = await window.api.createTicket({
+        customer: { name: `Earlier ${Math.random()}`, phone: `0555${Math.floor(Math.random() * 900000 + 100000)}` },
+        device: { brand: 'Realme', model: 'C51' },
+        ticket: {
+          repair_category_id: category.id,
+          price: p,
+          payment_type: 'cash',
+          amount_paid: p,
+          technician_id: 1,
+          parts_cost: c
+        }
+      })
+      if (!created.success || !created.data) return { error: created.error ?? 'create failed' }
+      for (const newStatus of ['ready', 'delivered'] as const) {
+        const res = await window.api.updateTicketStatus({ ticketId: created.data.ticketId, newStatus })
+        if (!res.success) return { error: res.error ?? `${newStatus} failed` }
+      }
+      return { barcode: created.data.barcode }
+    },
+    [category, price, cost] as [string, number, number | null]
+  )
+  expect(result.error).toBeUndefined()
+  return result.barcode ?? ''
+}
 
 /** The profit split in the delivery dialog is hidden until asked for. */
 async function revealDelivery(): Promise<void> {
@@ -112,9 +160,6 @@ async function saveCostFromDetails(value: string): Promise<void> {
   await l.page.getByTestId('parts-cost-save').click()
 }
 
-let barcodeNoCost = ''
-let barcodeLoss = ''
-
 // ---------------------------------------------------------------------------------------------
 test('(a) Settings: no category requires a cost by default; the switch enables it for one category', async () => {
   await go('settings')
@@ -149,6 +194,9 @@ test('(a) Settings: no category requires a cost by default; the switch enables i
 })
 
 test('(a) Settings: the dialog preview takes an example with a cost when the switch is on', async () => {
+  await requireCost(CATEGORY)
+  await go('settings')
+  await l.page.getByTestId('settings-tab-categories').click()
   const card = l.page.getByTestId('settings-category-card').filter({ hasText: CATEGORY })
   await card.getByTestId('settings-category-edit').click()
   const dialog = l.page.getByTestId('settings-category-dialog')
@@ -168,6 +216,7 @@ test('(a) Settings: the dialog preview takes an example with a cost when the swi
 
 // ---------------------------------------------------------------------------------------------
 test('(c) New ticket: the cost field exists only for categories that require it, and is masked by default', async () => {
+  await requireCost(CATEGORY)
   await go('tickets')
   await go('new-ticket')
   const form = l.page.getByTestId('new-ticket-form')
@@ -208,6 +257,7 @@ test('(c) New ticket: the cost field exists only for categories that require it,
 })
 
 test('(c) New ticket: an invalid cost is refused with a message and nothing is created', async () => {
+  await requireCost(CATEGORY)
   await fillAndSubmit({ name: 'Bad Cost', phone: '0555000099', price: 4000, category: CATEGORY, cost: 'abc' })
   await expect(l.page.getByTestId('ticket-error-banner')).toContainText('التكلفة')
   await expect(l.page.getByTestId('ticket-created-banner')).toHaveCount(0)
@@ -218,7 +268,8 @@ test('(c) New ticket: an invalid cost is refused with a message and nothing is c
 
 // ---------------------------------------------------------------------------------------------
 test('(b) a ticket created without a cost succeeds with a clear warning, a flag in the list and a filter', async () => {
-  barcodeNoCost = await submitAndGetBarcode({
+  await requireCost(CATEGORY)
+  const barcodeNoCost = await submitAndGetBarcode({
     name: 'No Cost Customer',
     phone: '0555000001',
     price: 4000,
@@ -261,6 +312,13 @@ test('(b) a ticket created without a cost succeeds with a clear warning, a flag 
 
 // ---------------------------------------------------------------------------------------------
 test('(d) delivered without a cost: provisional shares, then adding the cost recomputes shares and the report', async () => {
+  await requireCost(CATEGORY)
+  const barcodeNoCost = await submitAndGetBarcode({
+    name: 'No Cost Customer',
+    phone: '0555000001',
+    price: 4000,
+    category: CATEGORY
+  })
   await go('tickets')
   await openDetailsByBarcode(l.page, barcodeNoCost)
   await l.page.getByTestId('status-to-ready').click()
@@ -338,7 +396,10 @@ test('(d) delivered without a cost: provisional shares, then adding the cost rec
 })
 
 test('(d) editing the cost again moves the shares; clearing it makes the profit provisional again', async () => {
-  await openDetailsByBarcode(l.page, barcodeNoCost)
+  // the documented example, delivered: 4000 - 2600 = 1400 => 700 / 700
+  await requireCost(CATEGORY)
+  const barcode = await deliveredTicket(CATEGORY, 4000, 2600)
+  await openDetailsByBarcode(l.page, barcode)
   await saveCostFromDetails('2000')
   await revealDetails()
   await expect(l.page.getByTestId('compact-my-share')).toHaveText(/^1\.000\b/)
@@ -368,6 +429,9 @@ test('(d) editing the cost again moves the shares; clearing it makes the profit 
 
 // ---------------------------------------------------------------------------------------------
 test('(e) a cost above the price asks for a confirmation; the loss is shared like a profit', async () => {
+  await requireCost(CATEGORY)
+  // an earlier delivered ticket with a 1400 profit: the report below adds the loss to it
+  await deliveredTicket(CATEGORY, 4000, 2600)
   await fillAndSubmit({ name: 'Loss Customer', phone: '0555000003', price: 3000, category: CATEGORY, cost: '3500' })
   // the loss dialog appears and nothing has been created yet
   const dialog = l.page.getByTestId('loss-confirm-dialog')
@@ -386,7 +450,7 @@ test('(e) a cost above the price asks for a confirmation; the loss is shared lik
   await expect(dialog).toBeVisible()
   await l.page.getByTestId('loss-confirm-accept').click()
   await l.page.getByTestId('ticket-created-banner').waitFor()
-  barcodeLoss = ((await l.page.getByTestId('ticket-created-barcode').textContent()) ?? '').trim()
+  const barcodeLoss = ((await l.page.getByTestId('ticket-created-barcode').textContent()) ?? '').trim()
   await expect(l.page.getByTestId('ticket-created-no-cost-warning')).toHaveCount(0)
 
   // delivering a loss: negative shares in the delivery dialog, allowed
@@ -430,6 +494,7 @@ test('(e) a cost above the price asks for a confirmation; the loss is shared lik
 
 // ---------------------------------------------------------------------------------------------
 test('(f) the cost never reaches the label: print preview from the new-ticket banner and from the details', async () => {
+  await requireCost(CATEGORY)
   const COST = '7431'
   const barcode = await submitAndGetBarcode({
     name: 'Label Customer',
@@ -496,6 +561,11 @@ test('(f) the cost never reaches the label: print preview from the new-ticket ba
 
 // ---------------------------------------------------------------------------------------------
 test('(d) reports: the ledger with its net-profit column still fits at 1280 and 1440 (no horizontal scroll)', async () => {
+  // a profit, a loss and a ticket without a cost in the ledger
+  await requireCost(CATEGORY)
+  await deliveredTicket(CATEGORY, 4000, 2600)
+  await deliveredTicket(CATEGORY, 3000, 3200)
+  await deliveredTicket(CATEGORY, 9000, null)
   await go('reports')
   await l.page.getByTestId('period-all_time').click()
   for (const width of [1280, 1440]) {
@@ -547,6 +617,7 @@ async function apiTicket(
 }
 
 test('(g) turning the category switch on does not make old tickets "missing a cost"', async () => {
+  await requireCost(CATEGORY)
   // category 4 (general) has its switch off: an old ticket is created now
   const oldTicket = await apiTicket(4, 2000, null)
   await go('settings')
@@ -594,6 +665,7 @@ test('(g) turning the category switch on does not make old tickets "missing a co
 })
 
 test('(h) the delivery dialog hides the profit split until asked, and hides it again on close', async () => {
+  await requireCost(CATEGORY)
   const t = await apiTicket(2, 4000, 2600)
   await go('tickets')
   await openDetailsByBarcode(l.page, t.barcode)

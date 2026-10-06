@@ -3,12 +3,12 @@ import type { ElectronApplication, Page } from '@playwright/test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { launchElectron } from './helpers'
+import { createTicket, launchElectron, openDetailsByBarcode } from './helpers'
 
 // Smoke test for the renderer: walks through every screen and fails on any
 // page error, console.error or an empty #root (the "white screen" symptom).
 // Runs on the built app (out/main/index.js) with a throw-away data directory,
-// so it can never touch real shop data.
+// so it can never touch real shop data. Each test creates the tickets it uses, so any test can run alone.
 
 test.describe.configure({ mode: 'serial' })
 
@@ -91,10 +91,20 @@ test('create tickets (cash + credit) and open details', async () => {
   await page.locator('tbody tr').first().click()
   await page.getByTestId('details-close').waitFor()
   await assertAlive('open ticket details')
+  await page.getByTestId('details-close').click()
+  await page.getByTestId('details-close').waitFor({ state: 'hidden' })
 })
 
 test('ticket lifecycle in details modal', async () => {
-  // Modal is open on the latest ticket (in_progress)
+  const barcode = await createTicket(page, {
+    name: 'Lifecycle',
+    phone: '0555123000',
+    price: 5000,
+    paid: 2000,
+    type: 'credit'
+  })
+  await openDetailsByBarcode(page, barcode)
+  await assertAlive('open ticket details')
   await page.getByTestId('status-to-ready').click()
   await assertAlive('mark ready')
   await page.getByTestId('open-delivery').click()
@@ -114,6 +124,7 @@ test('ticket lifecycle in details modal', async () => {
 })
 
 test('print preview from list and filters', async () => {
+  await createTicket(page, { name: 'Preview', phone: '0555123001', price: 3000, paid: 3000, type: 'cash' })
   await go('tickets')
   for (const f of ['all', 'in_progress', 'ready', 'overdue', 'delivered', 'all']) {
     await page.getByTestId(`filter-${f}`).click()
