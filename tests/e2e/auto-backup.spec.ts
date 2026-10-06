@@ -2,14 +2,13 @@ import { test, expect, type ElectronApplication, type Page } from '@playwright/t
 import Database from 'better-sqlite3'
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'fs'
 import { join } from 'path'
-import { launchApp, launchElectron, shutdownApp, createTicket, type Launched } from './helpers'
+import { launchApp, shutdownApp, createTicket, type Launched } from './helpers'
 import { BACKUP_FILE_PATTERN } from '../../src/shared/auto-backup'
 
 // Automatic backups through the real app: the folder dialog is replaced (in the main process) by a temp folder,
 // everything else is real: "back up now", the list, restore from the list, the backup on quit, and the warning
 // banner when the folder disappears (a USB drive removed).
-
-test.describe.configure({ mode: 'serial' })
+// Every test starts its own app on fresh data and sets up what it needs, so any test can run alone.
 
 let l: Launched
 let backupDir: string
@@ -58,29 +57,53 @@ async function waitForToasts(page: Page): Promise<void> {
   await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 15_000 })
 }
 
+/** The backup health the main process reports: what the warning banner shows after its next refresh. */
+async function backupHealth(page: Page): Promise<string | undefined> {
+  const res = await page.evaluate(() => window.api.getBackupStatus())
+  return res.data?.health
+}
+
 async function ticketExists(page: Page, code: string): Promise<boolean> {
   const res = await page.evaluate((c) => window.api.getTicketByBarcode(c), code)
   return res.success && !!res.data
 }
 
-test.beforeAll(async () => {
+/** Picks the backup folder through the (stubbed) folder dialog, from the backup settings. */
+async function chooseBackupFolder(page: Page): Promise<void> {
+  await openBackupSettings(page)
+  await page.getByTestId('backup-choose-dir').click()
+  await expect(page.getByTestId('backup-dir')).toHaveText(backupDir)
+}
+
+/** Turns automatic backups on, from the backup settings. */
+async function enableAutoBackup(page: Page): Promise<void> {
+  const autoSwitch = page.getByTestId('backup-auto-switch')
+  await autoSwitch.click()
+  await expect(autoSwitch).toHaveAttribute('data-state', 'checked')
+}
+
+test.beforeEach(async () => {
   l = await launchApp('auto-backup')
   backupDir = join(l.dataDir, 'usb-drive')
   mkdirSync(backupDir)
   await stubDialogs(l.app, backupDir)
 })
-test.afterAll(async () => {
-  await shutdownApp(l)
+test.afterEach(async () => {
+  try {
+    expect(l.problems, 'renderer errors').toEqual([])
+  } finally {
+    await shutdownApp(l)
+  }
 })
-test.afterEach(() => {
-  expect(l.problems, 'renderer errors').toEqual([])
-})
-
-let first = ''
-let afterBackup = ''
 
 test('choose a folder, back up now: the file appears in the list', async () => {
-  first = await createTicket(l.page, { name: 'قبل النسخ', phone: '0555000001', price: 1000, paid: 0, type: 'credit' })
+  const first = await createTicket(l.page, {
+    name: 'قبل النسخ',
+    phone: '0555000001',
+    price: 1000,
+    paid: 0,
+    type: 'credit'
+  })
   await openBackupSettings(l.page)
   await expect(l.page.getByTestId('backup-dir-empty')).toBeVisible()
   await expect(l.page.getByTestId('backup-auto-switch')).toBeDisabled()
@@ -106,6 +129,7 @@ test('choose a folder, back up now: the file appears in the list', async () => {
 })
 
 test('backup settings cannot be written by the page, and the import dialog opens in the backup folder', async () => {
+  await chooseBackupFolder(l.page)
   const res = await l.page.evaluate(() => window.api.setSetting('backup_dir', 'C:\\Windows'))
   expect(res.success).toBe(false)
   await expect(l.page.getByTestId('backup-dir')).toHaveText(backupDir)
@@ -125,7 +149,18 @@ test('backup settings cannot be written by the page, and the import dialog opens
 })
 
 test('restore a backup from the list', async () => {
-  afterBackup = await createTicket(l.page, {
+  const first = await createTicket(l.page, {
+    name: 'قبل النسخ',
+    phone: '0555000001',
+    price: 1000,
+    paid: 0,
+    type: 'credit'
+  })
+  await chooseBackupFolder(l.page)
+  await l.page.getByTestId('backup-run-now').click()
+  await expect(l.page.getByTestId('backup-list-row')).toHaveCount(1)
+
+  const afterBackup = await createTicket(l.page, {
     name: 'بعد النسخ',
     phone: '0555000002',
     price: 2000,
@@ -148,9 +183,10 @@ test('restore a backup from the list', async () => {
 })
 
 test('closing the app backs up the latest change', async () => {
-  await openBackupSettings(l.page)
-  await l.page.getByTestId('backup-auto-switch').click()
-  await expect(l.page.getByTestId('backup-auto-switch')).toHaveAttribute('data-state', 'checked')
+  await chooseBackupFolder(l.page)
+  await enableAutoBackup(l.page)
+  // Turning backups on backs up at once (a new folder holds no copy yet)
+  await expect(l.page.getByTestId('backup-list-row')).toHaveCount(1)
   const before = backupFiles()
 
   const last = await createTicket(l.page, {
@@ -166,20 +202,22 @@ test('closing the app backs up the latest change', async () => {
   const after = backupFiles().sort()
   expect(after.length).toBeGreaterThanOrEqual(before.length)
   expect(codesIn(after[after.length - 1])).toContain(last)
-
-  // Back on the same data for the next test
-  l.app = await launchElectron(l.dataDir)
-  l.page = await l.app.firstWindow()
-  l.page.on('pageerror', (err) => l.problems.push(`pageerror: ${err.message}`))
-  await l.page.waitForSelector('[data-testid="nav-tickets"]')
 })
 
 test('the folder disappears (USB drive removed): a warning banner on every screen', async () => {
-  await expect(l.page.getByTestId('backup-warning-banner')).toHaveCount(0)
-  rmSync(backupDir, { recursive: true, force: true })
-  // The banner refreshes on navigation (and every few minutes)
-  await l.page.getByTestId('nav-reports').click()
+  await chooseBackupFolder(l.page)
+  await enableAutoBackup(l.page)
+  await expect(l.page.getByTestId('backup-list-row')).toHaveCount(1)
+  await expect.poll(() => backupHealth(l.page)).toBe('ok')
+  await l.page.getByTestId('nav-tickets').click()
   const banner = l.page.getByTestId('backup-warning-banner')
+  await expect(banner).toHaveCount(0)
+
+  // Windows may hold the fresh backup file open for a moment (e.g. an antivirus scan): retry the removal
+  rmSync(backupDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
+  await expect.poll(() => backupHealth(l.page)).toBe('unavailable')
+  // The banner re-reads that status on navigation (and every few minutes)
+  await l.page.getByTestId('nav-reports').click()
   await expect(banner).toBeVisible()
   await expect(banner).toHaveAttribute('data-health', 'unavailable')
   await l.page.getByTestId('nav-tickets').click()
@@ -194,8 +232,9 @@ test('the folder disappears (USB drive removed): a warning banner on every scree
   await expect(l.page.getByTestId('backup-last-error')).toBeVisible()
   expect(existsSync(backupDir)).toBe(false)
 
-  // Plugged back in: the banner goes away
+  // Plugged back in: the banner goes away. The failure's toast pauses under the mouse and may cover the button.
   mkdirSync(backupDir)
+  await waitForToasts(l.page)
   await l.page.getByTestId('backup-run-now').click()
   await expect(l.page.getByTestId('backup-last-error')).toHaveCount(0)
   await expect(banner).toHaveCount(0)
