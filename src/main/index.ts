@@ -13,6 +13,7 @@ import {
   type ResolvedTheme,
   type ThemePreference
 } from '../shared/theme'
+import appIcon from '../../build/icon.png?asset'
 
 // WARSHATI_DATA_DIR isolates the database and userData (backups etc.) in a scratch
 // folder so tests and experiments never touch real shop data.
@@ -49,6 +50,8 @@ function createWindow(preference: ThemePreference, resolved: ResolvedTheme): voi
     backgroundColor: THEME_BACKGROUND[resolved],
     autoHideMenuBar: true,
     title: 'ورشتي — إدارة محل تصليح الهواتف',
+    // The installed .exe already carries build/icon.ico; this also gives the window its icon in development
+    icon: appIcon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       // The preload only uses contextBridge/ipcRenderer and process.argv, all available in the sandbox

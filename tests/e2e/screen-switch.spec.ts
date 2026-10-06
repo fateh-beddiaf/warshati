@@ -71,3 +71,29 @@ test('20 rapid real mouse clicks: only the active screen is shown within 1 secon
     console.log(`mouse round ${round}: settled on ${last} in ${Date.now() - started}ms`)
   }
 })
+
+test('a new screen starts at the top of the page, not where the previous one was scrolled to', async () => {
+  const body = l.page.getByTestId('page-body')
+  const go = async (tab: (typeof TABS)[number]): Promise<void> => {
+    await l.page.getByTestId(`nav-${tab}`).click()
+    await expect.poll(shown).toEqual({ screens: [tab], active: tab })
+    await expect(l.page.getByTestId(`screen-${tab}`)).toHaveCSS('opacity', '1')
+  }
+  /** Scrolls the page body to the bottom of the current screen; returns how far that is. */
+  const scrollToBottom = (): Promise<number> =>
+    body.evaluate((el) => {
+      el.scrollTop = el.scrollHeight
+      return el.scrollTop
+    })
+
+  // Both screens are taller than the window: the body keeps a non-zero scroll position unless it is reset
+  await go('new-ticket')
+  expect(await scrollToBottom()).toBeGreaterThan(100)
+  await go('reports')
+  expect(await body.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeGreaterThan(100)
+  expect(await body.evaluate((el) => el.scrollTop)).toBe(0)
+
+  expect(await scrollToBottom()).toBeGreaterThan(100)
+  await go('new-ticket')
+  expect(await body.evaluate((el) => el.scrollTop)).toBe(0)
+})

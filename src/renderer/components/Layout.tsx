@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Wrench,
@@ -83,6 +83,13 @@ export function Layout({
   const { t } = useI18n()
   const [barcodeInput, setBarcodeInput] = useState('')
   const [scanFlash, setScanFlash] = useState(false)
+  const bodyRef = useRef<HTMLDivElement>(null)
+
+  // The page body is one scroll container shared by every screen: a new screen starts at the top, where its banners
+  // and alerts are, not at the scroll position the previous screen was left at
+  useEffect(() => {
+    if (bodyRef.current) bodyRef.current.scrollTop = 0
+  }, [activeTab])
 
   // A scan made anywhere in the app shows up here, so the user sees what the reader sent
   useEffect(() => {
@@ -206,7 +213,7 @@ export function Layout({
         </header>
 
         {/* Scrollable Page Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-6">
+        <div ref={bodyRef} data-testid="page-body" className="flex-1 overflow-y-auto px-5 py-6">
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </div>
       </main>

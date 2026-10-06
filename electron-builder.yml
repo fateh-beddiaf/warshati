@@ -1,0 +1,64 @@
+# Windows installer: `npm run dist` builds release/Warshati-Setup-<version>-x64.exe
+appId: io.github.fatehbeddiaf.warshati
+productName: Warshati
+copyright: Copyright (c) 2026 Fateh Beddiaf
+directories:
+  output: release
+  buildResources: build
+
+# Only the electron-vite build and the runtime dependencies (better-sqlite3 and jsbarcode, see package.json) are
+# packaged; the renderer's libraries are already bundled into out/renderer.
+files:
+  - out/**
+  - package.json
+  - LICENSE
+  # better-sqlite3 ships its C sources and a prebuilt binary for every platform: keep only the Windows x64 one
+  - '!**/node_modules/better-sqlite3/{deps,src,binding.gyp}{,/**}'
+  - '!**/node_modules/better-sqlite3/prebuilds/!(win32-x64.node)'
+  # C++ headers better-sqlite3 needs only to compile from source
+  - '!**/node_modules/node-addon-api{,/**}'
+asar: true
+# A native addon cannot be loaded from inside the archive
+asarUnpack:
+  - '**/node_modules/better-sqlite3/**'
+# better-sqlite3 is an N-API addon with a prebuilt binary that works in Electron as is: never rebuild it (that needs
+# a C++ toolchain)
+npmRebuild: false
+
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+
+win:
+  target:
+    - target: nsis
+      arch: x64
+  icon: build/icon.ico
+
+nsis:
+  artifactName: Warshati-Setup-${version}-x64.${ext}
+  # Assisted installer for the current user only: no administrator rights, the folder can be changed
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Warshati
+  # The shop's data (%APPDATA%\Warshati) is kept when the app is uninstalled
+  deleteAppDataOnUninstall: false
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  # Shown before installing: the noncommercial terms
+  license: LICENSE
+  multiLanguageInstaller: true
+  installerLanguages:
+    - ar_SA
+    - en_US
+
+# No auto-update and no publishing from the build: releases are drafted by .github/workflows/release.yml
+publish: null
