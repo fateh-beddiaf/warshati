@@ -35,6 +35,8 @@ electronFuses:
   enableNodeCliInspectArguments: false
   enableEmbeddedAsarIntegrityValidation: true
   onlyLoadAppFromAsar: true
+  # The UI is served on app:// (src/main/app-protocol.ts): file:// pages need no privileges beyond a browser's
+  grantFileProtocolExtraPrivileges: false
 
 win:
   target:

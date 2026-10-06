@@ -90,16 +90,36 @@ test('the executable carries the hardening fuses', async () => {
     nodeOptions: wire[FuseV1Options.EnableNodeOptionsEnvironmentVariable],
     inspectArguments: wire[FuseV1Options.EnableNodeCliInspectArguments],
     asarIntegrity: wire[FuseV1Options.EnableEmbeddedAsarIntegrityValidation],
-    onlyAsar: wire[FuseV1Options.OnlyLoadAppFromAsar]
+    onlyAsar: wire[FuseV1Options.OnlyLoadAppFromAsar],
+    fileProtocolExtraPrivileges: wire[FuseV1Options.GrantFileProtocolExtraPrivileges]
   }).toEqual({
     runAsNode: OFF,
     cookieEncryption: ON,
     nodeOptions: OFF,
     inspectArguments: OFF,
     asarIntegrity: ON,
-    onlyAsar: ON
+    onlyAsar: ON,
+    fileProtocolExtraPrivileges: OFF
   })
   expect(existsSync(join(APP_DIR, 'resources', 'app.asar'))).toBe(true)
+})
+
+test('the window shows the UI from app://, with its fonts, styles and no CSP violation', async () => {
+  // Served by the app's own scheme from app.asar (src/main/app-url.ts), not from file://
+  expect(page.url()).toBe('app://warshati/index.html')
+  const loaded = await page.evaluate(async () => {
+    await document.fonts.ready
+    return {
+      // a face of the bundled font actually loaded from app:// (check() alone is also true for an unknown family)
+      font: [...document.fonts].some(
+        (f) => f.family.replace(/"/g, '') === 'IBM Plex Sans Arabic' && f.status === 'loaded'
+      ),
+      styled: getComputedStyle(document.body).fontFamily
+    }
+  })
+  expect(loaded.font).toBe(true)
+  expect(loaded.styled).toContain('IBM Plex Sans Arabic')
+  expect(problems).toEqual([])
 })
 
 test('the installed app starts, creates its database and saves a ticket', async () => {

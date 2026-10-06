@@ -26,6 +26,8 @@ test('the main window is sandboxed and isolated, with a strict CSP and no violat
     return { sandbox: p?.sandbox, contextIsolation: p?.contextIsolation, nodeIntegration: p?.nodeIntegration }
   })
   expect(prefs).toEqual({ sandbox: true, contextIsolation: true, nodeIntegration: false })
+  // The built UI comes from the app's own scheme, not file:// (src/main/app-url.ts)
+  expect(page.url()).toBe('app://warshati/index.html')
 
   const csp = await page.evaluate(
     () => document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute('content') ?? ''
