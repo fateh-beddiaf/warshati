@@ -69,6 +69,30 @@ export function useTicketEditForm(
   const parsedCost = parseCostInput(partsCost)
   const costInvalid = parsedCost.kind === 'invalid'
 
+  // Unsaved changes: anything that differs from the saved ticket, or a customer typed for reattachment
+  const savedAccessoryIds = details.accessories.map((a) => a.id)
+  const savedCost = ticket.parts_cost === null || ticket.parts_cost === undefined ? '' : String(ticket.parts_cost)
+  const isDirty =
+    customerName !== customer.name ||
+    customerPhone !== customer.phone ||
+    customerNotes !== (customer.notes ?? '') ||
+    (customerMode === 'reassign' &&
+      (reassign.customerName.trim() !== '' ||
+        reassign.customerPhone.trim() !== '' ||
+        reassign.customerNotes.trim() !== '')) ||
+    device.brand !== savedDevice.brand ||
+    device.model !== savedDevice.model ||
+    device.shortLabel !== savedDevice.short_label ||
+    device.brandId !== (savedDevice.brand_id ?? null) ||
+    device.modelId !== (savedDevice.model_id ?? null) ||
+    selectedAccessoryIds.length !== savedAccessoryIds.length ||
+    selectedAccessoryIds.some((id) => !savedAccessoryIds.includes(id)) ||
+    categoryId !== ticket.repair_category_id ||
+    technicianId !== ticket.technician_id ||
+    price !== String(ticket.price) ||
+    amountPaid !== String(ticket.amount_paid) ||
+    partsCost !== savedCost
+
   const toggleAccessory = (id: number): void => {
     setSelectedAccessoryIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]))
   }
@@ -181,6 +205,7 @@ export function useTicketEditForm(
 
   return {
     metadata,
+    isDirty,
     showErrors,
     errorMessage,
     saving,

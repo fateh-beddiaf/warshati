@@ -10,15 +10,18 @@ import { PaymentSection } from '../../../screens/new-ticket/PaymentSection'
 import { CustomerEditSection } from './CustomerEditSection'
 import { EditReviewDialog } from './EditReviewDialog'
 import { useTicketEditForm } from './useTicketEditForm'
+import { useUnsavedChanges } from '../../../lib/unsaved-changes'
 import type { AppMetadata, TicketFullDetails, UpdateTicketResult } from '../../../../shared/types'
 
 /** The form itself: mounted fresh on every opening, so it always starts from the saved ticket. */
 function EditTicketForm({
+  open,
   details,
   metadata,
   onCancel,
   onSaved
 }: {
+  open: boolean
   details: TicketFullDetails
   metadata: AppMetadata
   onCancel: () => void
@@ -27,6 +30,9 @@ function EditTicketForm({
   const { t } = useI18n()
   const text = t.ui.editTicket
   const form = useTicketEditForm(details, metadata, onSaved)
+  // A scanned label asks before opening another ticket while this form holds unsaved changes (App.tsx). `open`:
+  // the form stays mounted while the dialog animates out, and a closed form has nothing left to protect.
+  useUnsavedChanges(open && form.isDirty, onCancel)
 
   return (
     <>
@@ -144,6 +150,7 @@ export function EditTicketDialog({
         {metadata ? (
           <EditTicketForm
             key={details.ticket.id}
+            open={open}
             details={details}
             metadata={metadata}
             onCancel={onClose}

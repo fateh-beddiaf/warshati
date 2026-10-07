@@ -16,6 +16,8 @@ export interface TicketPrintData {
   ticketId: number
 }
 
+const EMPTY_SIGNATURE = JSON.stringify(['', '', '', '', '', '', '', '', '', []])
+
 /** State, validation and submit logic of the New Ticket screen (UI-free). */
 export function useNewTicketForm() {
   const { t } = useI18n()
@@ -77,6 +79,24 @@ export function useNewTicketForm() {
   // Shown, not chosen: the backend derives the same type from the remaining amount
   const effectivePaymentType: PaymentType = paymentTypeFor(calculatedRemaining)
 
+  // Unsaved changes: what was entered differs from an empty form or, after a save, from what was saved (the form
+  // keeps the saved values on screen until "another ticket"). The category and technician are choices kept from one
+  // ticket to the next, not entered data, so they do not count.
+  const enteredSignature = JSON.stringify([
+    customerName.trim(),
+    customerPhone.trim(),
+    customerNotes.trim(),
+    brand.trim(),
+    model.trim(),
+    shortLabel.trim(),
+    price.trim(),
+    amountPaid.trim(),
+    partsCost.trim(),
+    [...selectedAccessoryIds].sort((a, b) => a - b)
+  ])
+  const [savedSignature, setSavedSignature] = useState<string | null>(null)
+  const isDirty = enteredSignature !== (savedSignature ?? EMPTY_SIGNATURE)
+
   const toggleAccessory = (id: number): void => {
     setSelectedAccessoryIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]))
   }
@@ -90,6 +110,7 @@ export function useNewTicketForm() {
     setPartsCost('')
     setConfirmLossOpen(false)
     setSuccessInfo(null)
+    setSavedSignature(null)
     setErrorMessage(null)
     setShowErrors(false)
   }
@@ -160,6 +181,7 @@ export function useNewTicketForm() {
     try {
       const res = await window.api.createTicket(dto)
       if (res.success && res.data) {
+        setSavedSignature(enteredSignature)
         setSuccessInfo({
           barcode: res.data.barcode,
           ticketId: res.data.ticketId,
@@ -188,6 +210,7 @@ export function useNewTicketForm() {
 
   return {
     metadata,
+    isDirty,
     loading,
     successInfo,
     errorMessage,

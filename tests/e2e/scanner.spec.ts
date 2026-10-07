@@ -187,11 +187,12 @@ async function createTicketAndProbe(): Promise<void> {
   await textInputs.nth(4).fill('Galaxy A54')
   await form.locator('input[type="number"]').nth(0).fill('5000')
   await form.locator('input[type="number"]').nth(1).fill('5000')
-  await form.locator('input[name="paymentType"][value="cash"]').check()
   await form.locator('button[type="submit"]').click()
   await page.waitForSelector('[data-testid="ticket-created-banner"]')
   barcode = ((await page.getByTestId('ticket-created-barcode').textContent()) ?? '').trim()
   expect(barcode).toMatch(/^2\d{7}$/)
+  // An empty form: what the tests type next is all the form holds
+  await page.getByTestId('ticket-created-another').click()
   await installEnterProbe()
 }
 
@@ -204,9 +205,10 @@ test('scan under an Arabic layout while the customer-name field holds "abc"', as
 
   await scan(barcode, 'arabic')
 
-  await page.getByTestId('details-close').waitFor()
-  await expect(page.getByTestId('details-close')).toBeVisible()
-  await expect(page.locator('strong', { hasText: barcode })).toBeVisible()
+  // The form now holds unsaved changes: the scan asks before opening the ticket (unsaved-scan.spec.ts)
+  await expect(page.getByTestId('unsaved-scan-dialog')).toBeVisible()
+  await expect(page.getByTestId('unsaved-scan-code')).toHaveText(barcode)
+  await expect(page.getByTestId('details-close')).toBeHidden()
   // the typed Arabic/Latin chars did not stay in the field
   await expect(name).toHaveValue('abc')
   // Enter never reached the form: no submit, no keydown at bubble phase
@@ -214,12 +216,14 @@ test('scan under an Arabic layout while the customer-name field holds "abc"', as
   expect(after.submits).toBe(before.submits)
   expect(after.enters).toBe(before.enters)
 
-  // React state is in sync: typing continues from "abc", not from the burst text
-  await closeDetailsIfOpen()
+  // React state is in sync: after Cancel, typing continues from "abc", not from the burst text
+  await page.getByTestId('unsaved-scan-cancel').click()
+  await expect(page.getByTestId('unsaved-scan-dialog')).toHaveCount(0)
   await name.focus()
   await page.keyboard.press('End')
   await page.keyboard.type('d', { delay: 150 })
   await expect(name).toHaveValue('abcd')
+  await name.fill('')
 })
 
 test('scan with a Latin layout also works from another field, and with no focus', async () => {
@@ -228,8 +232,17 @@ test('scan with a Latin layout also works from another field, and with no focus'
   await phone.fill('0555')
   await phone.focus()
   await scan(barcode, 'latin')
-  await page.getByTestId('details-close').waitFor()
+  await expect(page.getByTestId('unsaved-scan-code')).toHaveText(barcode)
   await expect(phone).toHaveValue('0555')
+  await page.getByTestId('unsaved-scan-cancel').click()
+  await expect(phone).toHaveValue('0555')
+  await phone.fill('')
+
+  // Nothing typed: the ticket opens straight away, from a field or with no focus
+  await phone.focus()
+  await scan(barcode, 'latin')
+  await page.getByTestId('details-close').waitFor()
+  await expect(page.getByTestId('unsaved-scan-dialog')).toHaveCount(0)
   await closeDetailsIfOpen()
 
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
@@ -264,6 +277,7 @@ test('normal human typing in a field is unaffected', async () => {
   expect(after.enters).toBe(before.enters + 1)
   expect(after.prevented.slice(before.prevented.length)).toEqual([false])
   await expect(page.getByTestId('details-close')).toBeHidden()
+  await name.fill('')
 })
 
 test('header search input is emptied after a scan and after a manual submit', async () => {
