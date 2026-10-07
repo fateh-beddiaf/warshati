@@ -11,6 +11,7 @@ import type {
 import { calculateProfitSplit, roundMoney } from '../../shared/profit'
 import { generateShortLabel } from '../../shared/device-utils'
 import { calculateRemaining } from '../helpers'
+import { paymentTypeFor } from '../../shared/payment'
 import { findOrCreateCustomer, normalizeName, normalizePhone } from './customers'
 import { getTicketById, normalizePartsCost, resolveDevice } from './tickets'
 import { insertEditLogs, moneyLogValue, type EditLogChange } from './ticket-edit-log'
@@ -20,14 +21,15 @@ import { insertEditLogs, moneyLogValue, type EditLogChange } from './ticket-edit
  *
  * Editable: the customer (name, phone, notes: the Customer RECORD, so every ticket of that customer shows the change),
  * or attaching the ticket to another / a new customer; the device (brand, model, short label); accessories; repair
- * category; technician; price; amount paid and payment type; parts cost.
+ * category; technician; price; amount paid; parts cost. The payment type is not editable (it follows the amounts).
  * Never editable: barcode_code, created_at, status (it has its own flow) and StatusLog. Any other key is rejected.
  *
  * One transaction: everything is validated first, then applied, then one TicketEditLog row is written per changed
  * field (all with the same timestamp). Any error rolls the whole edit back.
  *
- * Payments (same rules as creation): price >= amount_paid, amount_remaining = price - paid, a remaining balance makes
- * the payment type 'credit'. Lowering amount_paid creates or increases a debt: it needs confirm_paid_lowered.
+ * Payments (same rules as creation): price >= amount_paid, amount_remaining = price - paid, and the payment type follows
+ * it (nothing left = 'cash', a remaining balance = 'credit'). Lowering amount_paid creates or increases a debt: it needs
+ * confirm_paid_lowered.
  *
  * Profit (the split rule documented in src/shared/profit.ts), always through the pure calculateProfitSplit:
  *  - a ticket that is not delivered is just saved: its shares are computed at delivery, as before;
@@ -50,7 +52,6 @@ const PATCH_KEYS: ReadonlySet<string> = new Set([
   'technician_id',
   'price',
   'amount_paid',
-  'payment_type',
   'parts_cost',
   'confirm_delivered',
   'confirm_paid_lowered'
@@ -241,18 +242,10 @@ export function updateTicket(db: Database.Database, ticketId: number, patch: Upd
     if (amountPaid < ticket.amount_paid && patch.confirm_paid_lowered !== true) {
       throw new Error('خفض المبلغ المدفوع يُنشئ ديناً على الزبون أو يزيده، ويحتاج تأكيداً صريحاً.')
     }
-    if (patch.payment_type !== undefined && patch.payment_type !== 'cash' && patch.payment_type !== 'credit') {
-      throw new Error('نوع الدفع غير صالح.')
-    }
-    const moneyTouched =
-      patch.price !== undefined || patch.amount_paid !== undefined || patch.payment_type !== undefined
+    const moneyTouched = patch.price !== undefined || patch.amount_paid !== undefined
     const amountRemaining = moneyTouched ? calculateRemaining(price, amountPaid) : ticket.amount_remaining
-    // A remaining balance is always a debt (same rule as creation)
-    const paymentType: PaymentType = !moneyTouched
-      ? ticket.payment_type
-      : amountRemaining > 0
-        ? 'credit'
-        : (patch.payment_type ?? ticket.payment_type)
+    // The type follows the remaining amount (shared/payment.ts); an edit that does not touch the money keeps it
+    const paymentType: PaymentType = moneyTouched ? paymentTypeFor(amountRemaining) : ticket.payment_type
     change('price', moneyLogValue(ticket.price), moneyLogValue(price))
     change('amount_paid', moneyLogValue(ticket.amount_paid), moneyLogValue(amountPaid))
     change('payment_type', ticket.payment_type, paymentType)

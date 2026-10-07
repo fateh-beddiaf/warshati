@@ -1,11 +1,6 @@
 import { generateShortLabel } from '../../../../shared/device-utils'
-import type {
-  AppMetadata,
-  PaymentType,
-  TicketEditField,
-  TicketFullDetails,
-  UpdateTicketPatch
-} from '../../../../shared/types'
+import { paymentTypeFor } from '../../../../shared/payment'
+import type { AppMetadata, TicketEditField, TicketFullDetails, UpdateTicketPatch } from '../../../../shared/types'
 
 /** What the edit form holds, already parsed (numbers, ids). */
 export interface EditFormValues {
@@ -18,8 +13,6 @@ export interface EditFormValues {
   technicianId: number
   price: number
   amountPaid: number
-  /** The type the form shows (a remaining balance already forces 'credit') */
-  paymentType: PaymentType
   /** null = not entered */
   partsCost: number | null
 }
@@ -138,9 +131,9 @@ export function buildEditPlan(details: TicketFullDetails, form: EditFormValues, 
     patch.amount_paid = form.amountPaid
     add('amount_paid', money(ticket.amount_paid), money(form.amountPaid))
   }
-  if (form.paymentType !== ticket.payment_type) {
-    patch.payment_type = form.paymentType
-    add('payment_type', ticket.payment_type, form.paymentType)
+  // Not sent: the backend derives the type from the remaining amount when the money changes; shown for review
+  if (patch.price !== undefined || patch.amount_paid !== undefined) {
+    add('payment_type', ticket.payment_type, paymentTypeFor(Math.max(0, form.price - form.amountPaid)))
   }
   const currentCost = ticket.parts_cost ?? null
   if (form.partsCost !== currentCost) {

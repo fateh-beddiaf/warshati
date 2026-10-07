@@ -359,11 +359,11 @@ console.log('\n--- 7. Payments ---')
   )
 
   // Price lowered to the paid amount + both at once
-  edit(id, { price: 2500, amount_paid: 2500, payment_type: 'cash' })
-  eq([ticketRow(id).amount_remaining, ticketRow(id).payment_type], [0, 'cash'], 'fully paid with cash chosen')
-  // A partial payment is a debt whatever the requested type
-  edit(id, { price: 3000, payment_type: 'cash' })
-  eq([ticketRow(id).amount_remaining, ticketRow(id).payment_type], [500, 'credit'], 'partial -> credit forced')
+  edit(id, { price: 2500, amount_paid: 2500 })
+  eq([ticketRow(id).amount_remaining, ticketRow(id).payment_type], [0, 'cash'], 'fully paid -> cash')
+  // A remaining balance is a debt
+  edit(id, { price: 3000 })
+  eq([ticketRow(id).amount_remaining, ticketRow(id).payment_type], [500, 'credit'], 'partial -> credit')
   eq(
     logs(id).slice(-2),
     [
@@ -391,6 +391,8 @@ console.log('\n--- 8. Forbidden / unknown fields ---')
     { technician: 'X' },
     { id: 99 },
     { price: 1500, status: 'ready' },
+    { payment_type: 'cash' },
+    { price: 1500, payment_type: 'credit' },
     { customer: { id: 2, name: 'A', phone: '0555' } },
     { device: { brand: 'A', model: 'B', ticket_id: 3 } },
     { reassign_customer: { name: 'A', phone: '0555', barcode_code: 'x' } }
@@ -576,7 +578,7 @@ console.log('\n--- 13. IPC guard: strict patch shape ---')
   eq(ok({ price: '5000' }), false, 'a string price refused')
   eq(ok({ price: Number.NaN }), false, 'NaN refused')
   eq(ok({ accessory_ids: [1, 0] }), false, 'a bad accessory id refused')
-  eq(ok({ payment_type: 'card' }), false, 'unknown payment type refused')
+  eq(ok({ payment_type: 'cash' }), false, 'payment type refused (it follows the remaining amount)')
   eq(ok({ confirm_delivered: 'yes' }), false, 'a non-boolean confirmation refused')
   eq(ok(null), false, 'null refused')
   eq(ok([]), false, 'an array refused')

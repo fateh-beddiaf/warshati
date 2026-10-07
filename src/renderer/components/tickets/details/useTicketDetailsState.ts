@@ -5,7 +5,6 @@ import { formatCurrency } from '../../../lib/utils'
 import type {
   TicketFullDetails,
   TicketStatus,
-  PaymentType,
   UpdateTicketResult,
   UpdateTicketStatusDTO
 } from '../../../../shared/types'
@@ -145,7 +144,7 @@ export function useTicketDetailsState({ isOpen, ticketDetails, onClose, onStatus
 
   const handleUpdateStatus = async (
     newStatus: TicketStatus,
-    paymentUpdate?: { amount_paid?: number; payment_type?: PaymentType }
+    paymentUpdate?: { amount_paid?: number }
   ): Promise<void> => {
     if (!ticketDetails) return
     const { ticket } = ticketDetails
@@ -224,19 +223,14 @@ export function useTicketDetailsState({ isOpen, ticketDetails, onClose, onStatus
   const handleConfirmDelivery = async (): Promise<void> => {
     if (!ticketDetails) return
     const { ticket } = ticketDetails
-    let paymentUpdate: { amount_paid?: number; payment_type?: PaymentType } | undefined = undefined
+    // Only the amount is sent: the backend derives the payment type from what remains (shared/payment.ts)
+    let paymentUpdate: { amount_paid?: number } | undefined = undefined
 
     if (ticket.amount_remaining > 0) {
       if (settlementType === 'full') {
-        paymentUpdate = {
-          amount_paid: ticket.price,
-          payment_type: 'cash'
-        }
+        paymentUpdate = { amount_paid: ticket.price }
       } else if (settlementType === 'credit') {
-        paymentUpdate = {
-          amount_paid: ticket.amount_paid,
-          payment_type: 'credit'
-        }
+        paymentUpdate = { amount_paid: ticket.amount_paid }
       } else if (settlementType === 'partial') {
         // Empty means "nothing extra"; anything non-numeric or negative is rejected so the paid
         // amount can never drop below what was already paid.
@@ -248,10 +242,7 @@ export function useTicketDetailsState({ isOpen, ticketDetails, onClose, onStatus
           return
         }
         const newTotalPaid = Math.max(ticket.amount_paid, Math.min(ticket.price, ticket.amount_paid + additional))
-        paymentUpdate = {
-          amount_paid: newTotalPaid,
-          payment_type: newTotalPaid >= ticket.price ? 'cash' : 'credit'
-        }
+        paymentUpdate = { amount_paid: newTotalPaid }
       }
     }
 

@@ -123,7 +123,6 @@ export interface UpdateTicketPatch {
   technician_id?: number
   price?: number
   amount_paid?: number
-  payment_type?: PaymentType
   /** null = not entered */
   parts_cost?: number | null
   /** Required to edit a delivered ticket: its profit split may be recalculated */
@@ -178,7 +177,8 @@ export interface CreateTicketDTO {
   ticket: {
     repair_category_id: number
     price: number
-    payment_type: PaymentType
+    /** Not used: the stored type always follows the remaining amount (shared/payment.ts). Kept for older callers. */
+    payment_type?: PaymentType
     amount_paid: number
     technician_id: number
     /** Parts cost; omitted/null = not entered yet */
@@ -192,6 +192,7 @@ export interface UpdateTicketStatusDTO {
   newStatus: TicketStatus
   paymentUpdate?: {
     amount_paid?: number
+    /** Not used: the stored type always follows the remaining amount (shared/payment.ts). Kept for older callers. */
     payment_type?: PaymentType
   }
 }

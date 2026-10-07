@@ -26,9 +26,9 @@ export const newTicketAr = {
     total: 'الإجمالي',
     paid: 'المدفوع',
     remaining: 'المتبقي',
-    cashHint: 'يُدفع كامل المبلغ الآن',
-    creditHint: 'يبقى جزء من المبلغ دَيناً على الزبون',
-    creditForced: 'الدفع الجزئي يُسجَّل تلقائياً كدَين'
+    cashHint: 'المبلغ مدفوع بالكامل، لا يبقى شيء',
+    creditHint: 'يُسجَّل الباقي ({amount}) دَيناً على الزبون',
+    automatic: 'تُحدَّد تلقائياً: نقداً إن لم يبقَ شيء، ودَيناً إن بقي جزء من المبلغ'
   },
   accessories: {
     hint: 'اختر ما استلمته مع الجهاز',
@@ -69,9 +69,9 @@ export const newTicketEn: typeof newTicketAr = {
     total: 'Total',
     paid: 'Paid',
     remaining: 'Remaining',
-    cashHint: 'The full amount is paid now',
-    creditHint: 'Part of the amount stays as a debt on the customer',
-    creditForced: 'A partial payment is recorded as a debt automatically'
+    cashHint: 'Paid in full, nothing left to pay',
+    creditHint: 'The remaining {amount} is recorded as a debt on the customer',
+    automatic: 'Set automatically: cash when nothing is left to pay, credit when part of the amount remains'
   },
   accessories: {
     hint: 'Select what you received with the device',

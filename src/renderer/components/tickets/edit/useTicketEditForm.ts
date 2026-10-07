@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useI18n } from '../../../lib/i18n'
 import { formatCurrency } from '../../../lib/utils'
 import { parseCostInput } from '../../../../shared/parts-cost'
+import { paymentTypeFor } from '../../../../shared/payment'
 import type { AppMetadata, PaymentType, TicketFullDetails, UpdateTicketResult } from '../../../../shared/types'
 import { useCustomerFields } from '../../../screens/new-ticket/useCustomerFields'
 import { useDeviceFields } from '../../../screens/new-ticket/useDeviceFields'
@@ -49,7 +50,6 @@ export function useTicketEditForm(
   const [technicianId, setTechnicianId] = useState<number | null>(ticket.technician_id)
   const [price, setPrice] = useState(String(ticket.price))
   const [amountPaid, setAmountPaid] = useState(String(ticket.amount_paid))
-  const [paymentType, setPaymentType] = useState<PaymentType>(ticket.payment_type)
   const [partsCost, setPartsCost] = useState(
     ticket.parts_cost === null || ticket.parts_cost === undefined ? '' : String(ticket.parts_cost)
   )
@@ -64,8 +64,8 @@ export function useTicketEditForm(
   const numPrice = parsedPrice ?? 0
   const numPaid = parsedPaid ?? 0
   const calculatedRemaining = Math.max(0, numPrice - numPaid)
-  // A partial payment is always a debt (the backend enforces the same rule)
-  const effectivePaymentType: PaymentType = calculatedRemaining > 0 ? 'credit' : paymentType
+  // Shown, not chosen: the backend derives the same type from the remaining amount
+  const effectivePaymentType: PaymentType = paymentTypeFor(calculatedRemaining)
   const parsedCost = parseCostInput(partsCost)
   const costInvalid = parsedCost.kind === 'invalid'
 
@@ -163,7 +163,6 @@ export function useTicketEditForm(
         technicianId,
         price: parsedPrice,
         amountPaid: parsedPaid,
-        paymentType: effectivePaymentType,
         partsCost: parsedCost.kind === 'ok' ? parsedCost.value : null
       },
       metadata
@@ -218,7 +217,6 @@ export function useTicketEditForm(
     setPrice,
     amountPaid,
     setAmountPaid,
-    setPaymentType,
     numPrice,
     numPaid,
     calculatedRemaining,

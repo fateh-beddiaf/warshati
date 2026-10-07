@@ -78,7 +78,6 @@ function unchanged(): EditFormValues {
     technicianId: 1,
     price: 4000,
     amountPaid: 4000,
-    paymentType: 'cash',
     partsCost: 2600
   }
 }
@@ -145,9 +144,10 @@ function unchanged(): EditFormValues {
     [
       { field: 'repair_category', from: 'شاشات', to: 'بورد' },
       { field: 'technician', from: 'أنا', to: 'الشريك' },
-      { field: 'price', from: '4000', to: '5000' }
+      { field: 'price', from: '4000', to: '5000' },
+      { field: 'payment_type', from: 'cash', to: 'credit' }
     ],
-    'category / technician by name, price as a number'
+    'category / technician by name, price as a number, the type that follows the new remaining amount'
   )
   const accessoriesOnly = unchanged()
   accessoriesOnly.accessoryIds = []
@@ -160,10 +160,29 @@ function unchanged(): EditFormValues {
 {
   const form = unchanged()
   form.amountPaid = 1000
-  form.paymentType = 'credit'
   const plan = buildEditPlan(details(), form, metadata)
   eq(plan.paidLowered, true, 'paid lowered is flagged')
-  eq(plan.patch, { amount_paid: 1000, payment_type: 'credit' }, 'paid + type sent')
+  eq(plan.patch, { amount_paid: 1000 }, 'only the amount is sent (the backend derives the type)')
+  eq(
+    plan.changes,
+    [
+      { field: 'amount_paid', from: '4000', to: '1000' },
+      { field: 'payment_type', from: 'cash', to: 'credit' }
+    ],
+    'the review shows the type the backend will write'
+  )
+}
+{
+  const form = unchanged()
+  form.price = 5000
+  form.amountPaid = 5000
+  const plan = buildEditPlan(details(), form, metadata)
+  eq(plan.patch, { price: 5000, amount_paid: 5000 }, 'fully paid at a new price: amounts only')
+  eq(
+    plan.changes.map((c) => c.field),
+    ['price', 'amount_paid'],
+    'still cash: no type line'
+  )
 }
 {
   const form = unchanged()
