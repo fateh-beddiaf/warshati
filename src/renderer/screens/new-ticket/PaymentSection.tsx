@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Banknote, Coins, Wallet } from 'lucide-react'
 import { useI18n } from '../../lib/i18n'
-import { cn, formatAmount } from '../../lib/utils'
+import { cn, formatAmount, formatCurrency } from '../../lib/utils'
 import { Input } from '../../components/ui/Input'
 import { AnimatedNumber } from '../../components/AnimatedNumber'
 import { Field } from './Field'
@@ -53,9 +53,7 @@ function PaymentTypeDisplay({ type, remaining }: { type: 'cash' | 'credit'; rema
           {isCash ? t.newTicket.paymentCash : t.newTicket.paymentCredit}
         </p>
         <p className="text-xs text-muted-foreground">
-          {isCash
-            ? text.cashHint
-            : text.creditHint.replace('{amount}', `${formatAmount(Math.round(remaining))} ${t.ui.newTicket.currency}`)}
+          {isCash ? text.cashHint : text.creditHint.replace('{amount}', formatCurrency(remaining))}
         </p>
       </div>
     </div>

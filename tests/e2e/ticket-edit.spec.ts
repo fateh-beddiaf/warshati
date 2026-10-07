@@ -6,11 +6,12 @@ import { launchApp, shutdownApp, openDetailsByBarcode, closeDetails, type Launch
 //  (a) not delivered: device + accessories + price -> list, details and history follow
 //  (b) delivered: price 4000 -> 5000 (cost 2600, 50%) after a review -> shares 1200 / 1200, reports follow
 //  (c) delivered: technician -> partner after a review -> 0 / net
-//  (d) the customer record: "N tickets" note, the change shows on every ticket of the customer
+//  (d) the customer record: "N tickets" note, the change (and its history line) shows on every ticket of the customer
 //  (e) a printed field changed -> "reprint the label?" -> the preview shows the new name, same code
 //  (f) the parts cost in the history is masked until the eye is clicked
 //  (g) the wrong customer: attach the ticket to another one, nobody is renamed
 //  (h) the price can never go below the amount paid
+//  (i) the payment type is shown, never chosen: it follows the amounts in the edit form, the history and delivery
 // Every test starts its own app on fresh data and creates its tickets through the app's API, so any test can run alone.
 
 let l: Launched
@@ -242,7 +243,9 @@ test('the customer record: the form says how many tickets it has, and the change
 
   await openDetailsByBarcode(l.page, second.barcode)
   await expect(l.page.getByRole('dialog')).toContainText('0550100099')
-  await expect(l.page.getByTestId('history-edit')).toHaveCount(0) // the edit is logged on the edited ticket
+  // The customer record is shared: the other ticket's history shows the change too
+  await expect(l.page.getByTestId('history-edit')).toHaveCount(1)
+  await expect(l.page.getByTestId('history-edit').getByTestId('edit-change-customer_phone')).toContainText('0550100099')
   await openEdit()
   await expect(l.page.getByTestId('edit-customer-ticket-count')).toContainText('2')
 })
@@ -342,4 +345,34 @@ test('the price can never go below the amount paid', async () => {
     500,
     'credit'
   ])
+})
+
+test('the payment type follows the amounts: edit form, history and delivery', async () => {
+  const t = await apiTicket({ name: 'Pay Type', phone: '0550100010', price: 3000 })
+  await openDetailsByBarcode(l.page, t.barcode)
+  const dialog = await openEdit()
+  const type = dialog.getByTestId('payment-type')
+  await expect(type).toHaveAttribute('data-value', 'cash')
+  await expect(type.locator('input, button')).toHaveCount(0) // nothing to choose
+
+  // Price raised above what was paid: a debt, shown as credit with the amount left
+  await dialog.getByTestId('payment-price').fill('3500')
+  await expect(type).toHaveAttribute('data-value', 'credit')
+  await expect(type).toContainText('500')
+  await dialog.getByTestId('edit-save').click()
+  await expect(l.page.getByTestId('edit-ticket-dialog')).toHaveCount(0)
+  let s = await stored(t.id)
+  expect([s?.ticket.amount_remaining, s?.ticket.payment_type]).toEqual([500, 'credit'])
+  await expect(l.page.getByTestId('history-edit').getByTestId('edit-change-payment_type')).toBeVisible()
+
+  // Delivered with the rest paid in full: cash
+  await waitForToasts()
+  await l.page.getByTestId('status-to-ready').click()
+  await l.page.getByTestId('open-delivery').click()
+  await l.page.getByTestId('settle-full').check()
+  await l.page.getByTestId('confirm-delivery').click()
+  await expect(l.page.getByTestId('confirm-delivery')).toHaveCount(0)
+  await expect.poll(async () => (await stored(t.id))?.ticket.status).toBe('delivered')
+  s = await stored(t.id)
+  expect([s?.ticket.amount_paid, s?.ticket.amount_remaining, s?.ticket.payment_type]).toEqual([3500, 0, 'cash'])
 })

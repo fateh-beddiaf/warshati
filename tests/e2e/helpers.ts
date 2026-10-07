@@ -1,4 +1,4 @@
-import { _electron as electron, test } from '@playwright/test'
+import { _electron as electron, expect, test } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
@@ -63,7 +63,7 @@ export async function shutdownApp(l: Launched | undefined): Promise<void> {
   }
 }
 
-/** Fills the New Ticket form and submits it; returns the new ticket's barcode. */
+/** Fills the New Ticket form and submits it; returns the new ticket's barcode. `type`: the payment type it must show. */
 export async function createTicket(
   page: Page,
   o: { name: string; phone: string; price: number; paid: number; type: 'cash' | 'credit' }
@@ -78,7 +78,8 @@ export async function createTicket(
   await textInputs.nth(4).fill('Galaxy A54')
   await form.locator('input[type="number"]').nth(0).fill(String(o.price))
   await form.locator('input[type="number"]').nth(1).fill(String(o.paid))
-  await form.locator(`input[name="paymentType"][value="${o.type}"]`).check()
+  // The payment type is computed from the amounts, never chosen: check the form shows the expected one
+  await expect(form.getByTestId('payment-type')).toHaveAttribute('data-value', o.type)
   await form.locator('button[type="submit"]').click()
   await page.waitForSelector('[data-testid="ticket-created-banner"]')
   const barcode = ((await page.getByTestId('ticket-created-barcode').textContent()) ?? '').trim()
@@ -98,4 +99,25 @@ export async function openDetailsByBarcode(page: Page, barcode: string): Promise
 export async function closeDetails(page: Page): Promise<void> {
   await page.getByTestId('details-close').click()
   await page.getByTestId('details-close').waitFor({ state: 'hidden' })
+}
+
+/**
+ * A hardware scanner's burst (Latin layout): every digit as a real, trusted key event sent at once through the
+ * DevTools protocol, then Enter. It lands wherever focus is, exactly like the reader (scanner.spec.ts covers layouts
+ * and suffixes in depth).
+ */
+export async function scanCode(page: Page, code: string): Promise<void> {
+  const cdp = await page.context().newCDPSession(page)
+  const key = (type: 'keyDown' | 'keyUp', k: string, physical: string, vk: number, text?: string): Promise<unknown> =>
+    cdp.send(
+      'Input.dispatchKeyEvent' as never,
+      { type, key: k, code: physical, windowsVirtualKeyCode: vk, ...(text ? { text } : {}) } as never
+    )
+  const sends: Promise<unknown>[] = []
+  for (const ch of code) {
+    sends.push(key('keyDown', ch, `Digit${ch}`, 48 + Number(ch), ch), key('keyUp', ch, `Digit${ch}`, 48 + Number(ch)))
+  }
+  sends.push(key('keyDown', 'Enter', 'Enter', 13, '\r'), key('keyUp', 'Enter', 'Enter', 13))
+  await Promise.all(sends)
+  await cdp.detach()
 }

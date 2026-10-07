@@ -81,7 +81,7 @@ test('create tickets (cash + credit) and open details', async () => {
       .locator('[data-testid="new-ticket-form"] input[type="number"]')
       .nth(1)
       .fill(kind === 'cash' ? '5000' : '2000')
-    await page.locator(`[data-testid="new-ticket-form"] input[name="paymentType"][value="${kind}"]`).check()
+    await expect(page.getByTestId('payment-type')).toHaveAttribute('data-value', kind)
     await page.locator('[data-testid="new-ticket-form"] button[type="submit"]').click()
     await page.waitForSelector('[data-testid="ticket-created-banner"]')
     await assertAlive(`create ${kind} ticket`)
