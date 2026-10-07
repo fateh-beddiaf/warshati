@@ -25,7 +25,8 @@ import { insertEditLogs, moneyLogValue, type EditLogChange } from './ticket-edit
  * Never editable: barcode_code, created_at, status (it has its own flow) and StatusLog. Any other key is rejected.
  *
  * One transaction: everything is validated first, then applied, then one TicketEditLog row is written per changed
- * field (all with the same timestamp). Any error rolls the whole edit back.
+ * field (all with the same timestamp). A Customer-record edit is also logged on every other ticket of that customer
+ * (its customer lines only, same timestamp). Any error rolls the whole edit back.
  *
  * Payments (same rules as creation): price >= amount_paid, amount_remaining = price - paid, and the payment type follows
  * it (nothing left = 'cash', a remaining balance = 'credit'). Lowering amount_paid creates or increases a debt: it needs
@@ -354,7 +355,17 @@ export function updateTicket(db: Database.Database, ticketId: number, patch: Upd
     }
 
     // ---------------------------------------------------------------- 3. log
-    insertEditLogs(db, ticketId, changes, new Date().toISOString())
+    const timestamp = new Date().toISOString()
+    insertEditLogs(db, ticketId, changes, timestamp)
+    // The Customer record is shared: the other tickets of this customer get the same customer lines, so the history
+    // of each of them shows that the name / phone / notes changed (same timestamp: one entry per ticket)
+    const customerChanges = customerEdit ? changes.filter((c) => c.field.startsWith('customer_')) : []
+    if (customerChanges.length > 0) {
+      const others = db
+        .prepare(`SELECT id FROM Ticket WHERE customer_id = ? AND id != ? ORDER BY id`)
+        .all(customer.id, ticketId) as { id: number }[]
+      for (const other of others) insertEditLogs(db, other.id, customerChanges, timestamp)
+    }
 
     const details = getTicketById(db, ticketId)
     if (!details) throw new Error(`التذكرة رقم ${ticketId} غير موجودة في النظام.`)
