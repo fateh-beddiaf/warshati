@@ -2,7 +2,7 @@
 
 All notable changes to Warshati are listed here. Versions follow [Semantic Versioning](https://semver.org/).
 
-## [1.0.0] - 2026-10-06
+## [1.0.0] - 2026-10-07
 
 أول إصدار عام لورشتي: برنامج سطح مكتب لإدارة محل تصليح الهواتف، يعمل بالكامل بلا إنترنت على Windows.
 
