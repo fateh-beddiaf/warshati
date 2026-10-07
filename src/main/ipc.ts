@@ -11,6 +11,7 @@ import {
   assertPrintLabelData,
   assertReportFilterDTO,
   assertString,
+  assertUpdateTicketPatch,
   assertUpdateTicketStatusDTO
 } from './ipc-validate'
 import { listPrinters } from './printers'
@@ -52,6 +53,17 @@ export function registerIpcHandlers(): void {
     } catch (error: unknown) {
       console.error('Failed to set parts cost:', error)
       return { success: false, error: error instanceof Error ? error.message : 'Failed to set parts cost' }
+    }
+  })
+
+  ipcMain.handle('tickets:update', async (_event, ticketId: unknown, patch: unknown) => {
+    try {
+      assertId(ticketId, 'ticketId')
+      assertUpdateTicketPatch(patch)
+      return { success: true, data: dbService.updateTicket(ticketId, patch) }
+    } catch (error: unknown) {
+      console.error('Failed to update ticket:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to update the ticket' }
     }
   })
 

@@ -2,7 +2,7 @@ import { existsSync, statSync, copyFileSync, unlinkSync, renameSync, mkdirSync }
 import { join, dirname } from 'path'
 import Database from 'better-sqlite3'
 import { getDatabase, closeDatabase, initDatabase } from '../database'
-import { initializeSchema } from '../database/schema'
+import { initializeSchema, MIGRATION_ADDED_TABLES } from '../database/schema'
 import { seedInitialData } from '../database/seed'
 
 // Electron-free core of the database import flow (testable under plain node/electron -r tsx).
@@ -28,7 +28,10 @@ export interface ImportDatabaseFromFileResult {
 
 let requiredTablesCache: string[] | null = null
 
-/** Every table the app creates, derived from schema.ts itself so it can never drift. */
+/**
+ * Every table an imported database must already have, derived from schema.ts itself so it can never drift.
+ * Tables that a migration adds (MIGRATION_ADDED_TABLES) are left out: the import runs the migrations, which create them.
+ */
 export function getRequiredTables(): string[] {
   if (!requiredTablesCache) {
     const mem = new Database(':memory:')
@@ -38,7 +41,9 @@ export function getRequiredTables(): string[] {
         mem
           .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
           .all() as { name: string }[]
-      ).map((row) => row.name)
+      )
+        .map((row) => row.name)
+        .filter((name) => !MIGRATION_ADDED_TABLES.includes(name))
     } finally {
       mem.close()
     }

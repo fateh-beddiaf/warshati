@@ -6,10 +6,22 @@ import { Badge } from '../../components/ui/Badge'
 import { Autocomplete } from '../../components/ui/Autocomplete'
 import { Field } from './Field'
 import { SectionCard } from './SectionCard'
-import type { NewTicketForm } from './useNewTicketForm'
+import type { CustomerFields } from './useCustomerFields'
 import { Mono } from '../../components/ui/Mono'
 
-export function CustomerSection({ form }: { form: NewTicketForm }): React.JSX.Element {
+export type CustomerSectionForm = CustomerFields & { showErrors: boolean }
+
+interface CustomerSectionProps {
+  form: CustomerSectionForm
+  /** Defaults: the New Ticket title and hint */
+  title?: string
+  description?: string
+  /** Extra content at the end of the card */
+  children?: React.ReactNode
+}
+
+/** Customer name (type-ahead on registered customers), phone (with phone-match suggestions) and notes. */
+export function CustomerSection({ form, title, description, children }: CustomerSectionProps): React.JSX.Element {
   const { t } = useI18n()
   const nameMissing = form.showErrors && !form.customerName.trim()
   const phoneMissing = form.showErrors && !form.customerPhone.trim()
@@ -17,8 +29,8 @@ export function CustomerSection({ form }: { form: NewTicketForm }): React.JSX.El
   return (
     <SectionCard
       icon={<User />}
-      title={t.newTicket.customerSection}
-      description={t.ui.newTicket.customer.hint}
+      title={title ?? t.newTicket.customerSection}
+      description={description ?? t.ui.newTicket.customer.hint}
       aside={
         form.customerId ? (
           <Badge variant="success">{t.newTicket.existingCustomerBadge}</Badge>
@@ -78,6 +90,7 @@ export function CustomerSection({ form }: { form: NewTicketForm }): React.JSX.El
           />
         </Field>
       </div>
+      {children}
     </SectionCard>
   )
 }

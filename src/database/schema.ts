@@ -127,6 +127,7 @@ export function initializeSchema(db: Database.Database): void {
 
   // Migrations for existing databases
   runMigrations(db)
+  migrateTicketEditLog(db)
   db.exec(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_technician_single_partner
     ON Technician(is_partner)
@@ -135,6 +136,35 @@ export function initializeSchema(db: Database.Database): void {
     ON Ticket(legacy_barcode_code)
     WHERE legacy_barcode_code IS NOT NULL;
   `)
+}
+
+/**
+ * Tables that a migration ADDS to databases from earlier versions. They are not required in an imported backup:
+ * the import runs the migrations, which create them (a 1.0.0 backup has no TicketEditLog and must still import).
+ */
+export const MIGRATION_ADDED_TABLES: readonly string[] = ['TicketEditLog']
+
+/**
+ * TicketEditLog: the history of ticket edits (src/database/queries/ticket-edit.ts), one row per changed field,
+ * written in the same transaction as the edit. Databases from 1.0.0 do not have it: the table and its index are
+ * created here in one transaction. Nothing else is touched (no existing table, column or row), and IF NOT EXISTS
+ * makes every later launch a no-op.
+ */
+function migrateTicketEditLog(db: Database.Database): void {
+  db.transaction(() => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS TicketEditLog (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ticket_id INTEGER NOT NULL,
+        field TEXT NOT NULL,
+        old_value TEXT,
+        new_value TEXT,
+        timestamp TEXT NOT NULL,
+        FOREIGN KEY (ticket_id) REFERENCES Ticket(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_ticketeditlog_ticket ON TicketEditLog(ticket_id);
+    `)
+  })()
 }
 
 /** Tickets whose code is not in the current format (src/shared/ticket-code.ts: "2" + 7 digits). */
@@ -372,7 +402,7 @@ function migratePartsCost(db: Database.Database, ticketColumns: string[], catego
 
 /**
  * Ticket.parts_cost_required is a snapshot of the category's "requires a parts cost" switch taken
- * when the ticket is CREATED. Everything about "missing cost / provisional" reads this snapshot, so turning
+ * when the ticket is CREATED (and taken again when the ticket is moved to another category by an edit). Everything about "missing cost / provisional" reads this snapshot, so turning
  * the switch on later never turns old tickets into "missing cost".
  * Existing tickets get 0 (even if their category requires a cost now), except tickets that already HAVE a
  * cost: those get 1 (harmless, and it keeps them consistent). Runs only when the column is missing.

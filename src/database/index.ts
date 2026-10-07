@@ -4,6 +4,7 @@ import { existsSync, mkdirSync } from 'fs'
 import { initializeSchema } from './schema'
 import { seedInitialData } from './seed'
 import * as ticketQueries from './queries/tickets'
+import * as ticketEditQueries from './queries/ticket-edit'
 import * as customerQueries from './queries/customers'
 import * as metadataQueries from './queries/metadata'
 import * as settingsQueries from './queries/settings'
@@ -19,7 +20,9 @@ import type {
   TicketFullDetails,
   Ticket,
   ReportFilterDTO,
-  FinancialReportResult
+  FinancialReportResult,
+  UpdateTicketPatch,
+  UpdateTicketResult
 } from '../shared/types'
 
 let dbInstance: Database.Database | null = null
@@ -104,6 +107,9 @@ export const dbService = {
   },
   setPartsCost: (ticketId: number, cost: number | null): Ticket => {
     return ticketQueries.setPartsCost(getDatabase(), ticketId, cost)
+  },
+  updateTicket: (ticketId: number, patch: UpdateTicketPatch): UpdateTicketResult => {
+    return ticketEditQueries.updateTicket(getDatabase(), ticketId, patch)
   },
   getTicketsList: (searchQuery?: string, statusFilter?: string): TicketListItem[] => {
     return ticketQueries.getTicketsList(getDatabase(), searchQuery, statusFilter)

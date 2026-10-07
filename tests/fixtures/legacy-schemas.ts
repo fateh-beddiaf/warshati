@@ -131,3 +131,135 @@ export const LEGACY_SCHEMA_ANCIENT = `
   CREATE TABLE StatusLog (id INTEGER PRIMARY KEY AUTOINCREMENT, ticket_id INTEGER NOT NULL, old_status TEXT, new_status TEXT NOT NULL, timestamp TEXT NOT NULL);
   CREATE TABLE Setting (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 `
+
+/**
+ * Schema of the 1.0.0 release (main @ e20b414, the build the shop runs on real data): every table of today except
+ * TicketEditLog, which ticket editing added. Copied verbatim from schema.ts at that commit (both exec blocks).
+ */
+export const SCHEMA_1_0_0 = `  PRAGMA foreign_keys = ON;
+
+  -- Customer Table
+  CREATE TABLE IF NOT EXISTS Customer (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    notes TEXT
+  );
+
+  -- RepairCategory Table
+  CREATE TABLE IF NOT EXISTS RepairCategory (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    default_split_percentage REAL NOT NULL DEFAULT 50.0,
+    requires_parts_cost INTEGER NOT NULL DEFAULT 0 CHECK(requires_parts_cost IN (0, 1))
+  );
+
+  -- Technician Table
+  CREATE TABLE IF NOT EXISTS Technician (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    is_partner INTEGER NOT NULL DEFAULT 0 CHECK(is_partner IN (0, 1))
+  );
+
+  -- Accessories Table
+  CREATE TABLE IF NOT EXISTS Accessories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE
+  );
+
+  -- Brand Table
+  CREATE TABLE IF NOT EXISTS Brand (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE
+  );
+
+  -- Model Table
+  CREATE TABLE IF NOT EXISTS Model (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    brand_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    FOREIGN KEY (brand_id) REFERENCES Brand(id) ON DELETE CASCADE,
+    UNIQUE (brand_id, name)
+  );
+
+  -- Ticket Table (مع أعمدة حفظ حصص الأرباح الفعلية تاريخياً)
+  CREATE TABLE IF NOT EXISTS Ticket (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    barcode_code TEXT NOT NULL UNIQUE,
+    customer_id INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    technician TEXT NOT NULL,
+    technician_id INTEGER NOT NULL,
+    repair_category_id INTEGER NOT NULL,
+    price REAL NOT NULL DEFAULT 0.0,
+    payment_type TEXT NOT NULL CHECK(payment_type IN ('cash', 'credit')),
+    amount_paid REAL NOT NULL DEFAULT 0.0,
+    amount_remaining REAL NOT NULL DEFAULT 0.0,
+    status TEXT NOT NULL DEFAULT 'in_progress' CHECK(status IN ('in_progress', 'ready', 'delivered')),
+    my_share REAL DEFAULT NULL,
+    partner_share REAL DEFAULT NULL,
+    parts_cost REAL DEFAULT NULL CHECK(parts_cost IS NULL OR parts_cost >= 0),
+    split_percentage_applied REAL DEFAULT NULL,
+    parts_cost_required INTEGER NOT NULL DEFAULT 0 CHECK(parts_cost_required IN (0, 1)),
+    legacy_barcode_code TEXT DEFAULT NULL,
+    FOREIGN KEY (customer_id) REFERENCES Customer(id),
+    FOREIGN KEY (repair_category_id) REFERENCES RepairCategory(id),
+    FOREIGN KEY (technician_id) REFERENCES Technician(id) ON DELETE RESTRICT
+  );
+
+  -- TicketDevice Table
+  CREATE TABLE IF NOT EXISTS TicketDevice (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id INTEGER NOT NULL UNIQUE,
+    brand TEXT NOT NULL,
+    model TEXT NOT NULL,
+    brand_id INTEGER,
+    model_id INTEGER,
+    short_label TEXT NOT NULL,
+    FOREIGN KEY (ticket_id) REFERENCES Ticket(id) ON DELETE CASCADE,
+    FOREIGN KEY (brand_id) REFERENCES Brand(id) ON DELETE RESTRICT,
+    FOREIGN KEY (model_id) REFERENCES Model(id) ON DELETE RESTRICT
+  );
+
+  -- TicketAccessories Table (M2M)
+  CREATE TABLE IF NOT EXISTS TicketAccessories (
+    ticket_id INTEGER NOT NULL,
+    accessory_id INTEGER NOT NULL,
+    PRIMARY KEY (ticket_id, accessory_id),
+    FOREIGN KEY (ticket_id) REFERENCES Ticket(id) ON DELETE CASCADE,
+    FOREIGN KEY (accessory_id) REFERENCES Accessories(id) ON DELETE CASCADE
+  );
+
+  -- StatusLog Table
+  CREATE TABLE IF NOT EXISTS StatusLog (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticket_id INTEGER NOT NULL,
+    old_status TEXT,
+    new_status TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    FOREIGN KEY (ticket_id) REFERENCES Ticket(id) ON DELETE CASCADE
+  );
+
+  -- Setting Table (Key-Value)
+  CREATE TABLE IF NOT EXISTS Setting (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+
+  -- Performance Indexes
+  CREATE INDEX IF NOT EXISTS idx_customer_phone ON Customer(phone);
+  CREATE INDEX IF NOT EXISTS idx_customer_name ON Customer(name);
+  CREATE INDEX IF NOT EXISTS idx_ticket_barcode ON Ticket(barcode_code);
+  CREATE INDEX IF NOT EXISTS idx_ticket_status ON Ticket(status);
+  CREATE INDEX IF NOT EXISTS idx_ticket_customer ON Ticket(customer_id);
+  CREATE INDEX IF NOT EXISTS idx_ticket_created ON Ticket(created_at);
+  CREATE INDEX IF NOT EXISTS idx_model_brand ON Model(brand_id);
+  CREATE INDEX IF NOT EXISTS idx_statuslog_ticket ON StatusLog(ticket_id);
+
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_technician_single_partner
+  ON Technician(is_partner)
+  WHERE is_partner = 1;
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_ticket_legacy_barcode
+  ON Ticket(legacy_barcode_code)
+  WHERE legacy_barcode_code IS NOT NULL;
+`

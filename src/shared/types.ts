@@ -27,7 +27,10 @@ export interface Ticket {
   parts_cost?: number | null
   /** My percentage frozen at delivery (non-partner tickets); NULL before delivery / for the partner */
   split_percentage_applied?: number | null
-  /** Snapshot (taken at creation) of the category's "requires a parts cost" switch: 1 = this ticket needs a cost */
+  /**
+   * Snapshot of the category's "requires a parts cost" switch, taken at creation (and again when the ticket's
+   * category is edited): 1 = this ticket needs a cost
+   */
   parts_cost_required?: number | boolean
   my_share?: number | null
   partner_share?: number | null
@@ -69,6 +72,70 @@ export interface StatusLog {
   old_status: TicketStatus | null
   new_status: TicketStatus
   timestamp: string
+}
+
+/** Fields a ticket edit records in TicketEditLog (one row per changed field). */
+export type TicketEditField =
+  | 'customer'
+  | 'customer_name'
+  | 'customer_phone'
+  | 'customer_notes'
+  | 'brand'
+  | 'model'
+  | 'short_label'
+  | 'accessories'
+  | 'repair_category'
+  | 'technician'
+  | 'price'
+  | 'amount_paid'
+  | 'payment_type'
+  | 'parts_cost'
+
+/**
+ * One changed field of one ticket edit. Values are readable text snapshots taken at the time of the edit
+ * (names, not ids, so renaming a category later does not rewrite history); NULL = empty / not entered.
+ * Money is stored as a plain number ("4000"); payment_type as 'cash' | 'credit'; accessories as names joined by ", ";
+ * customer (attached to another customer) as "name · phone". All rows of one edit share the same timestamp.
+ * parts_cost values are owner-only: the UI masks them like every other cost.
+ */
+export interface TicketEditLog {
+  id: number
+  ticket_id: number
+  field: TicketEditField
+  old_value: string | null
+  new_value: string | null
+  timestamp: string
+}
+
+/**
+ * The editable parts of a ticket (updateTicket). Every key is optional: only what is sent is checked and compared,
+ * and only what actually differs is changed and logged. Barcode, created_at, status and StatusLog are never editable.
+ */
+export interface UpdateTicketPatch {
+  /** Edits the Customer record itself: the change shows on EVERY ticket of this customer */
+  customer?: { name: string; phone: string; notes?: string }
+  /** Moves this ticket to another customer, found or created with the New Ticket matching rules (never renames one) */
+  reassign_customer?: { id?: number; name: string; phone: string; notes?: string }
+  /** The whole device: brand, model (with their reference ids when picked from the lists) and the short label */
+  device?: { brand: string; model: string; brand_id?: number; model_id?: number; short_label?: string }
+  accessory_ids?: number[]
+  repair_category_id?: number
+  technician_id?: number
+  price?: number
+  amount_paid?: number
+  payment_type?: PaymentType
+  /** null = not entered */
+  parts_cost?: number | null
+  /** Required to edit a delivered ticket: its profit split may be recalculated */
+  confirm_delivered?: boolean
+  /** Required to lower amount_paid: it creates or increases a debt */
+  confirm_paid_lowered?: boolean
+}
+
+export interface UpdateTicketResult {
+  details: TicketFullDetails
+  /** The fields that changed (as logged). Empty = nothing differed, nothing was written. */
+  changedFields: TicketEditField[]
 }
 
 export interface Brand {
@@ -180,6 +247,10 @@ export interface TicketFullDetails {
   category: RepairCategory | null
   accessories: Accessories[]
   statusLogs: StatusLog[]
+  /** Field edits, oldest first (TicketEditLog) */
+  editLogs: TicketEditLog[]
+  /** How many tickets this ticket's customer has (editing the customer changes all of them) */
+  customerTicketCount: number
   ready_at?: string | null
   is_overdue?: boolean
   overdue_days?: number

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { motion } from 'framer-motion'
-import { Printer, Trash2 } from 'lucide-react'
+import { PencilLine, Printer, Trash2 } from 'lucide-react'
 import { useI18n } from '../../lib/i18n'
 import { listContainer } from '../../lib/motion'
 import { Button } from '../ui/Button'
@@ -16,6 +16,8 @@ import { StatusTimeline } from './details/StatusTimeline'
 import { DeliveryDialog } from './details/DeliveryDialog'
 import { DeleteTicketDialog } from './details/DeleteTicketDialog'
 import { PartsCostDialog } from './details/PartsCostDialog'
+import { EditTicketDialog } from './edit/EditTicketDialog'
+import { ReprintPromptDialog } from './edit/ReprintPromptDialog'
 
 export interface TicketDetailsModalProps {
   isOpen: boolean
@@ -40,7 +42,7 @@ export function TicketDetailsModal({
   const state = useTicketDetailsState({ isOpen, ticketDetails, onClose, onStatusUpdated })
 
   // Feedback banners are shown by the top-most dialog only (and the test ids stay unique)
-  const mainOwnsFeedback = !state.isDeliveryDialogOpen && !state.isDeleteDialogOpen
+  const mainOwnsFeedback = !state.isDeliveryDialogOpen && !state.isDeleteDialogOpen && !state.isEditOpen
 
   return (
     <>
@@ -90,10 +92,16 @@ export function TicketDetailsModal({
                   </Button>
                 </div>
 
-                <Button type="button" data-testid="details-reprint" onClick={() => onReprintClick(ticketDetails)}>
-                  <Printer className="h-4 w-4" />
-                  {t.ticketDetails.printLabelButton}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" data-testid="details-edit" onClick={state.openEdit}>
+                    <PencilLine className="h-4 w-4" />
+                    {t.ui.editTicket.editButton}
+                  </Button>
+                  <Button type="button" data-testid="details-reprint" onClick={() => onReprintClick(ticketDetails)}>
+                    <Printer className="h-4 w-4" />
+                    {t.ticketDetails.printLabelButton}
+                  </Button>
+                </div>
               </div>
             </>
           )}
@@ -105,6 +113,20 @@ export function TicketDetailsModal({
           <DeliveryDialog ticketDetails={ticketDetails} state={state} />
           <PartsCostDialog ticketDetails={ticketDetails} state={state} />
           <DeleteTicketDialog ticketDetails={ticketDetails} state={state} />
+          <EditTicketDialog
+            open={state.isEditOpen}
+            details={ticketDetails}
+            onClose={state.closeEdit}
+            onSaved={state.handleEditSaved}
+          />
+          <ReprintPromptDialog
+            open={state.reprintDetails !== null}
+            onDismiss={state.dismissReprint}
+            onPrint={() => {
+              if (state.reprintDetails) onReprintClick(state.reprintDetails)
+              state.dismissReprint()
+            }}
+          />
         </>
       )}
     </>

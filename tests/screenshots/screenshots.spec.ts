@@ -321,6 +321,72 @@ for (const theme of THEMES) {
       }
     })
 
+    test(`ticket editing ${theme}-${lang}`, async () => {
+      // Its own fresh demo copy: the edits must not show up in the other screens, nor pile up across combinations
+      const dir = mkdtempSync(join(tmpdir(), 'warshati-shots-edit-'))
+      const seeded = spawnSync(electronBinary, ['-r', 'tsx', 'tests/fixtures/seed-demo.run.ts', dir], {
+        encoding: 'utf8'
+      })
+      if (seeded.status !== 0)
+        throw new Error(`demo seed failed: ${seeded.stdout}
+${seeded.stderr}`)
+      const { app, page, problems } = await launch(dir)
+      try {
+        await configure(page, theme, lang)
+        const rows = (await page.evaluate(async () => (await window.api.getTicketsList()).data ?? [])) as ListRow[]
+        const inProgress = rows.find((r) => r.status === 'in_progress')
+        const deliveredWithCost = rows.find((r) => r.status === 'delivered' && r.price === 5500)
+        expect(inProgress && deliveredWithCost, 'demo data has the tickets to edit').toBeTruthy()
+        const edit = page.getByTestId('edit-ticket-dialog')
+        const body = edit.locator('form > div').first()
+
+        // The form, top (customer record + "N tickets"), then repair + payment (masked cost)
+        await nav(page, 'tickets')
+        await openByBarcode(page, inProgress!.barcode_code)
+        await page.getByTestId('details-edit').click()
+        await edit.getByTestId('edit-ticket-form').waitFor()
+        await shot(page, 'edit-form', theme, lang)
+        await edit.getByTestId('edit-parts-cost').evaluate((el) => el.scrollIntoView({ block: 'center' }))
+        await shot(page, 'edit-form-repair-payment', theme, lang, 400)
+        await body.evaluate((el) => el.scrollTo(0, 0))
+        await edit.getByTestId('edit-customer-reassign').click()
+        await shot(page, 'edit-form-reassign', theme, lang, 400)
+        await edit.getByTestId('edit-customer-cancel-reassign').click()
+
+        // A printed field changed: the reprint prompt
+        await edit.getByTestId('edit-customer-name').fill('Karim B.')
+        await edit.getByTestId('edit-save').click()
+        await page.getByTestId('reprint-prompt').waitFor()
+        await shot(page, 'edit-reprint-prompt', theme, lang, 400)
+        await page.getByTestId('reprint-later').click()
+        await closeDetails(page)
+
+        // Delivered: the warning in the form, the review before saving, then the history (cost masked / revealed)
+        await openByBarcode(page, deliveredWithCost!.barcode_code)
+        await page.getByTestId('details-edit').click()
+        await edit.getByTestId('edit-ticket-form').waitFor()
+        await shot(page, 'edit-form-delivered', theme, lang)
+        await edit.getByTestId('payment-price').fill('6000')
+        await edit.getByTestId('edit-parts-cost').fill('2900')
+        await edit.getByRole('button', { name: /SIM/ }).click()
+        await edit.getByTestId('edit-save').click()
+        await page.getByTestId('edit-review-dialog').waitFor()
+        await shot(page, 'edit-review-delivered', theme, lang, 400)
+        await page.getByTestId('edit-review-confirm').click()
+        await page.getByTestId('edit-review-dialog').waitFor({ state: 'hidden' })
+        await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 15_000 })
+        await page.getByTestId('ticket-history').evaluate((el) => el.scrollIntoView({ block: 'center' }))
+        await shot(page, 'history-cost-masked', theme, lang, 500)
+        await page.getByTestId('history-edit').getByTestId('edit-cost-reveal').click()
+        await shot(page, 'history-cost-revealed', theme, lang, 400)
+        await closeDetails(page)
+        expect(problems).toEqual([])
+      } finally {
+        await app.close()
+        rmSync(dir, { recursive: true, force: true })
+      }
+    })
+
     test(`empty states ${theme}-${lang}`, async () => {
       const { app, page, problems } = await launch(emptyDir)
       try {

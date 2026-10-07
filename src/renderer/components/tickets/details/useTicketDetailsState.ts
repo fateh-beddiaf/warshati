@@ -1,7 +1,15 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useI18n } from '../../../lib/i18n'
+import { toast } from '../../ui/Sonner'
 import { formatCurrency } from '../../../lib/utils'
-import type { TicketFullDetails, TicketStatus, PaymentType, UpdateTicketStatusDTO } from '../../../../shared/types'
+import type {
+  TicketFullDetails,
+  TicketStatus,
+  PaymentType,
+  UpdateTicketResult,
+  UpdateTicketStatusDTO
+} from '../../../../shared/types'
+import { PRINTED_FIELDS } from '../edit/editPatch'
 import { resolveProfitSplit } from './profitSplit'
 import { usePartsCostEditor } from './usePartsCostEditor'
 
@@ -41,6 +49,10 @@ export function useTicketDetailsState({ isOpen, ticketDetails, onClose, onStatus
   const [recordAmount, setRecordAmount] = useState('')
   const [recordingPayment, setRecordingPayment] = useState(false)
 
+  // Edit form, and the "reprint the label?" prompt after an edit changed a printed field
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [reprintDetails, setReprintDetails] = useState<TicketFullDetails | null>(null)
+
   // The modal stays mounted while closed, so every piece of internal state is reset whenever it
   // closes/opens or a different ticket is displayed. `sessionRef` also lets in-flight async
   // handlers notice they belong to a previous ticket and skip touching the new one's state.
@@ -60,7 +72,23 @@ export function useTicketDetailsState({ isOpen, ticketDetails, onClose, onStatus
     setDeleting(false)
     setRecordAmount('')
     setRecordingPayment(false)
+    setIsEditOpen(false)
+    setReprintDetails(null)
   }, [isOpen, displayedTicketId])
+
+  const openEdit = (): void => {
+    setErrorMessage(null)
+    setSuccessMessage(null)
+    setIsEditOpen(true)
+  }
+  const closeEdit = (): void => setIsEditOpen(false)
+  /** Saved: reload the ticket and the list, then offer a new label if a printed field changed. */
+  const handleEditSaved = (result: UpdateTicketResult): void => {
+    setIsEditOpen(false)
+    toast.success(t.ui.editTicket.savedToast)
+    onStatusUpdated?.()
+    if (result.changedFields.some((field) => PRINTED_FIELDS.includes(field))) setReprintDetails(result.details)
+  }
 
   const openDeleteDialog = (): void => {
     setDeleteStep(1)
@@ -251,6 +279,13 @@ export function useTicketDetailsState({ isOpen, ticketDetails, onClose, onStatus
     setRecordAmount,
     recordingPayment,
     handleRecordPayment,
+    // edit
+    isEditOpen,
+    openEdit,
+    closeEdit,
+    handleEditSaved,
+    reprintDetails,
+    dismissReprint: () => setReprintDetails(null),
     // delete
     isDeleteDialogOpen,
     openDeleteDialog,

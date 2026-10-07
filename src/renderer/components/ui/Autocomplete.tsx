@@ -25,6 +25,8 @@ interface AutocompleteProps {
   className?: string
   allowCustomInput?: boolean
   error?: boolean
+  /** data-testid of the text field */
+  testId?: string
 }
 
 // Rendering hundreds of rows on every keystroke is wasteful: show the first N and let typing narrow the list
@@ -43,7 +45,8 @@ export function Autocomplete({
   disabled = false,
   className,
   allowCustomInput = true,
-  error = false
+  error = false,
+  testId
 }: AutocompleteProps): React.JSX.Element {
   const { t } = useI18n()
   const text = t.ui.newTicket.autocomplete
@@ -157,6 +160,7 @@ export function Autocomplete({
           <Input
             type="text"
             role="combobox"
+            data-testid={testId}
             aria-expanded={showList}
             aria-autocomplete="list"
             autoComplete="off"

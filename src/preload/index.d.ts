@@ -9,7 +9,9 @@ import type {
   PrinterInfo,
   Ticket,
   ReportFilterDTO,
-  FinancialReportResult
+  FinancialReportResult,
+  UpdateTicketPatch,
+  UpdateTicketResult
 } from '../shared/types'
 
 import type { BackupRunResult, BackupStatus, BackupStatusEvent } from '../shared/auto-backup'
@@ -22,6 +24,11 @@ export interface IElectronAPI {
   ) => Promise<{ success: boolean; data?: { ticketId: number; barcode: string }; error?: string }>
   recordPayment: (ticketId: number, amount: number) => Promise<{ success: boolean; data?: Ticket; error?: string }>
   setPartsCost: (ticketId: number, cost: number | null) => Promise<{ success: boolean; data?: Ticket; error?: string }>
+  /** Edits a ticket (see src/database/queries/ticket-edit.ts); returns the full ticket and what changed */
+  updateTicket: (
+    ticketId: number,
+    patch: UpdateTicketPatch
+  ) => Promise<{ success: boolean; data?: UpdateTicketResult; error?: string }>
   updateTicketStatus: (
     dto: UpdateTicketStatusDTO
   ) => Promise<{ success: boolean; data?: { success: boolean; ticket: Ticket }; error?: string }>
