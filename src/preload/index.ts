@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { CreateTicketDTO, ReportFilterDTO } from '../shared/types'
+import type { CreateTicketDTO, ReportFilterDTO, UpdateTicketPatch } from '../shared/types'
 import { THEME_ARG_RESOLVED, type ResolvedTheme } from '../shared/theme'
 
 // Apply the saved theme to <html> before the first paint (no white flash in dark mode).
@@ -30,6 +30,7 @@ const api = {
   createTicket: (dto: CreateTicketDTO) => ipcRenderer.invoke('tickets:create', dto),
   recordPayment: (ticketId: number, amount: number) => ipcRenderer.invoke('tickets:recordPayment', ticketId, amount),
   setPartsCost: (ticketId: number, cost: number | null) => ipcRenderer.invoke('tickets:setPartsCost', ticketId, cost),
+  updateTicket: (ticketId: number, patch: UpdateTicketPatch) => ipcRenderer.invoke('tickets:update', ticketId, patch),
   updateTicketStatus: (dto: import('../shared/types').UpdateTicketStatusDTO) =>
     ipcRenderer.invoke('tickets:updateStatus', dto),
   getTicketsList: (searchQuery?: string, statusFilter?: string) =>

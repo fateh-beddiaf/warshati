@@ -9,6 +9,7 @@ import type {
   ReportFilterDTO,
   ReportPeriod,
   TicketStatus,
+  UpdateTicketPatch,
   UpdateTicketStatusDTO
 } from '../shared/types'
 
@@ -115,6 +116,71 @@ export function assertUpdateTicketStatusDTO(dto: unknown): asserts dto is Update
       assertOneOf(dto.paymentUpdate.payment_type, 'paymentUpdate.payment_type', PAYMENT_TYPES)
     }
   }
+}
+
+function assertOnlyKeys(value: Record<string, unknown>, name: string, allowed: readonly string[]): void {
+  for (const key of Object.keys(value)) {
+    if (!allowed.includes(key)) fail(`${name}.${key}`, `absent (allowed: ${allowed.join(', ')})`)
+  }
+}
+
+/**
+ * A ticket edit (tickets:update). Strict: every key must be one of the editable ones (the barcode, created_at, status,
+ * shares... are refused here already, and again by updateTicket), with the same types as at creation.
+ */
+export function assertUpdateTicketPatch(patch: unknown): asserts patch is UpdateTicketPatch {
+  assertObject(patch, 'patch')
+  assertOnlyKeys(patch, 'patch', [
+    'customer',
+    'reassign_customer',
+    'device',
+    'accessory_ids',
+    'repair_category_id',
+    'technician_id',
+    'price',
+    'amount_paid',
+    'payment_type',
+    'parts_cost',
+    'confirm_delivered',
+    'confirm_paid_lowered'
+  ])
+
+  if (patch.customer !== undefined) {
+    assertObject(patch.customer, 'patch.customer')
+    assertOnlyKeys(patch.customer, 'patch.customer', ['name', 'phone', 'notes'])
+    assertString(patch.customer.name, 'patch.customer.name')
+    assertString(patch.customer.phone, 'patch.customer.phone')
+    assertOptionalString(patch.customer.notes, 'patch.customer.notes')
+  }
+  if (patch.reassign_customer !== undefined) {
+    assertObject(patch.reassign_customer, 'patch.reassign_customer')
+    assertOnlyKeys(patch.reassign_customer, 'patch.reassign_customer', ['id', 'name', 'phone', 'notes'])
+    assertOptionalId(patch.reassign_customer.id, 'patch.reassign_customer.id')
+    assertString(patch.reassign_customer.name, 'patch.reassign_customer.name')
+    assertString(patch.reassign_customer.phone, 'patch.reassign_customer.phone')
+    assertOptionalString(patch.reassign_customer.notes, 'patch.reassign_customer.notes')
+  }
+  if (patch.device !== undefined) {
+    assertObject(patch.device, 'patch.device')
+    assertOnlyKeys(patch.device, 'patch.device', ['brand', 'model', 'brand_id', 'model_id', 'short_label'])
+    assertString(patch.device.brand, 'patch.device.brand')
+    assertString(patch.device.model, 'patch.device.model')
+    assertOptionalId(patch.device.brand_id, 'patch.device.brand_id')
+    assertOptionalId(patch.device.model_id, 'patch.device.model_id')
+    assertOptionalString(patch.device.short_label, 'patch.device.short_label')
+  }
+  if (patch.accessory_ids !== undefined) {
+    if (!Array.isArray(patch.accessory_ids)) fail('patch.accessory_ids', 'an array')
+    patch.accessory_ids.forEach((accessoryId, i) => assertId(accessoryId, `patch.accessory_ids[${i}]`))
+  }
+  assertOptionalId(patch.repair_category_id, 'patch.repair_category_id')
+  assertOptionalId(patch.technician_id, 'patch.technician_id')
+  assertOptionalNumber(patch.price, 'patch.price')
+  assertOptionalNumber(patch.amount_paid, 'patch.amount_paid')
+  if (patch.payment_type !== undefined) assertOneOf(patch.payment_type, 'patch.payment_type', PAYMENT_TYPES)
+  if (patch.parts_cost !== undefined) assertNullableNumber(patch.parts_cost, 'patch.parts_cost')
+  assertOptionalBoolean(patch.confirm_delivered, 'patch.confirm_delivered')
+  assertOptionalBoolean(patch.confirm_paid_lowered, 'patch.confirm_paid_lowered')
 }
 
 export function assertReportFilterDTO(filter: unknown): asserts filter is ReportFilterDTO | undefined {

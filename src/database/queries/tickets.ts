@@ -11,6 +11,7 @@ import { calculateRemaining, generateUniqueTicketCode } from '../helpers'
 import { generateShortLabel } from '../../shared/device-utils'
 import { calculateProfitSplit, roundMoney } from '../../shared/profit'
 import { getOverdueThresholdDays } from './settings'
+import { getTicketEditLogs, insertEditLogs, moneyLogValue } from './ticket-edit-log'
 
 function validatePaymentAmounts(priceValue: unknown, amountPaidValue: unknown): { price: number; amountPaid: number } {
   const price = Number(priceValue)
@@ -63,6 +64,40 @@ function getProfitContext(
   }
 }
 
+/**
+ * Brand / model of a ticket's device. A reference id (picked from the lists) wins over the typed text and the stored
+ * name is taken from the reference; the model must belong to the brand. Throws a clear message when something is off.
+ */
+export function resolveDevice(
+  db: Database.Database,
+  device: { brand: string; model: string; brand_id?: number | null; model_id?: number | null }
+): { brand: string; model: string; brandId: number | null; modelId: number | null } {
+  let brand = (device.brand || '').trim()
+  let model = (device.model || '').trim()
+  const brandId = device.brand_id ?? null
+  const modelId = device.model_id ?? null
+
+  if (brandId !== null) {
+    const brandReference = db.prepare(`SELECT name FROM Brand WHERE id = ?`).get(brandId) as
+      { name: string } | undefined
+    if (!brandReference) throw new Error('الماركة المختارة غير موجودة. حدّث بيانات النموذج ثم أعد المحاولة.')
+    brand = brandReference.name
+  }
+  if (modelId !== null) {
+    const modelReference = db.prepare(`SELECT name, brand_id FROM Model WHERE id = ?`).get(modelId) as
+      { name: string; brand_id: number } | undefined
+    if (!modelReference) throw new Error('الموديل المختار غير موجود. حدّث بيانات النموذج ثم أعد المحاولة.')
+    if (brandId === null || modelReference.brand_id !== brandId) {
+      throw new Error('الموديل المختار لا يتبع الماركة المختارة.')
+    }
+    model = modelReference.name
+  }
+  if (!brand || !model) {
+    throw new Error('الماركة والموديل مطلوبان.')
+  }
+  return { brand, model, brandId, modelId }
+}
+
 export function createTicket(db: Database.Database, dto: CreateTicketDTO): { ticketId: number; barcode: string } {
   const transaction = db.transaction(() => {
     // 1. Validate financial values before any data is persisted.
@@ -85,29 +120,7 @@ export function createTicket(db: Database.Database, dto: CreateTicketDTO): { tic
       throw new Error('الفني المختار غير موجود. حدّث بيانات النموذج ثم أعد المحاولة.')
     }
 
-    let brand = (dto.device.brand || '').trim()
-    let model = (dto.device.model || '').trim()
-    const brandId = dto.device.brand_id ?? null
-    const modelId = dto.device.model_id ?? null
-
-    if (brandId !== null) {
-      const brandReference = db.prepare(`SELECT name FROM Brand WHERE id = ?`).get(brandId) as
-        { name: string } | undefined
-      if (!brandReference) throw new Error('الماركة المختارة غير موجودة. حدّث بيانات النموذج ثم أعد المحاولة.')
-      brand = brandReference.name
-    }
-    if (modelId !== null) {
-      const modelReference = db.prepare(`SELECT name, brand_id FROM Model WHERE id = ?`).get(modelId) as
-        { name: string; brand_id: number } | undefined
-      if (!modelReference) throw new Error('الموديل المختار غير موجود. حدّث بيانات النموذج ثم أعد المحاولة.')
-      if (brandId === null || modelReference.brand_id !== brandId) {
-        throw new Error('الموديل المختار لا يتبع الماركة المختارة.')
-      }
-      model = modelReference.name
-    }
-    if (!brand || !model) {
-      throw new Error('الماركة والموديل مطلوبان لإنشاء التذكرة.')
-    }
+    const { brand, model, brandId, modelId } = resolveDevice(db, dto.device)
 
     // 3. Find or create customer only after all validation passes.
     const customerId = findOrCreateCustomer(db, dto.customer)
@@ -233,6 +246,7 @@ export function recordPayment(db: Database.Database, ticketId: number, amount: n
  * on the net profit with the percentage frozen at delivery (split_percentage_applied), never the
  * category's current one. Status, payments (amount_paid / amount_remaining) and StatusLog are untouched:
  * the customer always pays the price. A loss (cost > price) is accepted here; the UI asks for confirmation.
+ * A real change is recorded in TicketEditLog (field parts_cost) in the same transaction, like any other ticket edit.
  */
 export function setPartsCost(db: Database.Database, ticketId: number, cost: unknown): Ticket {
   const transaction = db.transaction(() => {
@@ -249,6 +263,15 @@ export function setPartsCost(db: Database.Database, ticketId: number, cost: unkn
     if (!ticket) throw new Error(`التذكرة رقم ${ticketId} غير موجودة في النظام.`)
 
     const partsCost = normalizePartsCost(cost)
+    const previousCost = ticket.parts_cost ?? null
+    if (previousCost !== partsCost) {
+      insertEditLogs(
+        db,
+        ticketId,
+        [{ field: 'parts_cost', old_value: moneyLogValue(previousCost), new_value: moneyLogValue(partsCost) }],
+        new Date().toISOString()
+      )
+    }
 
     if (ticket.status === 'delivered') {
       const context = getProfitContext(db, ticket)
@@ -586,6 +609,12 @@ export function getTicketById(db: Database.Database, ticketId: number): TicketFu
     }
   }
 
+  const customerTicketCount = (
+    db.prepare(`SELECT COUNT(*) AS count FROM Ticket WHERE customer_id = ?`).get(ticket.customer_id) as {
+      count: number
+    }
+  ).count
+
   return {
     ticket,
     customer,
@@ -593,6 +622,8 @@ export function getTicketById(db: Database.Database, ticketId: number): TicketFu
     category,
     accessories,
     statusLogs,
+    editLogs: getTicketEditLogs(db, ticket.id),
+    customerTicketCount,
     ready_at,
     is_overdue,
     overdue_days
@@ -612,7 +643,7 @@ export function getTicketByBarcode(db: Database.Database, barcode: string): Tick
 }
 
 /**
- * Deletes a single ticket atomically along with its associated records (Device, Accessories, StatusLog).
+ * Deletes a single ticket atomically along with its associated records (Device, Accessories, StatusLog, TicketEditLog).
  * After deletion, if the associated Customer has no remaining tickets, the Customer record
  * is deleted automatically and silently (orphan cascade cleanup).
  */
@@ -631,6 +662,7 @@ export function deleteTicket(db: Database.Database, ticketId: number): { success
     db.prepare(`DELETE FROM TicketAccessories WHERE ticket_id = ?`).run(ticketId)
     db.prepare(`DELETE FROM TicketDevice WHERE ticket_id = ?`).run(ticketId)
     db.prepare(`DELETE FROM StatusLog WHERE ticket_id = ?`).run(ticketId)
+    db.prepare(`DELETE FROM TicketEditLog WHERE ticket_id = ?`).run(ticketId)
 
     // 2. Delete the ticket itself
     db.prepare(`DELETE FROM Ticket WHERE id = ?`).run(ticketId)
