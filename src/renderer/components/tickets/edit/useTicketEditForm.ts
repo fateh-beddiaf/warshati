@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useI18n } from '../../../lib/i18n'
 import { formatCurrency } from '../../../lib/utils'
 import { parseCostInput } from '../../../../shared/parts-cost'
+import { paymentTypeFor } from '../../../../shared/payment'
 import type { AppMetadata, PaymentType, TicketFullDetails, UpdateTicketResult } from '../../../../shared/types'
 import { useCustomerFields } from '../../../screens/new-ticket/useCustomerFields'
 import { useDeviceFields } from '../../../screens/new-ticket/useDeviceFields'
@@ -49,7 +50,6 @@ export function useTicketEditForm(
   const [technicianId, setTechnicianId] = useState<number | null>(ticket.technician_id)
   const [price, setPrice] = useState(String(ticket.price))
   const [amountPaid, setAmountPaid] = useState(String(ticket.amount_paid))
-  const [paymentType, setPaymentType] = useState<PaymentType>(ticket.payment_type)
   const [partsCost, setPartsCost] = useState(
     ticket.parts_cost === null || ticket.parts_cost === undefined ? '' : String(ticket.parts_cost)
   )
@@ -64,10 +64,34 @@ export function useTicketEditForm(
   const numPrice = parsedPrice ?? 0
   const numPaid = parsedPaid ?? 0
   const calculatedRemaining = Math.max(0, numPrice - numPaid)
-  // A partial payment is always a debt (the backend enforces the same rule)
-  const effectivePaymentType: PaymentType = calculatedRemaining > 0 ? 'credit' : paymentType
+  // Shown, not chosen: the backend derives the same type from the remaining amount
+  const effectivePaymentType: PaymentType = paymentTypeFor(calculatedRemaining)
   const parsedCost = parseCostInput(partsCost)
   const costInvalid = parsedCost.kind === 'invalid'
+
+  // Unsaved changes: anything that differs from the saved ticket, or a customer typed for reattachment
+  const savedAccessoryIds = details.accessories.map((a) => a.id)
+  const savedCost = ticket.parts_cost === null || ticket.parts_cost === undefined ? '' : String(ticket.parts_cost)
+  const isDirty =
+    customerName !== customer.name ||
+    customerPhone !== customer.phone ||
+    customerNotes !== (customer.notes ?? '') ||
+    (customerMode === 'reassign' &&
+      (reassign.customerName.trim() !== '' ||
+        reassign.customerPhone.trim() !== '' ||
+        reassign.customerNotes.trim() !== '')) ||
+    device.brand !== savedDevice.brand ||
+    device.model !== savedDevice.model ||
+    device.shortLabel !== savedDevice.short_label ||
+    device.brandId !== (savedDevice.brand_id ?? null) ||
+    device.modelId !== (savedDevice.model_id ?? null) ||
+    selectedAccessoryIds.length !== savedAccessoryIds.length ||
+    selectedAccessoryIds.some((id) => !savedAccessoryIds.includes(id)) ||
+    categoryId !== ticket.repair_category_id ||
+    technicianId !== ticket.technician_id ||
+    price !== String(ticket.price) ||
+    amountPaid !== String(ticket.amount_paid) ||
+    partsCost !== savedCost
 
   const toggleAccessory = (id: number): void => {
     setSelectedAccessoryIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]))
@@ -163,7 +187,6 @@ export function useTicketEditForm(
         technicianId,
         price: parsedPrice,
         amountPaid: parsedPaid,
-        paymentType: effectivePaymentType,
         partsCost: parsedCost.kind === 'ok' ? parsedCost.value : null
       },
       metadata
@@ -182,6 +205,7 @@ export function useTicketEditForm(
 
   return {
     metadata,
+    isDirty,
     showErrors,
     errorMessage,
     saving,
@@ -218,7 +242,6 @@ export function useTicketEditForm(
     setPrice,
     amountPaid,
     setAmountPaid,
-    setPaymentType,
     numPrice,
     numPaid,
     calculatedRemaining,

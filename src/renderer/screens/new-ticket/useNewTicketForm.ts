@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useI18n } from '../../lib/i18n'
 import { generateShortLabel } from '../../../shared/device-utils'
 import { isCostLoss, parseCostInput } from '../../../shared/parts-cost'
+import { paymentTypeFor } from '../../../shared/payment'
 import type { AppMetadata, CreateTicketDTO, PaymentType } from '../../../shared/types'
 import { useCustomerFields } from './useCustomerFields'
 import { useDeviceFields } from './useDeviceFields'
@@ -14,6 +15,8 @@ export interface TicketPrintData {
   shortLabel: string
   ticketId: number
 }
+
+const EMPTY_SIGNATURE = JSON.stringify(['', '', '', '', '', '', '', '', '', []])
 
 /** State, validation and submit logic of the New Ticket screen (UI-free). */
 export function useNewTicketForm() {
@@ -37,7 +40,6 @@ export function useNewTicketForm() {
   const [categoryId, setCategoryId] = useState<number | ''>('')
   const [price, setPrice] = useState<string>('')
   const [amountPaid, setAmountPaid] = useState<string>('')
-  const [paymentType, setPaymentType] = useState<PaymentType>('cash')
   const [technicianId, setTechnicianId] = useState<number | null>(null)
   const [selectedAccessoryIds, setSelectedAccessoryIds] = useState<number[]>([])
   // Parts cost: text as typed (masked in the UI). Only meaningful when the category requires one.
@@ -74,8 +76,26 @@ export function useNewTicketForm() {
   const numPrice = Number(price) || 0
   const numPaid = Number(amountPaid) || 0
   const calculatedRemaining = Math.max(0, numPrice - numPaid)
-  // A partial payment is always a debt (the backend enforces the same rule)
-  const effectivePaymentType: PaymentType = calculatedRemaining > 0 ? 'credit' : paymentType
+  // Shown, not chosen: the backend derives the same type from the remaining amount
+  const effectivePaymentType: PaymentType = paymentTypeFor(calculatedRemaining)
+
+  // Unsaved changes: what was entered differs from an empty form or, after a save, from what was saved (the form
+  // keeps the saved values on screen until "another ticket"). The category and technician are choices kept from one
+  // ticket to the next, not entered data, so they do not count.
+  const enteredSignature = JSON.stringify([
+    customerName.trim(),
+    customerPhone.trim(),
+    customerNotes.trim(),
+    brand.trim(),
+    model.trim(),
+    shortLabel.trim(),
+    price.trim(),
+    amountPaid.trim(),
+    partsCost.trim(),
+    [...selectedAccessoryIds].sort((a, b) => a - b)
+  ])
+  const [savedSignature, setSavedSignature] = useState<string | null>(null)
+  const isDirty = enteredSignature !== (savedSignature ?? EMPTY_SIGNATURE)
 
   const toggleAccessory = (id: number): void => {
     setSelectedAccessoryIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]))
@@ -86,11 +106,11 @@ export function useNewTicketForm() {
     device.resetDevice()
     setPrice('')
     setAmountPaid('')
-    setPaymentType('cash')
     setSelectedAccessoryIds([])
     setPartsCost('')
     setConfirmLossOpen(false)
     setSuccessInfo(null)
+    setSavedSignature(null)
     setErrorMessage(null)
     setShowErrors(false)
   }
@@ -150,7 +170,6 @@ export function useNewTicketForm() {
       ticket: {
         repair_category_id: Number(categoryId),
         price: numPrice,
-        payment_type: effectivePaymentType,
         amount_paid: numPaid,
         technician_id: technicianId,
         // empty = not entered yet (NULL), never 0: the ticket stays flagged until the cost is added
@@ -162,6 +181,7 @@ export function useNewTicketForm() {
     try {
       const res = await window.api.createTicket(dto)
       if (res.success && res.data) {
+        setSavedSignature(enteredSignature)
         setSuccessInfo({
           barcode: res.data.barcode,
           ticketId: res.data.ticketId,
@@ -190,6 +210,7 @@ export function useNewTicketForm() {
 
   return {
     metadata,
+    isDirty,
     loading,
     successInfo,
     errorMessage,
@@ -210,7 +231,6 @@ export function useNewTicketForm() {
     setPrice,
     amountPaid,
     setAmountPaid,
-    setPaymentType,
     numPrice,
     numPaid,
     calculatedRemaining,

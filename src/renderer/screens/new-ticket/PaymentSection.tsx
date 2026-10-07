@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Banknote, Coins, Wallet } from 'lucide-react'
 import { useI18n } from '../../lib/i18n'
-import { cn, formatAmount } from '../../lib/utils'
+import { cn, formatAmount, formatCurrency } from '../../lib/utils'
 import { Input } from '../../components/ui/Input'
 import { AnimatedNumber } from '../../components/AnimatedNumber'
 import { Field } from './Field'
@@ -15,54 +15,48 @@ export type PaymentSectionForm = Pick<
   | 'amountPaid'
   | 'setAmountPaid'
   | 'effectivePaymentType'
-  | 'setPaymentType'
   | 'numPrice'
   | 'numPaid'
   | 'calculatedRemaining'
 >
 
-interface PaymentOptionProps {
-  value: 'cash' | 'credit'
-  checked: boolean
-  onSelect: () => void
-  icon: React.ReactNode
-  label: string
-  hint: string
-}
-
-/** Payment type as a radio card: a real (visually hidden) radio input drives it. */
-function PaymentOption({ value, checked, onSelect, icon, label, hint }: PaymentOptionProps): React.JSX.Element {
+/**
+ * The payment type as the form computes it (shared/payment.ts): nothing left to pay = cash, a remaining balance =
+ * credit. It is shown, never chosen, so it can never contradict the amounts.
+ */
+function PaymentTypeDisplay({ type, remaining }: { type: 'cash' | 'credit'; remaining: number }): React.JSX.Element {
+  const { t } = useI18n()
+  const text = t.ui.newTicket.payment
+  const isCash = type === 'cash'
   return (
-    <label className="relative block cursor-pointer">
-      <input
-        type="radio"
-        name="paymentType"
-        value={value}
-        checked={checked}
-        onChange={onSelect}
-        className="peer absolute inset-0 z-10 m-0 h-full w-full cursor-pointer opacity-0"
-      />
+    <div
+      role="status"
+      data-testid="payment-type"
+      data-value={type}
+      className={cn(
+        'flex items-center gap-3 rounded-xl border-2 p-3 transition-colors',
+        isCash ? 'border-success/30 bg-success-soft' : 'border-warning/30 bg-warning-soft'
+      )}
+    >
       <div
         className={cn(
-          'flex items-center gap-3 rounded-xl border-2 border-border bg-card p-3 transition-colors hover:bg-accent/60',
-          'peer-checked:border-primary peer-checked:bg-primary/5',
-          'peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background'
+          'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg [&_svg]:h-4 [&_svg]:w-4',
+          isCash ? 'bg-success text-success-foreground' : 'bg-warning text-warning-foreground'
         )}
       >
-        <div
-          className={cn(
-            'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg [&_svg]:h-4 [&_svg]:w-4',
-            checked ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-          )}
-        >
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-foreground">{label}</p>
-          <p className="text-xs text-muted-foreground">{hint}</p>
-        </div>
+        {isCash ? <Banknote /> : <Coins />}
       </div>
-    </label>
+      <div className="min-w-0">
+        <p
+          className={cn('text-sm font-bold', isCash ? 'text-success-soft-foreground' : 'text-warning-soft-foreground')}
+        >
+          {isCash ? t.newTicket.paymentCash : t.newTicket.paymentCredit}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {isCash ? text.cashHint : text.creditHint.replace('{amount}', formatCurrency(remaining))}
+        </p>
+      </div>
+    </div>
   )
 }
 
@@ -118,25 +112,8 @@ export function PaymentSection({ form }: { form: PaymentSectionForm }): React.JS
         </div>
 
         <Field label={t.newTicket.paymentType}>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <PaymentOption
-              value="cash"
-              checked={form.effectivePaymentType === 'cash'}
-              onSelect={() => form.setPaymentType('cash')}
-              icon={<Banknote />}
-              label={t.newTicket.paymentCash}
-              hint={text.payment.cashHint}
-            />
-            <PaymentOption
-              value="credit"
-              checked={form.effectivePaymentType === 'credit'}
-              onSelect={() => form.setPaymentType('credit')}
-              icon={<Coins />}
-              label={t.newTicket.paymentCredit}
-              hint={text.payment.creditHint}
-            />
-          </div>
-          {hasDebt && <p className="text-xs font-medium text-warning-soft-foreground">{text.payment.creditForced}</p>}
+          <PaymentTypeDisplay type={form.effectivePaymentType} remaining={form.calculatedRemaining} />
+          <p className="text-xs text-muted-foreground">{text.payment.automatic}</p>
         </Field>
       </div>
 

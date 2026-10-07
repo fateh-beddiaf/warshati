@@ -23,6 +23,8 @@ import { BackupWarningBanner } from './components/BackupWarningBanner'
 import { toast } from './components/ui/Sonner'
 import { healthWarns, type BackupStatusEvent } from '../shared/auto-backup'
 import type { SettingsTabId } from './screens/settings/types'
+import { UnsavedChangesProvider, useUnsavedChangesRegistry } from './lib/unsaved-changes'
+import { UnsavedScanDialog } from './components/UnsavedScanDialog'
 
 function AppContent(): React.JSX.Element {
   const { t } = useI18n()
@@ -71,15 +73,33 @@ function AppContent(): React.JSX.Element {
     setActiveTab('settings')
   }
 
-  // Fetch and open ticket by barcode
+  // A scanned ticket waiting for "discard your unsaved changes?" (New Ticket / edit form). Kept after closing so the
+  // dialog does not lose its text while it animates out.
+  const unsavedChanges = useUnsavedChangesRegistry()
+  const [pendingScan, setPendingScan] = useState<{ details: TicketFullDetails; seq: number } | null>(null)
+  const [isPendingScanOpen, setIsPendingScanOpen] = useState(false)
+
+  const openScannedTicket = useCallback((details: TicketFullDetails): void => {
+    setSelectedTicketDetails(details)
+    setIsTicketDetailsOpen(true)
+    setScanAlert(null)
+  }, [])
+
+  // Fetch and open ticket by barcode (a scan, or the header search). A form with unsaved changes is never dropped
+  // silently: the user is asked first, and Cancel leaves it exactly as it was.
   const handleBarcodeScanned = useCallback(
     async (scannedBarcode: string): Promise<void> => {
       try {
         const res = await window.api.getTicketByBarcode(scannedBarcode)
         if (res.success && res.data) {
-          setSelectedTicketDetails(res.data)
-          setIsTicketDetailsOpen(true)
-          setScanAlert(null)
+          if (unsavedChanges.hasUnsavedChanges()) {
+            const details = res.data
+            setPendingScan((prev) => ({ details, seq: (prev?.seq ?? 0) + 1 }))
+            setIsPendingScanOpen(true)
+            setScanAlert(null)
+          } else {
+            openScannedTicket(res.data)
+          }
         } else if (!res.success && res.error) {
           setScanAlert(res.error)
           setTimeout(() => setScanAlert(null), 4000)
@@ -93,8 +113,16 @@ function AppContent(): React.JSX.Element {
         setTimeout(() => setScanAlert(null), 4000)
       }
     },
-    [t]
+    [t, unsavedChanges, openScannedTicket]
   )
+
+  const cancelPendingScan = (): void => setIsPendingScanOpen(false)
+  const discardAndOpenPendingScan = (): void => {
+    setIsPendingScanOpen(false)
+    if (!pendingScan) return
+    unsavedChanges.discardAll()
+    openScannedTicket(pendingScan.details)
+  }
 
   // The last code read by the scanner, shown in the header's scan box (seq: the same code scanned twice still flashes)
   const [scannedCode, setScannedCode] = useState<{ value: string; seq: number } | null>(null)
@@ -249,6 +277,15 @@ function AppContent(): React.JSX.Element {
       <ErrorBoundary scope="print-preview" resetKey={printModalData?.barcode}>
         <PrintPreviewModal isOpen={isPrintModalOpen} onClose={() => setIsPrintModalOpen(false)} data={printModalData} />
       </ErrorBoundary>
+
+      {/* A label scanned while a form holds unsaved changes */}
+      <UnsavedScanDialog
+        key={pendingScan?.seq ?? 0}
+        open={isPendingScanOpen}
+        code={pendingScan?.details.ticket.barcode_code ?? ''}
+        onCancel={cancelPendingScan}
+        onDiscard={discardAndOpenPendingScan}
+      />
     </Layout>
   )
 }
@@ -260,7 +297,7 @@ function Providers({ children }: { children: React.ReactNode }): React.JSX.Eleme
       {/* reducedMotion="user": Framer transform animations are skipped when the OS asks for less motion */}
       <MotionConfig reducedMotion="user">
         <TooltipProvider delayDuration={300}>
-          {children}
+          <UnsavedChangesProvider>{children}</UnsavedChangesProvider>
           <Toaster />
         </TooltipProvider>
       </MotionConfig>

@@ -8,6 +8,7 @@ import type {
 } from '../../shared/types'
 import { findOrCreateCustomer } from './customers'
 import { calculateRemaining, generateUniqueTicketCode } from '../helpers'
+import { paymentTypeFor } from '../../shared/payment'
 import { generateShortLabel } from '../../shared/device-utils'
 import { calculateProfitSplit, roundMoney } from '../../shared/profit'
 import { getOverdueThresholdDays } from './settings'
@@ -103,8 +104,8 @@ export function createTicket(db: Database.Database, dto: CreateTicketDTO): { tic
     // 1. Validate financial values before any data is persisted.
     const { price, amountPaid } = validatePaymentAmounts(dto.ticket.price, dto.ticket.amount_paid)
     const amountRemaining = calculateRemaining(price, amountPaid)
-    // A partial payment is a debt, whatever the form said (same rule as updateTicketStatus)
-    const paymentType = amountRemaining > 0 ? 'credit' : dto.ticket.payment_type
+    // The type follows the remaining amount (shared/payment.ts); whatever the caller sent is not used
+    const paymentType = paymentTypeFor(amountRemaining)
     // Optional: leaving it empty is allowed (the UI warns); a given value must be a valid amount
     const partsCost = normalizePartsCost(dto.ticket.parts_cost)
     // Snapshot of the category switch at this moment (see schema: parts_cost_required)
@@ -227,7 +228,7 @@ export function recordPayment(db: Database.Database, ticketId: number, amount: n
 
     const newPaid = ticket.amount_paid + value
     const newRemaining = calculateRemaining(ticket.price, newPaid)
-    const newType = newRemaining === 0 ? 'cash' : 'credit'
+    const newType = paymentTypeFor(newRemaining)
 
     db.prepare(`UPDATE Ticket SET amount_paid = ?, amount_remaining = ?, payment_type = ? WHERE id = ?`).run(
       newPaid,
@@ -371,25 +372,18 @@ export function updateTicketStatus(
 
     // Financial updates handling
     let newAmountPaid = currentTicket.amount_paid
-    let newPaymentType = currentTicket.payment_type
-
-    if (dto.paymentUpdate) {
-      if (dto.paymentUpdate.amount_paid !== undefined) {
-        newAmountPaid = Number(dto.paymentUpdate.amount_paid)
-      }
-      if (dto.paymentUpdate.payment_type) {
-        newPaymentType = dto.paymentUpdate.payment_type
-      }
+    if (dto.paymentUpdate?.amount_paid !== undefined) {
+      newAmountPaid = Number(dto.paymentUpdate.amount_paid)
     }
 
     const { amountPaid: validatedAmountPaid } = validatePaymentAmounts(currentTicket.price, newAmountPaid)
     newAmountPaid = validatedAmountPaid
     const newAmountRemaining = calculateRemaining(currentTicket.price, newAmountPaid)
 
-    // If remaining balance > 0 and no explicit payment_type was provided, ensure it is classified as credit (دين)
-    if (newAmountRemaining > 0 && (!dto.paymentUpdate || !dto.paymentUpdate.payment_type)) {
-      newPaymentType = 'credit'
-    }
+    // The delivery (and any payment sent with a status change) writes the type that follows the remaining amount
+    // (shared/payment.ts). Other moves (ready <-> in progress, back from delivered) keep the stored type.
+    const newPaymentType =
+      newStatus === 'delivered' || dto.paymentUpdate ? paymentTypeFor(newAmountRemaining) : currentTicket.payment_type
 
     // Calculate profit shares when transitioning to delivered (on the NET profit: price - parts cost)
     let myShare: number | null = null

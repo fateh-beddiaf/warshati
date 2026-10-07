@@ -110,18 +110,23 @@ test('full catalog gives unique option keys and no React warnings', async () => 
   expect(problems, 'console warnings/errors').toEqual([])
 })
 
-test('partial payment switches the payment type to credit', async () => {
+test('the payment type follows the amounts and cannot be chosen by hand', async () => {
   await page.getByTestId('nav-tickets').click()
   await page.getByTestId('filter-all').waitFor()
   await page.getByTestId('nav-new-ticket').click()
   const numbers = page.locator('[data-testid="new-ticket-form"] input[type="number"]')
+  const type = page.getByTestId('payment-type')
   await numbers.nth(0).fill('5000')
   await numbers.nth(1).fill('2000')
-  await expect(page.locator('input[name="paymentType"][value="credit"]')).toBeChecked()
+  await expect(type).toHaveAttribute('data-value', 'credit')
+  await expect(type).toContainText('3.000')
   await numbers.nth(1).fill('5000')
-  await expect(page.locator('input[name="paymentType"][value="cash"]')).toBeChecked()
-  await page.locator('input[name="paymentType"][value="credit"]').check()
-  await expect(page.locator('input[name="paymentType"][value="credit"]')).toBeChecked()
+  await expect(type).toHaveAttribute('data-value', 'cash')
+  // nothing to click: no radio, no button in the payment type
+  await expect(page.locator('input[name="paymentType"]')).toHaveCount(0)
+  await expect(type.locator('input, button')).toHaveCount(0)
+  await numbers.nth(0).fill('')
+  await numbers.nth(1).fill('')
 })
 
 test('autocomplete: list is portalled out of the form, caps at 100 with a narrowing hint', async () => {

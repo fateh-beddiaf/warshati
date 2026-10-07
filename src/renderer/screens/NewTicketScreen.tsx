@@ -13,6 +13,7 @@ import { RepairSection } from './new-ticket/RepairSection'
 import { PaymentSection } from './new-ticket/PaymentSection'
 import { SuccessBanner, ErrorBanner } from './new-ticket/SuccessBanner'
 import { LossConfirmDialog } from '../components/parts-cost/LossConfirmDialog'
+import { useUnsavedChanges } from '../lib/unsaved-changes'
 
 interface NewTicketScreenProps {
   onTicketCreated: (ticketId: number) => void
@@ -32,6 +33,8 @@ export function NewTicketScreen({ onTicketCreated }: NewTicketScreenProps): Reac
   const { t } = useI18n()
   const form = useNewTicketForm()
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false)
+  // A scanned label asks before opening another ticket while this form holds unsaved changes (App.tsx)
+  useUnsavedChanges(form.isDirty, form.resetForm)
 
   return (
     <div className="space-y-6 pb-12">

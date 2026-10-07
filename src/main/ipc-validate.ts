@@ -94,7 +94,7 @@ export function assertCreateTicketDTO(dto: unknown): asserts dto is CreateTicket
   assertObject(ticket, 'ticket')
   assertId(ticket.repair_category_id, 'ticket.repair_category_id')
   assertNumber(ticket.price, 'ticket.price')
-  assertOneOf(ticket.payment_type, 'ticket.payment_type', PAYMENT_TYPES)
+  if (ticket.payment_type !== undefined) assertOneOf(ticket.payment_type, 'ticket.payment_type', PAYMENT_TYPES)
   assertNumber(ticket.amount_paid, 'ticket.amount_paid')
   assertId(ticket.technician_id, 'ticket.technician_id')
   if (ticket.parts_cost !== undefined) assertNullableNumber(ticket.parts_cost, 'ticket.parts_cost')
@@ -139,7 +139,6 @@ export function assertUpdateTicketPatch(patch: unknown): asserts patch is Update
     'technician_id',
     'price',
     'amount_paid',
-    'payment_type',
     'parts_cost',
     'confirm_delivered',
     'confirm_paid_lowered'
@@ -177,7 +176,6 @@ export function assertUpdateTicketPatch(patch: unknown): asserts patch is Update
   assertOptionalId(patch.technician_id, 'patch.technician_id')
   assertOptionalNumber(patch.price, 'patch.price')
   assertOptionalNumber(patch.amount_paid, 'patch.amount_paid')
-  if (patch.payment_type !== undefined) assertOneOf(patch.payment_type, 'patch.payment_type', PAYMENT_TYPES)
   if (patch.parts_cost !== undefined) assertNullableNumber(patch.parts_cost, 'patch.parts_cost')
   assertOptionalBoolean(patch.confirm_delivered, 'patch.confirm_delivered')
   assertOptionalBoolean(patch.confirm_paid_lowered, 'patch.confirm_paid_lowered')

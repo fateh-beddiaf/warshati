@@ -7,7 +7,11 @@ export const layoutAr = {
   dismissAlert: 'إغلاق التنبيه',
   backupStale: 'لم تُحفظ نسخة احتياطية منذ أكثر من 3 أيام. بياناتك غير محمية إن تلف الجهاز.',
   backupUnavailable: 'مجلد النسخ الاحتياطي غير متاح ({dir}): لا تُحفظ نسخ حالياً. صِل الفلاشة أو اختر مجلداً آخر.',
-  backupOpenSettings: 'إعدادات النسخ'
+  backupOpenSettings: 'إعدادات النسخ',
+  unsavedScanTitle: 'تغييرات غير محفوظة',
+  unsavedScanBody: 'لديك تغييرات غير محفوظة. هل تريد تجاهلها وفتح التذكرة {code}؟',
+  unsavedScanKeep: 'إلغاء',
+  unsavedScanDiscard: 'تجاهل التغييرات وفتح التذكرة'
 }
 
 export const layoutEn: typeof layoutAr = {
@@ -18,5 +22,9 @@ export const layoutEn: typeof layoutAr = {
   backupStale: 'No backup was saved for more than 3 days. Your data is not protected if this computer fails.',
   backupUnavailable:
     'The backup folder is not available ({dir}): no backups are being saved. Connect the USB drive or choose another folder.',
-  backupOpenSettings: 'Backup settings'
+  backupOpenSettings: 'Backup settings',
+  unsavedScanTitle: 'Unsaved changes',
+  unsavedScanBody: 'You have unsaved changes. Discard them and open ticket {code}?',
+  unsavedScanKeep: 'Cancel',
+  unsavedScanDiscard: 'Discard and open the ticket'
 }

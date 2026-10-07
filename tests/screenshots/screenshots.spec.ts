@@ -4,6 +4,7 @@ import { spawnSync } from 'child_process'
 import { mkdirSync, mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join, resolve } from 'path'
+import { scanCode } from '../e2e/helpers'
 
 // Visual review: every main screen, every settings tab, the details / delivery / print dialogs and the
 // empty states, in 4 combinations (light|dark x ar|en), on a realistic demo database.
@@ -352,6 +353,15 @@ ${seeded.stderr}`)
         await edit.getByTestId('edit-customer-reassign').click()
         await shot(page, 'edit-form-reassign', theme, lang, 400)
         await edit.getByTestId('edit-customer-cancel-reassign').click()
+
+        // A label scanned while the form holds unsaved changes: asked first, Cancel keeps the form
+        await edit.getByTestId('payment-price').fill(String(inProgress!.price + 500))
+        await scanCode(page, deliveredWithCost!.barcode_code)
+        await page.getByTestId('unsaved-scan-dialog').waitFor()
+        await shot(page, 'unsaved-scan', theme, lang, 400)
+        await page.getByTestId('unsaved-scan-cancel').click()
+        await page.getByTestId('unsaved-scan-dialog').waitFor({ state: 'hidden' })
+        await edit.getByTestId('payment-price').fill(String(inProgress!.price))
 
         // A printed field changed: the reprint prompt
         await edit.getByTestId('edit-customer-name').fill('Karim B.')

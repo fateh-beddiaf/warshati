@@ -359,11 +359,11 @@ console.log('\n--- 7. Payments ---')
   )
 
   // Price lowered to the paid amount + both at once
-  edit(id, { price: 2500, amount_paid: 2500, payment_type: 'cash' })
-  eq([ticketRow(id).amount_remaining, ticketRow(id).payment_type], [0, 'cash'], 'fully paid with cash chosen')
-  // A partial payment is a debt whatever the requested type
-  edit(id, { price: 3000, payment_type: 'cash' })
-  eq([ticketRow(id).amount_remaining, ticketRow(id).payment_type], [500, 'credit'], 'partial -> credit forced')
+  edit(id, { price: 2500, amount_paid: 2500 })
+  eq([ticketRow(id).amount_remaining, ticketRow(id).payment_type], [0, 'cash'], 'fully paid -> cash')
+  // A remaining balance is a debt
+  edit(id, { price: 3000 })
+  eq([ticketRow(id).amount_remaining, ticketRow(id).payment_type], [500, 'credit'], 'partial -> credit')
   eq(
     logs(id).slice(-2),
     [
@@ -391,6 +391,8 @@ console.log('\n--- 8. Forbidden / unknown fields ---')
     { technician: 'X' },
     { id: 99 },
     { price: 1500, status: 'ready' },
+    { payment_type: 'cash' },
+    { price: 1500, payment_type: 'credit' },
     { customer: { id: 2, name: 'A', phone: '0555' } },
     { device: { brand: 'A', model: 'B', ticket_id: 3 } },
     { reassign_customer: { name: 'A', phone: '0555', barcode_code: 'x' } }
@@ -470,7 +472,37 @@ console.log('\n--- 10. Customer record vs attaching to another customer ---')
     ],
     'customer edit logged on the edited ticket'
   )
-  eq(logs(t2), [], 'the other ticket has no edit of its own')
+  eq(logs(t2), logs(t1), 'the other ticket of this customer logs the same customer lines')
+  const stamps = all(
+    `SELECT ticket_id, COUNT(*) AS n, MIN(timestamp) = MAX(timestamp) AS one_stamp FROM TicketEditLog
+     WHERE ticket_id IN (?, ?) GROUP BY ticket_id ORDER BY ticket_id`,
+    t1,
+    t2
+  )
+  eq(
+    stamps,
+    [
+      { ticket_id: t1, n: 3, one_stamp: 1 },
+      { ticket_id: t2, n: 3, one_stamp: 1 }
+    ],
+    'one entry per ticket'
+  )
+  eq(
+    one(`SELECT COUNT(DISTINCT timestamp) AS n FROM TicketEditLog WHERE ticket_id IN (?, ?)`, t1, t2).n,
+    1,
+    'both tickets share the timestamp of the edit'
+  )
+  // Editing from the OTHER ticket logs on both too; a ticket of another customer is untouched
+  const other = mk({ price: 1000 })
+  edit(t2, { customer: { name: 'Ali Ben Test', phone: '0661111112', notes: 'VIP+' } })
+  eq(logs(t1).slice(-1), [{ field: 'customer_notes', old_value: 'VIP', new_value: 'VIP+' }], 'edit from t2 shows on t1')
+  eq(logs(t2).slice(-1), logs(t1).slice(-1), 'and on t2')
+  eq(logs(other), [], "another customer's ticket logs nothing")
+  // An edit of a ticket's own fields (not the customer) stays on that ticket
+  const t2Count = logs(t2).length
+  edit(t1, { price: 1200 })
+  eq(logs(t2).length, t2Count, 'a price edit of one ticket is not copied to the others')
+  edit(t1, { customer: { name: 'Ali Ben Test', phone: '0661111112', notes: 'VIP' } })
   edit(t1, { customer: { name: 'Ali Ben Test', phone: '0661111112' } })
   eq(getTicketById(db, t1)!.customer.notes, 'VIP', 'notes omitted = kept')
   edit(t1, { customer: { name: 'Ali Ben Test', phone: '0661111112', notes: '' } })
@@ -576,7 +608,7 @@ console.log('\n--- 13. IPC guard: strict patch shape ---')
   eq(ok({ price: '5000' }), false, 'a string price refused')
   eq(ok({ price: Number.NaN }), false, 'NaN refused')
   eq(ok({ accessory_ids: [1, 0] }), false, 'a bad accessory id refused')
-  eq(ok({ payment_type: 'card' }), false, 'unknown payment type refused')
+  eq(ok({ payment_type: 'cash' }), false, 'payment type refused (it follows the remaining amount)')
   eq(ok({ confirm_delivered: 'yes' }), false, 'a non-boolean confirmation refused')
   eq(ok(null), false, 'null refused')
   eq(ok([]), false, 'an array refused')
