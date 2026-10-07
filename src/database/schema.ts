@@ -402,7 +402,7 @@ function migratePartsCost(db: Database.Database, ticketColumns: string[], catego
 
 /**
  * Ticket.parts_cost_required is a snapshot of the category's "requires a parts cost" switch taken
- * when the ticket is CREATED. Everything about "missing cost / provisional" reads this snapshot, so turning
+ * when the ticket is CREATED (and taken again when the ticket is moved to another category by an edit). Everything about "missing cost / provisional" reads this snapshot, so turning
  * the switch on later never turns old tickets into "missing cost".
  * Existing tickets get 0 (even if their category requires a cost now), except tickets that already HAVE a
  * cost: those get 1 (harmless, and it keeps them consistent). Runs only when the column is missing.

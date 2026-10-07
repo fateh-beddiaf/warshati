@@ -27,7 +27,10 @@ export interface Ticket {
   parts_cost?: number | null
   /** My percentage frozen at delivery (non-partner tickets); NULL before delivery / for the partner */
   split_percentage_applied?: number | null
-  /** Snapshot (taken at creation) of the category's "requires a parts cost" switch: 1 = this ticket needs a cost */
+  /**
+   * Snapshot of the category's "requires a parts cost" switch, taken at creation (and again when the ticket's
+   * category is edited): 1 = this ticket needs a cost
+   */
   parts_cost_required?: number | boolean
   my_share?: number | null
   partner_share?: number | null

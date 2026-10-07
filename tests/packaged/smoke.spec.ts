@@ -122,7 +122,7 @@ test('the window shows the UI from app://, with its fonts, styles and no CSP vio
   expect(problems).toEqual([])
 })
 
-test('the installed app starts, creates its database and saves a ticket', async () => {
+test('the installed app starts, creates its database, saves a ticket and edits it', async () => {
   // better-sqlite3 loaded from app.asar.unpacked, schema and seed applied in the scratch folder
   expect(existsSync(join(dataDir, 'data', 'warshati.db'))).toBe(true)
   const barcode = await createTicket(page, {
@@ -137,6 +137,16 @@ test('the installed app starts, creates its database and saves a ticket', async 
     success: true,
     data: { ticket: { barcode_code: barcode }, customer: { name: 'Packaged Smoke' } }
   })
+  // Editing it: the TicketEditLog migration ran and the edit is recorded
+  const edited = await page.evaluate(
+    async (id) => window.api.updateTicket(id, { price: 3500 }),
+    (found as { data: { ticket: { id: number } } }).data.ticket.id
+  )
+  expect(edited.success).toBe(true)
+  expect(edited.data?.changedFields).toEqual(['price'])
+  expect(edited.data?.details.editLogs.map((row) => [row.field, row.old_value, row.new_value])).toEqual([
+    ['price', '3000', '3500']
+  ])
   expect(problems).toEqual([])
 })
 
