@@ -3,7 +3,7 @@ import type { ElectronApplication, Page } from '@playwright/test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { launchElectron } from './helpers'
+import { launchElectron, resetUi } from './helpers'
 
 // Reports screen: local-date defaults for the custom range, visible error when the report
 // cannot be loaded (instead of stale numbers), and the ledger only lists delivered tickets.
@@ -34,6 +34,11 @@ test.beforeAll(async () => {
   page = await app.firstWindow()
   page.on('pageerror', (err) => problems.push(`pageerror: ${err.message}`))
   await page.waitForSelector('[data-testid="nav-tickets"]')
+})
+
+// One app for the file: every test starts from the app's starting state, whatever the previous one left behind
+test.beforeEach(async () => {
+  await resetUi(page)
 })
 
 test.afterAll(async () => {

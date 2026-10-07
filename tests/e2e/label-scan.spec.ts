@@ -1,6 +1,14 @@
 import { test, expect } from '@playwright/test'
 import { writeFileSync } from 'fs'
-import { launchApp, shutdownApp, createTicket, openDetailsByBarcode, closeDetails, type Launched } from './helpers'
+import {
+  launchApp,
+  shutdownApp,
+  createTicket,
+  openDetailsByBarcode,
+  closeDetails,
+  resetUi,
+  type Launched
+} from './helpers'
 import { measureBars, readCode128 } from './barcode-decode'
 import { generateTicketCode, isTicketCode } from '../../src/shared/ticket-code'
 
@@ -136,6 +144,12 @@ test.beforeAll(async () => {
     { printerName: FAKE_PRINTER, dpi: DPI }
   )
 })
+
+// One app for the file: every test starts from the app's starting state, whatever the previous one left behind
+test.beforeEach(async () => {
+  await resetUi(l.page)
+})
+
 test.afterAll(async () => {
   await shutdownApp(l)
 })

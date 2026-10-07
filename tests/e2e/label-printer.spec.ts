@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test'
-import { launchApp, shutdownApp, createTicket, openDetailsByBarcode, closeDetails, type Launched } from './helpers'
+import {
+  launchApp,
+  shutdownApp,
+  createTicket,
+  openDetailsByBarcode,
+  closeDetails,
+  resetUi,
+  type Launched
+} from './helpers'
 
 // The label printer is remembered: after a label prints successfully on a printer, the next print dialog
 // preselects it (the OS default is often the receipt printer); a failed print changes nothing; a printer that is
@@ -50,6 +58,12 @@ test.beforeAll(async () => {
     type: 'cash'
   })
 })
+
+// One app for the file: every test starts from the app's starting state, whatever the previous one left behind
+test.beforeEach(async () => {
+  await resetUi(l.page)
+})
+
 test.afterAll(async () => {
   await shutdownApp(l)
 })

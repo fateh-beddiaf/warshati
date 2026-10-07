@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test'
-import { launchApp, shutdownApp, createTicket, openDetailsByBarcode, closeDetails, type Launched } from './helpers'
+import {
+  launchApp,
+  shutdownApp,
+  createTicket,
+  openDetailsByBarcode,
+  closeDetails,
+  resetUi,
+  type Launched
+} from './helpers'
 
 // What actually reaches the printer: the real `printer:printLabel` handler and the real hidden print window run,
 // only `webContents.print` itself is replaced (in the main process) so nothing is sent to a device.
@@ -60,6 +68,12 @@ test.beforeAll(async () => {
     type: 'credit'
   })
 })
+
+// One app for the file: every test starts from the app's starting state, whatever the previous one left behind
+test.beforeEach(async () => {
+  await resetUi(l.page)
+})
+
 test.afterAll(async () => {
   await shutdownApp(l)
 })

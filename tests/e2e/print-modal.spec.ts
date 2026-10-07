@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test'
-import { launchApp, shutdownApp, createTicket, openDetailsByBarcode, closeDetails, type Launched } from './helpers'
+import {
+  launchApp,
+  shutdownApp,
+  createTicket,
+  openDetailsByBarcode,
+  closeDetails,
+  resetUi,
+  type Launched
+} from './helpers'
 
 // Print preview modal: never a stale barcode, printing disabled when the barcode cannot be
 // generated, print SVG independent of the zoom toggle, and Close usable while a job hangs.
@@ -18,6 +26,12 @@ test.beforeAll(async () => {
   barcodeB = await createTicket(l.page, { name: 'Beta', phone: '0555000002', price: 3000, paid: 3000, type: 'cash' })
   expect(barcodeA).not.toBe(barcodeB)
 })
+
+// One app for the file: every test starts from the app's starting state, whatever the previous one left behind
+test.beforeEach(async () => {
+  await resetUi(l.page)
+})
+
 test.afterAll(async () => {
   await shutdownApp(l)
 })

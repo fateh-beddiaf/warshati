@@ -3,7 +3,7 @@ import type { ElectronApplication, Page } from '@playwright/test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { launchElectron } from './helpers'
+import { launchElectron, resetUi } from './helpers'
 
 // Tickets list screen: debounced search, one-shot overdue-threshold fetch, and a threshold
 // input that is never clobbered by a refetch. Runs on the built app with a temp data dir.
@@ -94,6 +94,11 @@ test.beforeAll(async () => {
     )
     expect(res.success).toBe(true)
   }
+})
+
+// One app for the file: every test starts from the app's starting state, whatever the previous one left behind
+test.beforeEach(async () => {
+  await resetUi(page)
 })
 
 test.afterAll(async () => {

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { launchApp, shutdownApp, type Launched } from './helpers'
+import { launchApp, shutdownApp, resetUi, type Launched } from './helpers'
 
 // Rapid tab switching: whatever the click sequence, the screen shown is the active tab's, alone, within a second.
 // With real mouse clicks a click could be lost: the sidebar's active "pill" glides to the newly active item over
@@ -12,6 +12,12 @@ let l: Launched
 test.beforeAll(async () => {
   l = await launchApp('screen-switch')
 })
+
+// One app for the file: every test starts from the app's starting state, whatever the previous one left behind
+test.beforeEach(async () => {
+  await resetUi(l.page)
+})
+
 test.afterAll(async () => {
   await shutdownApp(l)
 })
