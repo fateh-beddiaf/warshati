@@ -500,7 +500,7 @@ console.log('\n--- 10. Customer record vs attaching to another customer ---')
     'reattachment logged as name · phone'
   )
 
-  // An id whose name no longer matches the form = someone else: a NEW customer (T002 rule), Sara untouched
+  // An id whose name no longer matches the form = someone else: a NEW customer (the New Ticket matching rule), Sara untouched
   edit(t1, { reassign_customer: { id: saraId, name: 'Karim Test', phone: '0662222222' } })
   const karim = getTicketById(db, t1)!.customer
   eq([karim.name, karim.id !== saraId], ['Karim Test', true], 'mismatched id -> a new customer, never a rename')
