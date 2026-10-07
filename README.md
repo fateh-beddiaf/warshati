@@ -30,7 +30,8 @@
 - **تذاكر صيانة بباركود:** الزبون، الجهاز (ماركة وموديل باقتراحات فورية)، العطل، السعر، والفني. الملصق 40×20mm فيه اسم الزبون والجهاز والرمز. عند عودة الزبون يكفي مسح الملصق لتفتح تذكرته من أي شاشة.
 - **الملحقات المستلمة** (غطاء، شريحة، شاحن...) تُسجَّل بنقرة، فلا خلاف عند التسليم.
 - **الحالة:** قيد الإصلاح ← جاهز ← تم التسليم، وكل تغيير مؤرَّخ. التذاكر الجاهزة المتأخرة تظهر بتنبيه.
-- **الدفع:** نقداً أو ديناً مع عربون، وتسديد الباقي لاحقاً.
+- **تعديل التذاكر مع سجل التعديلات:** ما أُدخل خطأً يُصحَّح بعد الإنشاء: الزبون، الجهاز، الملحقات، التصنيف، الفني، السعر، المدفوع، وتكلفة القطعة. كل تعديل يُسجَّل في سجل التذكرة (القيمة القديمة والجديدة ووقت التعديل)، وتعديل تذكرة مسلَّمة يُراجَع قبل الحفظ ويعيد حساب حصص أرباحها.
+- **الدفع:** نقداً أو ديناً مع عربون، وتسديد الباقي لاحقاً. نوع الدفع يُحدَّد تلقائياً: نقداً إن لم يبقَ شيء، وديناً إن بقي جزء.
 - **تصنيفات الأعطال ونسب الأرباح:** لكل تصنيف نسبة تقسيم بينك وبين الشريك، تُجمَّد عند التسليم.
 - **تكلفة القطع:** الربح الصافي = السعر − تكلفة القطعة. التكلفة **لا تظهر للزبون أبداً**: ليست على الملصق، ومخفية في الشاشة حتى تنقر لإظهارها.
 - **الشريك:** إن كان هو الفني فالربح الصافي كله له.
@@ -90,7 +91,8 @@ Warshati is a Windows desktop app for phone repair shops. It tracks every phone 
 - **Barcode repair tickets:** customer, device (brand and model with type-ahead), fault, price and technician. The 40×20 mm label carries the customer, the device and the code. When the customer comes back, scanning the label opens the ticket from any screen.
 - **Accessories left with the phone** (case, SIM, charger…) are recorded in one click, so there is no dispute at pick-up.
 - **Status:** in progress → ready → delivered, every change timestamped. Ready tickets left too long are flagged.
-- **Payment:** cash, or credit with a deposit and the rest paid later.
+- **Ticket editing with an edit history:** fix anything entered by mistake after creation: customer, device, accessories, category, technician, price, amount paid and parts cost. Every edit is recorded in the ticket's history (old value, new value and time), and editing a delivered ticket is reviewed before saving and recalculates its profit shares.
+- **Payment:** cash, or credit with a deposit and the rest paid later. The type is set automatically: cash when nothing is left to pay, credit when part of the amount remains.
 - **Repair categories and profit splits:** each category has its own split between you and your partner, frozen at delivery.
 - **Parts cost:** net profit = price − parts cost. The cost is **never shown to the customer**: it is not on the label, and the app hides it until you click to show it.
 - **Partner:** when the partner did the repair, the whole net profit is theirs.
@@ -105,6 +107,9 @@ Warshati is a Windows desktop app for phone repair shops. It tracks every phone 
 <p align="center">
   <img src="docs/screenshots/categories-dark-en.png" width="49%" alt="Repair categories and profit splits">
   <img src="docs/screenshots/label-preview-light-en.png" width="40%" alt="40x20 mm label preview">
+</p>
+<p align="center">
+  <img src="docs/screenshots/edit-history-light-en.png" width="49%" alt="Ticket history with an edit">
 </p>
 
 ## License: free for noncommercial use
