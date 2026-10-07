@@ -8,6 +8,7 @@ import { detailsAr, detailsEn } from './locales/details'
 import { reportsAr, reportsEn } from './locales/reports'
 import { settingsAr, settingsEn } from './locales/settings'
 import { partsCostAr, partsCostEn } from './locales/partsCost'
+import { editTicketAr, editTicketEn } from './locales/editTicket'
 
 export type Language = 'ar' | 'en'
 
@@ -20,7 +21,8 @@ export const ar = {
     details: detailsAr,
     reports: reportsAr,
     settings: settingsAr,
-    partsCost: partsCostAr
+    partsCost: partsCostAr,
+    editTicket: editTicketAr
   },
   common: {
     save: 'حفظ',
@@ -407,7 +409,8 @@ export const en: typeof ar = {
     details: detailsEn,
     reports: reportsEn,
     settings: settingsEn,
-    partsCost: partsCostEn
+    partsCost: partsCostEn,
+    editTicket: editTicketEn
   },
   common: {
     save: 'Save',
