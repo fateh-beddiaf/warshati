@@ -1,5 +1,7 @@
 name: CI
 
+# Light checks on every push and pull request to main. The end-to-end suite is slow on the hosted runner: it runs on
+# releases (release.yml) and on demand (e2e.yml: Actions > E2E > Run workflow).
 on:
   push:
     branches: [main]
@@ -15,9 +17,8 @@ concurrency:
 
 jobs:
   verify:
-    # The app targets Windows; Electron windows open on the Windows runner without xvfb
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
@@ -26,6 +27,7 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
+      # The unit tests run in Electron's bundled Node (scripts/run-tests.cjs), so npm ci still downloads Electron
       - name: Cache the Electron binary
         uses: actions/cache@v6
         with:
@@ -38,14 +40,3 @@ jobs:
 
       - name: Lint, format, typecheck, UI rules, unit tests
         run: npm run verify
-
-      - name: End-to-end tests (Electron + Playwright)
-        run: npm run test:e2e
-
-      - name: Upload Playwright traces on failure
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-traces
-          path: test-results/
-          retention-days: 7
