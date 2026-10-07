@@ -7,6 +7,7 @@ import { launchApp, shutdownApp, createTicket, openDetailsByBarcode, closeDetail
 //   - the same label page rendered with `printToPDF` at the same size is ONE page of 40x20mm
 // The printer list is stubbed with a name that does not exist, so even a broken stub cannot print on a real device.
 
+// One app for the file; each test counts only the print calls it made itself, so any test can run alone.
 test.describe.configure({ mode: 'serial' })
 
 const FAKE_PRINTER = 'Warshati Test Label Printer (does not exist)'
@@ -50,6 +51,14 @@ test.beforeAll(async () => {
       data: [{ name: printerName, displayName: printerName, description: '', isDefault: true }]
     }))
   }, FAKE_PRINTER)
+  // The ticket every test prints (created here so that any test can run alone)
+  barcode = await createTicket(l.page, {
+    name: 'Label Test',
+    phone: '0555123456',
+    price: 2500,
+    paid: 0,
+    type: 'credit'
+  })
 })
 test.afterAll(async () => {
   await shutdownApp(l)
@@ -73,17 +82,8 @@ function pdfPages(base64: string): { count: number; sizes: Array<{ width: number
   return { count: pageObjects.length, sizes }
 }
 
-test('setup: a ticket to print', async () => {
-  barcode = await createTicket(l.page, {
-    name: 'Label Test',
-    phone: '0555123456',
-    price: 2500,
-    paid: 0,
-    type: 'credit'
-  })
-})
-
 test('printing from the modal passes exactly the same print options', async () => {
+  const before = (await printCalls()).length
   await openDetailsByBarcode(l.page, barcode)
   await l.page.getByTestId('details-reprint').click()
   await l.page.getByTestId('print-submit').waitFor()
@@ -92,9 +92,9 @@ test('printing from the modal passes exactly the same print options', async () =
 
   await l.page.getByTestId('print-submit').click()
   await expect(l.page.getByTestId('print-status')).toHaveAttribute('role', 'status')
-  await expect.poll(async () => (await printCalls()).length).toBe(1)
+  await expect.poll(async () => (await printCalls()).length).toBe(before + 1)
 
-  const [call] = await printCalls()
+  const call = (await printCalls())[before]
   // Pinned before the Electron upgrade: pageSize in microns (40x20mm), no margins, silent to the chosen printer.
   expect(call.options).toEqual({
     silent: true,
@@ -110,6 +110,7 @@ test('printing from the modal passes exactly the same print options', async () =
 })
 
 test('without a chosen printer the system print dialog is used (not silent)', async () => {
+  const before = (await printCalls()).length
   const result = await l.page.evaluate(
     (code) =>
       window.api.printLabel({ barcode: code, customerName: 'Label Test', shortLabel: 'A54', printerName: undefined }),
@@ -117,8 +118,8 @@ test('without a chosen printer the system print dialog is used (not silent)', as
   )
   expect(result).toEqual({ success: true })
   const calls = await printCalls()
-  expect(calls).toHaveLength(2)
-  expect(calls[1].options).toEqual({
+  expect(calls).toHaveLength(before + 1)
+  expect(calls[before].options).toEqual({
     silent: false,
     printBackground: true,
     margins: { marginType: 'none' },
@@ -127,7 +128,16 @@ test('without a chosen printer the system print dialog is used (not silent)', as
 })
 
 test('the label renders as exactly one 40x20mm page', async () => {
-  for (const call of await printCalls()) {
+  const before = (await printCalls()).length
+  const result = await l.page.evaluate(
+    ([code, printerName]) =>
+      window.api.printLabel({ barcode: code, customerName: 'Label Test', shortLabel: 'A54', printerName }),
+    [barcode, FAKE_PRINTER]
+  )
+  expect(result).toEqual({ success: true })
+  const calls = await printCalls()
+  expect(calls.length).toBeGreaterThan(before)
+  for (const call of calls) {
     const { count, sizes } = pdfPages(call.pdfBase64)
     expect(count).toBe(1)
     expect(sizes.length).toBeGreaterThanOrEqual(1)

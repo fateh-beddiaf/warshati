@@ -15,6 +15,22 @@ import type {
 import { parseLocalDateString } from '../../src/shared/date-utils'
 import { calculateProfitSplit } from '../../src/shared/profit'
 
+// The report's shape at the time, before the parts cost added its cost fields
+type LegacyTechnicianReportSummary = Omit<TechnicianReportSummary, 'partsCost' | 'netProfit'>
+type LegacyCategoryReportSummary = Omit<CategoryReportSummary, 'partsCost' | 'netProfit'>
+export type LegacyFinancialReportResult = Omit<
+  FinancialReportResult,
+  | 'totalPartsCost'
+  | 'totalNetProfit'
+  | 'provisionalTicketsCount'
+  | 'lossTicketsCount'
+  | 'technicianBreakdown'
+  | 'categoryBreakdown'
+> & {
+  technicianBreakdown: LegacyTechnicianReportSummary[]
+  categoryBreakdown: LegacyCategoryReportSummary[]
+}
+
 function getDateRange(
   period: ReportFilterDTO['period'],
   customStart?: string,
@@ -59,7 +75,7 @@ function getDateRange(
 export function getFinancialReportLegacy(
   db: Database.Database,
   filter: ReportFilterDTO = { period: 'all_time' }
-): FinancialReportResult {
+): LegacyFinancialReportResult {
   const { startDate, endDate } = getDateRange(filter.period, filter.startDate, filter.endDate)
 
   // 1. Fetch tickets within date range (based on delivered timestamp in StatusLog, or created_at)
@@ -144,8 +160,8 @@ export function getFinancialReportLegacy(
   let inProgressTicketsCount = 0
   let readyTicketsCount = 0
 
-  const techMap = new Map<string, TechnicianReportSummary>()
-  const catMap = new Map<number, CategoryReportSummary>()
+  const techMap = new Map<string, LegacyTechnicianReportSummary>()
+  const catMap = new Map<number, LegacyCategoryReportSummary>()
 
   const enrichedTickets: TicketListItem[] = []
 

@@ -6,6 +6,8 @@ import { launchApp, shutdownApp, createTicket, openDetailsByBarcode, closeDetail
 // no longer installed falls back to the default; Settings > Preferences can choose or clear it.
 // Fake printers: the main window's getPrintersAsync is replaced (the real printer:getPrinters handler and settings
 // run) and webContents.print never reaches a device. None of the fake names exists on a real machine.
+// One app for the file; each test first sets the printers, the print outcome and the remembered printer it starts
+// from (given), so any test can run alone.
 
 test.describe.configure({ mode: 'serial' })
 
@@ -58,6 +60,20 @@ test.afterEach(() => {
 const savedLabelPrinter = (): Promise<string | undefined> =>
   l.page.evaluate(async () => (await window.api.getSetting('label_printer', '')).data)
 
+/** The state a test starts from: the installed (fake) printers, whether printing succeeds, the remembered printer. */
+async function given(o: { printers: string[]; printOk: boolean; remembered: string }): Promise<void> {
+  await l.app.evaluate(
+    (_electron, { printers, printOk }) => {
+      const g = globalThis as unknown as Fakes
+      g.__fakePrinters = printers.map((name) => ({ name, displayName: name, description: '', options: {} }))
+      g.__printOk = printOk
+    },
+    { printers: o.printers, printOk: o.printOk }
+  )
+  const res = await l.page.evaluate((name) => window.api.setSetting('label_printer', name), o.remembered)
+  expect(res.success).toBe(true)
+}
+
 async function openPrint(): Promise<void> {
   await openDetailsByBarcode(l.page, barcode)
   await l.page.getByTestId('details-reprint').click()
@@ -77,13 +93,14 @@ async function choosePrinter(name: string): Promise<void> {
 }
 
 test('nothing remembered yet: the system default entry is selected', async () => {
-  expect(await savedLabelPrinter()).toBe('')
+  await given({ printers: [RECEIPT, LABEL], printOk: true, remembered: '' })
   await openPrint()
   await expect(l.page.getByTestId('print-printer')).toContainText('الطابعة الافتراضية للنظام')
   await closePrint()
 })
 
 test('a successful print remembers the printer, the next dialog preselects it', async () => {
+  await given({ printers: [RECEIPT, LABEL], printOk: true, remembered: '' })
   await openPrint()
   await choosePrinter(LABEL)
   await l.page.getByTestId('print-submit').click()
@@ -98,25 +115,17 @@ test('a successful print remembers the printer, the next dialog preselects it', 
 })
 
 test('a failed print does not change the remembered printer', async () => {
-  await l.app.evaluate(() => {
-    ;(globalThis as unknown as Fakes).__printOk = false
-  })
+  await given({ printers: [RECEIPT, LABEL], printOk: false, remembered: LABEL })
   await openPrint()
   await choosePrinter(RECEIPT)
   await l.page.getByTestId('print-submit').click()
   await expect(l.page.getByTestId('print-status')).toHaveAttribute('role', 'alert')
   expect(await savedLabelPrinter()).toBe(LABEL)
   await closePrint()
-  await l.app.evaluate(() => {
-    ;(globalThis as unknown as Fakes).__printOk = true
-  })
 })
 
 test('a remembered printer that is no longer installed falls back to the default', async () => {
-  await l.app.evaluate((_electron, receipt) => {
-    const g = globalThis as unknown as Fakes
-    g.__fakePrinters = g.__fakePrinters.filter((p) => p.name === receipt)
-  }, RECEIPT)
+  await given({ printers: [RECEIPT], printOk: true, remembered: LABEL })
   expect(await l.page.evaluate(async () => (await window.api.getPrinters()).data?.map((p) => p.name))).toEqual([
     RECEIPT
   ])
@@ -127,6 +136,8 @@ test('a remembered printer that is no longer installed falls back to the default
 })
 
 test('Settings > Preferences shows, clears and chooses the label printer', async () => {
+  // the remembered label printer is no longer installed
+  await given({ printers: [RECEIPT], printOk: true, remembered: LABEL })
   await l.page.getByTestId('nav-settings').click()
   await l.page.getByTestId('settings-tab-preferences').click()
   const card = l.page.getByTestId('label-printer-card')

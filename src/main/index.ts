@@ -5,6 +5,8 @@ import { initDatabase } from '../database'
 import { registerIpcHandlers } from './ipc'
 import { startAutoBackup } from './auto-backup'
 import { applySecurityPolicy } from './security'
+import { registerAppScheme, serveAppFiles } from './app-protocol'
+import { APP_ENTRY_URL } from './app-url'
 import { applyThemePreference, loadThemePreference, registerThemeHandlers } from './theme'
 import {
   THEME_ARG_PREFERENCE,
@@ -21,6 +23,9 @@ const dataDirOverride = process.env['WARSHATI_DATA_DIR']
 if (dataDirOverride) {
   app.setPath('userData', join(dataDirOverride, 'userData'))
 }
+
+// The built UI is served on app://warshati/, not file:// (see app-url.ts); the scheme is declared before ready
+registerAppScheme()
 
 // Dev only: the renderer console is not printed to the terminal by default,
 // so forward warnings/errors and process-level failures to stdout.
@@ -69,11 +74,11 @@ function createWindow(preference: ThemePreference, resolved: ResolvedTheme): voi
     mainWindow.show()
   })
 
-  // Load renderer URL in dev, or local index.html in production
+  // The dev server's URL in development, otherwise the built UI on app://
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    mainWindow.loadURL(APP_ENTRY_URL)
   }
 }
 
@@ -109,6 +114,7 @@ app.whenReady().then(() => {
 
   // Navigation lock, no new windows, no permissions (every window, see security.ts)
   applySecurityPolicy()
+  serveAppFiles(join(__dirname, '../renderer'))
 
   // Register IPC handlers
   registerIpcHandlers()

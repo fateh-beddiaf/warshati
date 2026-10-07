@@ -17,6 +17,9 @@ files:
   - '!**/node_modules/better-sqlite3/prebuilds/!(win32-x64.node)'
   # C++ headers better-sqlite3 needs only to compile from source
   - '!**/node_modules/node-addon-api{,/**}'
+  # jsbarcode runs from bin/ (its package.json "main"): leave out its sources, browser bundles and build tooling
+  - '!**/node_modules/jsbarcode/{src,dist,automation}{,/**}'
+  - '!**/node_modules/jsbarcode/{Dockerfile,docker-compose.yml,.dockerignore,.eslintignore,CONTRIBUTING.md,bower.json,gulpfile.js}'
 asar: true
 # A native addon cannot be loaded from inside the archive
 asarUnpack:
@@ -32,6 +35,8 @@ electronFuses:
   enableNodeCliInspectArguments: false
   enableEmbeddedAsarIntegrityValidation: true
   onlyLoadAppFromAsar: true
+  # The UI is served on app:// (src/main/app-protocol.ts): file:// pages need no privileges beyond a browser's
+  grantFileProtocolExtraPrivileges: false
 
 win:
   target:
@@ -53,8 +58,9 @@ nsis:
   deleteAppDataOnUninstall: false
   installerIcon: build/icon.ico
   uninstallerIcon: build/icon.ico
-  # Shown before installing: the noncommercial terms
-  license: LICENSE
+  # Shown before installing: the noncommercial terms as plain text, since NSIS does not render Markdown. `npm run dist`
+  # writes it from LICENSE (scripts/build-license-txt.cjs)
+  license: build/license.txt
   multiLanguageInstaller: true
   installerLanguages:
     - ar_SA

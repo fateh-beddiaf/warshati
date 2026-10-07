@@ -97,3 +97,37 @@ test('a new screen starts at the top of the page, not where the previous one was
   await go('new-ticket')
   expect(await body.evaluate((el) => el.scrollTop)).toBe(0)
 })
+
+test('a Settings section starts at the top of the page, not where the previous section was scrolled to', async () => {
+  const body = l.page.getByTestId('page-body')
+  const section = async (id: string): Promise<void> => {
+    await l.page.getByTestId(`settings-tab-${id}`).click()
+    await expect(l.page.getByTestId(`settings-tab-${id}`)).toHaveAttribute('data-state', 'active')
+  }
+  /**
+   * Scrolls the page body until the section tabs sit at the top of the window, the page title out of view: the
+   * tabs stay clickable where they are (a click on something out of view would scroll it back into view first).
+   */
+  const scrollTabsToTop = (): Promise<number> =>
+    body.evaluate((el) => {
+      const tabs = el.querySelector('[role="tablist"]')
+      if (!tabs) throw new Error('no section tabs')
+      el.scrollTop += tabs.getBoundingClientRect().top - el.getBoundingClientRect().top
+      return el.scrollTop
+    })
+  const scrollRoom = (): Promise<number> => body.evaluate((el) => el.scrollHeight - el.clientHeight)
+
+  await l.page.getByTestId('nav-settings').click()
+  await expect.poll(shown).toEqual({ screens: ['settings'], active: 'settings' })
+  // Both sections are much taller than the window: the body keeps its scroll position unless it is reset
+  await section('preferences')
+  await expect.poll(scrollRoom).toBeGreaterThan(300)
+  expect(await scrollTabsToTop()).toBeGreaterThan(50)
+  await section('backup')
+  await expect.poll(scrollRoom).toBeGreaterThan(300)
+  expect(await body.evaluate((el) => el.scrollTop)).toBe(0)
+
+  expect(await scrollTabsToTop()).toBeGreaterThan(50)
+  await section('preferences')
+  expect(await body.evaluate((el) => el.scrollTop)).toBe(0)
+})

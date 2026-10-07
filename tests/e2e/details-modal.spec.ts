@@ -4,6 +4,8 @@ import { launchApp, shutdownApp, createTicket, openDetailsByBarcode, closeDetail
 
 // Ticket details modal: internal state is reset between tickets, invalid custom payments are
 // rejected, and the debt-payment section works for delivered tickets with a remaining balance.
+// One app for the file: beforeAll creates the two tickets the tests share, and every test leaves the modal closed
+// and the tickets as it found them, so any test can run alone.
 
 test.describe.configure({ mode: 'serial' })
 
@@ -13,6 +15,15 @@ let barcodeB = ''
 
 test.beforeAll(async () => {
   l = await launchApp('details')
+  // Two credit tickets moved to ready
+  barcodeA = await createTicket(l.page, { name: 'Alpha', phone: '0555000001', price: 5000, paid: 1000, type: 'credit' })
+  barcodeB = await createTicket(l.page, { name: 'Beta', phone: '0555000002', price: 4000, paid: 500, type: 'credit' })
+  for (const code of [barcodeA, barcodeB]) {
+    await openDetailsByBarcode(l.page, code)
+    await l.page.getByTestId('status-to-ready').click()
+    await l.page.getByTestId('open-delivery').waitFor()
+    await closeDetails(l.page)
+  }
 })
 test.afterAll(async () => {
   await shutdownApp(l)
@@ -53,17 +64,6 @@ async function scanBarcode(page: Page, code: string): Promise<void> {
   await page.keyboard.type(code, { delay: 0 })
   await page.keyboard.press('Enter')
 }
-
-test('setup: two credit tickets moved to ready', async () => {
-  barcodeA = await createTicket(l.page, { name: 'Alpha', phone: '0555000001', price: 5000, paid: 1000, type: 'credit' })
-  barcodeB = await createTicket(l.page, { name: 'Beta', phone: '0555000002', price: 4000, paid: 500, type: 'credit' })
-  for (const code of [barcodeA, barcodeB]) {
-    await openDetailsByBarcode(l.page, code)
-    await l.page.getByTestId('status-to-ready').click()
-    await l.page.getByTestId('open-delivery').waitFor()
-    await closeDetails(l.page)
-  }
-})
 
 test('closing the modal resets the delivery dialog, its fields and messages', async () => {
   const page = l.page
@@ -123,15 +123,15 @@ test('switching to another ticket while a delete dialog is open resets it', asyn
   // nothing was deleted
   expect((await snapshot(barcodeA)).status).toBe('ready')
   expect((await snapshot(barcodeB)).status).toBe('ready')
+
+  // back out of the delete dialog (step 3) and close the modal
+  for (let i = 0; i < 3; i++) await page.getByTestId('delete-back').click()
+  await expect(page.getByTestId('delete-back')).toHaveCount(0)
+  await closeDetails(page)
 })
 
 test('a negative custom payment is rejected and never lowers amount_paid', async () => {
   const page = l.page
-  // the previous test left B's delete dialog open at step 3: back out of it, then close the modal
-  for (let i = 0; i < 3; i++) await page.getByTestId('delete-back').click()
-  await expect(page.getByTestId('delete-back')).toHaveCount(0)
-  await closeDetails(page)
-
   const before = await snapshot(barcodeA)
   await openDetailsByBarcode(page, barcodeA)
   await page.getByTestId('open-delivery').click()

@@ -11,6 +11,8 @@ import {
 } from '../src/main/ipc-validate'
 import { isSamePage } from '../src/main/security'
 import { buildLabelHtml } from '../src/main/printer'
+import { APP_ENTRY_URL, contentTypeOf, resolveAppFile } from '../src/main/app-url'
+import { join, sep } from 'path'
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {
@@ -191,9 +193,42 @@ assert(
 console.log('\n--- Navigation lock ---')
 assert(isSamePage('file:///C:/app/out/renderer/index.html', 'file:///C:/app/out/renderer/index.html#x'), 'same file')
 assert(!isSamePage('file:///C:/app/out/renderer/index.html', 'file:///C:/Windows/win.ini'), 'another local file')
+assert(isSamePage(APP_ENTRY_URL, `${APP_ENTRY_URL}#x`), 'the app page itself')
+assert(!isSamePage(APP_ENTRY_URL, 'app://warshati/assets/index.js'), 'another file of the app')
+assert(!isSamePage(APP_ENTRY_URL, 'file:///C:/Windows/win.ini'), 'a local file, from the app page')
 assert(isSamePage('http://localhost:5173/', 'http://localhost:5173/?t=1'), 'dev server reload')
 assert(!isSamePage('http://localhost:5173/', 'https://example.com/'), 'an external site')
 assert(!isSamePage('http://localhost:5173/', 'not a url'), 'garbage')
+
+console.log('\n--- app:// serves the built UI and nothing else ---')
+const root = join('C:', 'app', 'out', 'renderer')
+assert(APP_ENTRY_URL === 'app://warshati/index.html', 'the window opens app://warshati/index.html')
+assert(resolveAppFile(root, APP_ENTRY_URL) === join(root, 'index.html'), 'the entry page')
+assert(
+  resolveAppFile(root, 'app://warshati/assets/font%20name.woff2?v=1#x') === join(root, 'assets', 'font name.woff2'),
+  'an asset (decoded, without query or hash)'
+)
+for (const url of [
+  'app://warshati/../main/index.js',
+  'app://warshati/%2e%2e/main/index.js',
+  'app://warshati/assets/%2e%2e%2f%2e%2e%2fmain%2findex.js',
+  'app://warshati/..%5c..%5cmain%5cindex.js',
+  'app://warshati/C:%5CWindows%5Cwin.ini',
+  'app://warshati/%E0%A4%A',
+  'app://warshati/a%00b'
+]) {
+  const file = resolveAppFile(root, url)
+  assert(file === null || file.startsWith(root + sep), `stays inside the UI folder: ${url} -> ${file}`)
+}
+assert(resolveAppFile(root, 'app://warshati/a%00b') === null, 'a NUL in the path')
+assert(resolveAppFile(root, 'app://warshati/') === null, 'the folder itself is not a file')
+assert(resolveAppFile(root, 'app://other/index.html') === null, 'another host')
+assert(resolveAppFile(root, 'file:///C:/app/out/renderer/index.html') === null, 'another scheme')
+assert(resolveAppFile(root, 'not a url') === null, 'not a URL')
+assert(contentTypeOf('index.html').startsWith('text/html'), 'HTML content type')
+assert(contentTypeOf('a.JS').startsWith('text/javascript'), 'module scripts get a JavaScript type (any case)')
+assert(contentTypeOf('f.woff2') === 'font/woff2', 'font content type')
+assert(contentTypeOf('x.unknown') === 'application/octet-stream', 'an unknown file is not served as something else')
 
 console.log('\n--- Print window content ---')
 const html = buildLabelHtml({ barcode: 'W-1', customerName: 'زبون', shortLabel: 'A54', svgContent: '<svg></svg>' })

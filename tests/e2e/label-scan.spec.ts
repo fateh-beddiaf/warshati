@@ -15,6 +15,7 @@ import { generateTicketCode, isTicketCode } from '../../src/shared/ticket-code'
 //     measured in the page, and the ink itself (no dark dot in the outer 1mm on either side).
 // The printer list is stubbed with a printer name that does not exist.
 
+// One app for the file; each test counts only the labels it printed itself, so any test can run alone.
 test.describe.configure({ mode: 'serial' })
 
 const FAKE_PRINTER = 'Warshati Test Label Printer (does not exist)'
@@ -200,6 +201,7 @@ function checkSideMargins(raster: Raster, expectedTexts: string[]): void {
 }
 
 test('a label printed from the app scans back to its ticket code (203 DPI)', async () => {
+  const before = (await rasters()).length
   const barcode = await createTicket(l.page, {
     name: LONG_NAME,
     phone: '0555123456',
@@ -214,9 +216,9 @@ test('a label printed from the app scans back to its ticket code (203 DPI)', asy
   await expect(l.page.getByTestId('print-printer')).toContainText(FAKE_PRINTER)
   await l.page.getByTestId('print-submit').click()
   await expect(l.page.getByTestId('print-status')).toHaveAttribute('role', 'status')
-  await expect.poll(async () => (await rasters()).length).toBe(1)
+  await expect.poll(async () => (await rasters()).length).toBe(before + 1)
 
-  const [raster] = await rasters()
+  const raster = (await rasters())[before]
   expect(raster.barcode).toBe(barcode)
   const png = await checkLabel(raster, barcode)
   checkSideMargins(raster, ['ورشتي', '0555123456', 'SA A54'])
@@ -228,6 +230,7 @@ test('a label printed from the app scans back to its ticket code (203 DPI)', asy
 })
 
 test('three random ticket codes scan back exactly', async () => {
+  const before = (await rasters()).length
   const codes = [generateTicketCode(), generateTicketCode(), generateTicketCode()]
   for (const code of codes) {
     const result = await l.page.evaluate(
@@ -238,10 +241,10 @@ test('three random ticket codes scan back exactly', async () => {
     expect(result).toEqual({ success: true })
   }
   const all = await rasters()
-  expect(all).toHaveLength(4)
+  expect(all).toHaveLength(before + 3)
   for (const [i, code] of codes.entries()) {
-    expect(all[i + 1].barcode).toBe(code)
-    await checkLabel(all[i + 1], code)
+    expect(all[before + i].barcode).toBe(code)
+    await checkLabel(all[before + i], code)
   }
 })
 
@@ -267,9 +270,10 @@ test('text keeps its side margins with the longest name, with and without the ph
 })
 
 test('a code that cannot fit the label with readable bars is refused, not printed', async () => {
+  const before = (await rasters()).length
   const result = await l.page.evaluate(() =>
     window.api.printLabel({ barcode: 'WSH2610056T5197', customerName: 'زبون', shortLabel: 'X' })
   )
   expect(result.success).toBe(false)
-  expect(await rasters()).toHaveLength(6)
+  expect(await rasters()).toHaveLength(before)
 })
