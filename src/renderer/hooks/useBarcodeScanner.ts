@@ -88,8 +88,10 @@ function restoreField(snap: FieldSnapshot, value: string): void {
  *   delete-confirmation, reader test). A scan is NOT intercepted there: the field receives the code (rewritten
  *   from the physical keys so an Arabic/AZERTY layout cannot garble it), the suffix keeps its normal
  *   behaviour (e.g. Enter submits the header form) and `onScan` is not called.
- * - Normal human typing is never touched: keys are never prevented, and nothing is restored unless a complete
- *   scanner-speed burst ended with a suffix.
+ * - Normal human typing is never touched: keys are never prevented, and nothing is restored or rewritten unless a
+ *   complete scanner-speed burst ended with a suffix. That holds in barcode fields too: someone typing a code by hand
+ *   who pauses mid-way (or a busy renderer splitting their keystrokes) starts a new burst at the pause, and treating
+ *   that slow tail as a scan would overwrite the field with only the digits typed after the pause.
  */
 export function useBarcodeScanner({
   onScan,
@@ -119,7 +121,7 @@ export function useBarcodeScanner({
       }
 
       if (k.kind === 'suffix') {
-        const scanned = bufferRef.current.complete({ maxIntervalMs, minLength }, isBarcodeInput)
+        const scanned = bufferRef.current.complete({ maxIntervalMs, minLength })
         const snap = snapshotRef.current
         snapshotRef.current = null
         if (scanned === null) return

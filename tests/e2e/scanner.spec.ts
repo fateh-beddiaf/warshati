@@ -299,6 +299,19 @@ test('header search input is emptied after a scan and after a manual submit', as
   await page.getByTestId('details-close').waitFor()
   await expect(header).toHaveValue('')
   await closeDetailsIfOpen()
+
+  // a person who pauses mid-way: the digits after the pause are not a scan and must not replace the field (the
+  // header used to be overwritten with the last 6 digits, and "ticket not found" showed instead of the ticket)
+  await header.focus()
+  await page.keyboard.type(barcode.slice(0, 2), { delay: 90 })
+  await page.waitForTimeout(300) // the human pause itself (input timing, not a wait for state)
+  await page.keyboard.type(barcode.slice(2), { delay: 90 })
+  await expect(header).toHaveValue(barcode)
+  await page.keyboard.press('Enter')
+  await page.getByTestId('details-close').waitFor()
+  await expect(page.locator('strong', { hasText: barcode }).first()).toBeVisible()
+  await expect(header).toHaveValue('')
+  await closeDetailsIfOpen()
 })
 
 test('delete-confirmation field (data-barcode-input) receives the scan instead of opening the ticket', async () => {
