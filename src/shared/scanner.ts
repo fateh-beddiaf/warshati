@@ -80,6 +80,17 @@ export function classifyKey(ev: KeyLike): KeyClass {
   return { kind: 'other' }
 }
 
+/**
+ * When a key was pressed, for burst timing: the event's own timestamp (set when the OS / browser generated the key),
+ * not the time this renderer got round to handling it. A busy renderer (a slow PC re-rendering a large form after
+ * every key the scanner types into it) handles a burst typed a few ms apart 80-120ms apart, which would make a real
+ * scan look like human typing. Falls back to `now` for an event without a usable timestamp.
+ */
+export function keyTime(ev: { timeStamp?: number }, now: () => number): number {
+  const t = ev.timeStamp
+  return typeof t === 'number' && Number.isFinite(t) && t > 0 ? t : now()
+}
+
 export interface BurstOptions {
   maxIntervalMs: number
   minLength: number

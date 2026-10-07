@@ -12,6 +12,7 @@ import {
   SCAN_MIN_LENGTH,
   classifyKey,
   diagnoseScan,
+  keyTime,
   type RawKey,
   type ScanDiagnosis
 } from '../../../../shared/scanner'
@@ -55,7 +56,7 @@ export function ScannerTestCard(): React.JSX.Element {
     // Keys accumulate until a suffix or a pause (IDLE_FINISH_MS), even when slower than a scan: then the result
     // says "too slow" instead of showing a fragment. A new burst replaces the previous one in the field.
     if (keysRef.current.length === 0) setValue('')
-    keysRef.current.push({ key: e.key, code: e.code, time: performance.now() })
+    keysRef.current.push({ key: e.key, code: e.code, time: keyTime(e, () => performance.now()) })
     if (idleRef.current) clearTimeout(idleRef.current)
     idleRef.current = setTimeout(() => finish(null), IDLE_FINISH_MS)
   }

@@ -1,6 +1,7 @@
 import {
   classifyKey,
   diagnoseScan,
+  keyTime,
   ScanBuffer,
   BURST_RESET_MS,
   SCAN_MAX_INTERVAL_MS,
@@ -179,6 +180,11 @@ check(
   'diagnosis: Shift keys ignored',
   diagnoseScan([{ key: 'Shift', code: 'ShiftLeft', time: 990 }, ...keysOf('27304918', 4)], 'Enter').keyCount === 8
 )
+
+// 4. Burst timing uses the key's own timestamp, not when a busy renderer handled it
+check('keyTime: the event timestamp wins over the handling time', keyTime({ timeStamp: 5327 }, () => 5914) === 5327)
+check('keyTime: no timestamp falls back to now', keyTime({}, () => 42) === 42)
+check('keyTime: zero timestamp falls back to now', keyTime({ timeStamp: 0 }, () => 42) === 42)
 
 if (passed) {
   console.log('[PASS] Scanner key mapping, burst buffer and diagnosis logic verified.')
