@@ -29,7 +29,7 @@ import { insertEditLogs, moneyLogValue, type EditLogChange } from './ticket-edit
  * Payments (same rules as creation): price >= amount_paid, amount_remaining = price - paid, a remaining balance makes
  * the payment type 'credit'. Lowering amount_paid creates or increases a debt: it needs confirm_paid_lowered.
  *
- * Profit (AGENTS.md section 4), always through the pure calculateProfitSplit:
+ * Profit (the split rule documented in src/shared/profit.ts), always through the pure calculateProfitSplit:
  *  - a ticket that is not delivered is just saved: its shares are computed at delivery, as before;
  *  - a delivered ticket needs confirm_delivered; when its price, parts cost, technician or category changes, the
  *    frozen shares are recomputed:
