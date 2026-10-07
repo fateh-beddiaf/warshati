@@ -24,6 +24,7 @@ export async function launchElectron(dataDir: string): Promise<ElectronApplicati
     args: [resolve('out/main/index.js')],
     env: { ...process.env, WARSHATI_DATA_DIR: dataDir }
   })
+  throttleCpu(app)
   if (!process.env.CI) return app
   const tracing = app.context().tracing
   await tracing.start({ screenshots: true, snapshots: true, title: test.info().titlePath.join(' > ') })
@@ -38,6 +39,26 @@ export async function launchElectron(dataDir: string): Promise<ElectronApplicati
     await close()
   }
   return app
+}
+
+/**
+ * E2E_CPU_THROTTLE=<rate> (e.g. 4) slows every window's renderer down `rate` times through the DevTools protocol, to
+ * reproduce locally what only fails on a slow CI runner (GitHub's windows-latest runs the suite several times slower
+ * than a dev PC). Unset or 1: no throttling. The CDP session stays attached: detaching it would drop the emulation.
+ */
+function throttleCpu(app: ElectronApplication): void {
+  const rate = Number(process.env.E2E_CPU_THROTTLE ?? 1)
+  if (!(rate > 1)) return
+  const throttle = async (page: Page): Promise<void> => {
+    try {
+      const cdp = await page.context().newCDPSession(page)
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate })
+    } catch {
+      // a window closing while it opens: nothing to slow down
+    }
+  }
+  for (const page of app.windows()) void throttle(page)
+  app.on('window', (page) => void throttle(page))
 }
 
 export async function launchApp(prefix: string): Promise<Launched> {
