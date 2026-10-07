@@ -8,8 +8,34 @@ import { Field } from './Field'
 import { SectionCard } from './SectionCard'
 import type { NewTicketForm } from './useNewTicketForm'
 
-/** Repair category + responsible technician. */
-export function RepairSection({ form }: { form: NewTicketForm }): React.JSX.Element {
+export type RepairSectionForm = Pick<
+  NewTicketForm,
+  | 'metadata'
+  | 'categoryId'
+  | 'setCategoryId'
+  | 'technicianId'
+  | 'setTechnicianId'
+  | 'showPartsCost'
+  | 'partsCost'
+  | 'setPartsCost'
+  | 'showErrors'
+  | 'costInvalid'
+>
+
+/**
+ * Repair category + responsible technician (+ the masked parts cost when `showPartsCost`).
+ * `layoutGroup` keeps the technician toggle's moving highlight apart from another mounted form.
+ */
+export function RepairSection({
+  form,
+  layoutGroup = 'new-ticket-technician',
+  costTestId = 'parts-cost-input'
+}: {
+  form: RepairSectionForm
+  layoutGroup?: string
+  /** data-testid of the masked cost box (two forms can be mounted at once) */
+  costTestId?: string
+}): React.JSX.Element {
   const { t } = useI18n()
   const categories = form.metadata?.repairCategories ?? []
   const technicians = form.metadata?.technicians ?? []
@@ -42,7 +68,7 @@ export function RepairSection({ form }: { form: NewTicketForm }): React.JSX.Elem
 
         <Field label={t.newTicket.technician}>
           <SegmentedControl
-            layoutGroup="new-ticket-technician"
+            layoutGroup={layoutGroup}
             ariaLabel={t.newTicket.technician}
             className="w-full [&>button]:flex-1 [&>button]:justify-center [&>button]:py-2 [&>button]:text-sm"
             items={technicians.map((tech) => ({
@@ -55,15 +81,15 @@ export function RepairSection({ form }: { form: NewTicketForm }): React.JSX.Elem
           />
         </Field>
 
-        {/* Shown only for categories that require a parts cost. Masked: the customer may see the screen. */}
-        {form.requiresPartsCost && (
+        {/* New ticket: only for categories that require a parts cost. Masked: the customer may see the screen. */}
+        {form.showPartsCost && (
           <Field
             label={t.ui.partsCost.newTicket.label}
             hint={t.ui.partsCost.newTicket.optional}
             className="md:col-span-1"
           >
             <MaskedAmountInput
-              testId="parts-cost-input"
+              testId={costTestId}
               ariaLabel={t.ui.partsCost.newTicket.label}
               placeholder={t.ui.partsCost.newTicket.placeholder}
               value={form.partsCost}

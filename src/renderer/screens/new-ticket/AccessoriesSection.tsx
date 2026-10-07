@@ -7,8 +7,10 @@ import { cn } from '../../lib/utils'
 import { Field } from './Field'
 import type { NewTicketForm } from './useNewTicketForm'
 
+export type AccessoriesForm = Pick<NewTicketForm, 'metadata' | 'selectedAccessoryIds' | 'toggleAccessory'>
+
 /** Toggle chips for the accessories received with the device. */
-export function AccessoriesSection({ form }: { form: NewTicketForm }): React.JSX.Element {
+export function AccessoriesSection({ form }: { form: AccessoriesForm }): React.JSX.Element {
   const { t } = useI18n()
   const accessories = form.metadata?.accessories ?? []
 

@@ -8,6 +8,19 @@ import { Field } from './Field'
 import { SectionCard } from './SectionCard'
 import type { NewTicketForm } from './useNewTicketForm'
 
+export type PaymentSectionForm = Pick<
+  NewTicketForm,
+  | 'price'
+  | 'setPrice'
+  | 'amountPaid'
+  | 'setAmountPaid'
+  | 'effectivePaymentType'
+  | 'setPaymentType'
+  | 'numPrice'
+  | 'numPaid'
+  | 'calculatedRemaining'
+>
+
 interface PaymentOptionProps {
   value: 'cash' | 'credit'
   checked: boolean
@@ -63,7 +76,7 @@ function SummaryRow({ label, children }: { label: string; children: React.ReactN
 }
 
 /** Price / paid inputs, payment type, and the total / paid / remaining summary. */
-export function PaymentSection({ form }: { form: NewTicketForm }): React.JSX.Element {
+export function PaymentSection({ form }: { form: PaymentSectionForm }): React.JSX.Element {
   const { t } = useI18n()
   const text = t.ui.newTicket
   const hasDebt = form.calculatedRemaining > 0
@@ -85,6 +98,7 @@ export function PaymentSection({ form }: { form: NewTicketForm }): React.JSX.Ele
               step="100"
               value={form.price}
               onChange={(e) => form.setPrice(e.target.value)}
+              data-testid="payment-price"
               placeholder="0"
               className="tabular text-lg font-bold"
             />
@@ -96,6 +110,7 @@ export function PaymentSection({ form }: { form: NewTicketForm }): React.JSX.Ele
               step="100"
               value={form.amountPaid}
               onChange={(e) => form.setAmountPaid(e.target.value)}
+              data-testid="payment-paid"
               placeholder="0"
               className="tabular text-lg font-semibold"
             />

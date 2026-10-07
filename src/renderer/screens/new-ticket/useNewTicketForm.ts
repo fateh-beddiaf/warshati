@@ -1,34 +1,11 @@
 import * as React from 'react'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useI18n } from '../../lib/i18n'
-import type { AutocompleteOption } from '../../components/ui/Autocomplete'
 import { generateShortLabel } from '../../../shared/device-utils'
 import { isCostLoss, parseCostInput } from '../../../shared/parts-cost'
-import type { AppMetadata, Brand, Customer, CreateTicketDTO, Model, PaymentType } from '../../../shared/types'
-
-/** Runs customer search ~250ms after the query stops changing; stale responses are dropped. */
-function useDebouncedCustomerSearch(query: string, onResults: (customers: Customer[]) => void): void {
-  useEffect(() => {
-    let cancelled = false
-    const timer = setTimeout(
-      async () => {
-        try {
-          const res = await window.api.searchCustomers(query)
-          if (!cancelled && res.success && res.data) onResults(res.data)
-        } catch (err) {
-          console.error('Customer search failed:', err)
-        }
-      },
-      query ? 250 : 0
-    )
-    return () => {
-      cancelled = true
-      clearTimeout(timer)
-    }
-    // onResults is a state setter (stable): listing it would not change when the effect runs
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query])
-}
+import type { AppMetadata, CreateTicketDTO, PaymentType } from '../../../shared/types'
+import { useCustomerFields } from './useCustomerFields'
+import { useDeviceFields } from './useDeviceFields'
 
 export interface TicketPrintData {
   barcode: string
@@ -43,8 +20,6 @@ export function useNewTicketForm() {
   const { t } = useI18n()
   const [metadata, setMetadata] = useState<AppMetadata | null>(null)
 
-  const [existingCustomers, setExistingCustomers] = useState<Customer[]>([])
-  const [phoneCandidates, setPhoneCandidates] = useState<Customer[]>([])
   const [loading, setLoading] = useState(false)
   const [successInfo, setSuccessInfo] = useState<{ barcode: string; ticketId: number; withoutCost: boolean } | null>(
     null
@@ -54,17 +29,10 @@ export function useNewTicketForm() {
   const [showErrors, setShowErrors] = useState(false)
 
   // Form State
-  const [customerId, setCustomerId] = useState<number | undefined>(undefined)
-  const [customerName, setCustomerName] = useState('')
-  const [customerPhone, setCustomerPhone] = useState('')
-  const [customerNotes, setCustomerNotes] = useState('')
-
-  const [brand, setBrand] = useState('')
-  const [brandId, setBrandId] = useState<number | null>(null)
-  const [model, setModel] = useState('')
-  const [modelId, setModelId] = useState<number | null>(null)
-  const [shortLabel, setShortLabel] = useState('')
-  const [isShortLabelEdited, setIsShortLabelEdited] = useState(false)
+  const customer = useCustomerFields()
+  const device = useDeviceFields(metadata)
+  const { customerId, customerName, customerPhone, customerNotes } = customer
+  const { brand, brandId, model, modelId, shortLabel } = device
 
   const [categoryId, setCategoryId] = useState<number | ''>('')
   const [price, setPrice] = useState<string>('')
@@ -97,20 +65,6 @@ export function useNewTicketForm() {
     loadData()
   }, [])
 
-  // Customer searches re-query while typing (debounced) so older customers can be found too:
-  // the name field feeds the name autocomplete, the phone field feeds the phone-match suggestions.
-  useDebouncedCustomerSearch(customerName.trim(), setExistingCustomers)
-  const phoneQuery = customerPhone.replace(/\s+/g, '').length >= 4 ? customerPhone.trim() : ''
-  useDebouncedCustomerSearch(phoneQuery, setPhoneCandidates)
-
-  // Auto-generate short_label when brand or model changes if not manually overridden
-  useEffect(() => {
-    if (!isShortLabelEdited) {
-      const generated = generateShortLabel(brand, model)
-      setShortLabel(generated)
-    }
-  }, [brand, model, isShortLabelEdited])
-
   // Does the chosen category require a parts cost? (the field is shown only then)
   const requiresPartsCost = Boolean(metadata?.repairCategories.find((c) => c.id === categoryId)?.requires_parts_cost)
   const parsedCost = requiresPartsCost ? parseCostInput(partsCost) : ({ kind: 'empty' } as const)
@@ -123,105 +77,13 @@ export function useNewTicketForm() {
   // A partial payment is always a debt (the backend enforces the same rule)
   const effectivePaymentType: PaymentType = calculatedRemaining > 0 ? 'credit' : paymentType
 
-  // Option lists are memoised: Autocomplete re-syncs on every new `options` array, so rebuilding
-  // them on each keystroke would re-run its effects for nothing. `id` gives each option a unique
-  // React key (the same model name can exist under two brands).
-  const brandOptions = useMemo<AutocompleteOption[]>(
-    () => (metadata?.brands ?? []).map((b) => ({ id: `brand-${b.id}`, value: b.name, label: b.name, data: b })),
-    [metadata]
-  )
-
-  const modelOptions = useMemo<AutocompleteOption[]>(
-    () =>
-      (metadata?.models ?? [])
-        .filter((m) => (brandId === null ? true : m.brand_id === brandId))
-        .map((m) => ({ id: `model-${m.id}`, value: m.name, label: m.name, data: m })),
-    [metadata, brandId]
-  )
-
-  const customerOptions = useMemo<AutocompleteOption[]>(
-    () =>
-      existingCustomers.map((c) => ({
-        id: `customer-${c.id}`,
-        value: c.id,
-        label: c.name,
-        sublabel: c.phone,
-        data: c
-      })),
-    [existingCustomers]
-  )
-
-  // Registered customers whose phone matches what is being typed (offered as a suggestion)
-  const phoneMatches = useMemo<Customer[]>(() => {
-    const digits = customerPhone.replace(/\s+/g, '')
-    if (customerId !== undefined || digits.length < 4) return []
-    return phoneCandidates.filter((c) => c.phone.replace(/\s+/g, '').includes(digits)).slice(0, 5)
-  }, [phoneCandidates, customerPhone, customerId])
-
-  const handleCustomerSelect = (_val: string, option?: AutocompleteOption): void => {
-    if (option && option.data) {
-      const c = option.data as Customer
-      setCustomerId(c.id)
-      setCustomerName(c.name)
-      setCustomerPhone(c.phone)
-      setCustomerNotes(c.notes || '')
-    } else {
-      setCustomerId(undefined)
-    }
-  }
-
-  const onNameChange = (val: string, option?: AutocompleteOption): void => {
-    setCustomerName(val)
-    handleCustomerSelect(val, option)
-  }
-
-  const onPhoneChange = (val: string): void => {
-    setCustomerPhone(val)
-    // The form no longer describes the previously selected customer
-    setCustomerId(undefined)
-  }
-
-  const selectPhoneMatch = (c: Customer): void => {
-    handleCustomerSelect(String(c.id), { id: `customer-${c.id}`, value: c.id, label: c.name, data: c })
-  }
-
-  const onBrandChange = (val: string, option?: AutocompleteOption): void => {
-    setBrand(val)
-    setBrandId(option ? (option.data as Brand).id : null)
-    setModel('')
-    setModelId(null)
-  }
-
-  const onModelChange = (val: string, option?: AutocompleteOption): void => {
-    setModel(val)
-    setModelId(option ? (option.data as Model).id : null)
-  }
-
-  const onShortLabelChange = (val: string): void => {
-    setShortLabel(val)
-    setIsShortLabelEdited(true)
-  }
-
-  const regenerateShortLabel = (): void => {
-    setIsShortLabelEdited(false)
-    setShortLabel(generateShortLabel(brand, model))
-  }
-
   const toggleAccessory = (id: number): void => {
     setSelectedAccessoryIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]))
   }
 
   const resetForm = (): void => {
-    setCustomerId(undefined)
-    setCustomerName('')
-    setCustomerPhone('')
-    setCustomerNotes('')
-    setBrand('')
-    setBrandId(null)
-    setModel('')
-    setModelId(null)
-    setShortLabel('')
-    setIsShortLabelEdited(false)
+    customer.resetCustomer()
+    device.resetDevice()
     setPrice('')
     setAmountPaid('')
     setPaymentType('cash')
@@ -334,26 +196,9 @@ export function useNewTicketForm() {
     showErrors,
     printData,
     // customer
-    customerId,
-    customerName,
-    customerPhone,
-    customerNotes,
-    setCustomerNotes,
-    customerOptions,
-    phoneMatches,
-    onNameChange,
-    onPhoneChange,
-    selectPhoneMatch,
+    ...customer,
     // device
-    brand,
-    model,
-    shortLabel,
-    brandOptions,
-    modelOptions,
-    onBrandChange,
-    onModelChange,
-    onShortLabelChange,
-    regenerateShortLabel,
+    ...device,
     selectedAccessoryIds,
     toggleAccessory,
     // repair & payment
@@ -370,8 +215,9 @@ export function useNewTicketForm() {
     numPaid,
     calculatedRemaining,
     effectivePaymentType,
-    // parts cost
+    // parts cost (the field is shown only for a category that requires one)
     requiresPartsCost,
+    showPartsCost: requiresPartsCost,
     partsCost,
     setPartsCost,
     costInvalid,

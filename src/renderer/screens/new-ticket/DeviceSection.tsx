@@ -7,9 +7,13 @@ import { Autocomplete } from '../../components/ui/Autocomplete'
 import { Field } from './Field'
 import { SectionCard } from './SectionCard'
 import { AccessoriesSection } from './AccessoriesSection'
-import type { NewTicketForm } from './useNewTicketForm'
+import type { DeviceFields } from './useDeviceFields'
+import type { AccessoriesForm } from './AccessoriesSection'
 
-export function DeviceSection({ form }: { form: NewTicketForm }): React.JSX.Element {
+export type DeviceSectionForm = DeviceFields & AccessoriesForm & { showErrors: boolean }
+
+/** Brand / model type-ahead, the short label (printed on the label) and the accessories. */
+export function DeviceSection({ form }: { form: DeviceSectionForm }): React.JSX.Element {
   const { t } = useI18n()
   const brandMissing = form.showErrors && !form.brand.trim()
   const modelMissing = form.showErrors && !form.model.trim()
@@ -27,6 +31,7 @@ export function DeviceSection({ form }: { form: NewTicketForm }): React.JSX.Elem
             options={form.brandOptions}
             value={form.brand}
             onChange={form.onBrandChange}
+            testId="device-brand"
             placeholder={t.newTicket.selectBrand}
             allowCustomInput={true}
             error={brandMissing}
@@ -38,6 +43,7 @@ export function DeviceSection({ form }: { form: NewTicketForm }): React.JSX.Elem
             options={form.modelOptions}
             value={form.model}
             onChange={form.onModelChange}
+            testId="device-model"
             placeholder={t.newTicket.selectModel}
             allowCustomInput={true}
             error={modelMissing}
@@ -51,6 +57,7 @@ export function DeviceSection({ form }: { form: NewTicketForm }): React.JSX.Elem
             type="text"
             value={form.shortLabel}
             onChange={(e) => form.onShortLabelChange(e.target.value)}
+            data-testid="device-short-label"
             placeholder={t.newTicket.shortLabelPlaceholder}
             className="font-semibold"
           />
