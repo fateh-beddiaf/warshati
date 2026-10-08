@@ -1,6 +1,7 @@
 import {
   classifyKey,
   diagnoseScan,
+  keyTime,
   ScanBuffer,
   BURST_RESET_MS,
   SCAN_MAX_INTERVAL_MS,
@@ -82,9 +83,12 @@ function feed(buf: ScanBuffer, text: string, start: number, step: number): numbe
   check('70ms-per-key burst accepted', b.complete(opts) === '6130000000017')
 }
 {
+  // A code typed by hand with a pause after "29" (or keystrokes split by a busy renderer): the pause starts a new
+  // burst, and that human-speed tail must not count as a scan (a barcode field would be overwritten with "737757")
   const b = new ScanBuffer()
-  feed(b, 'WSH2410ABC1234', 1000, 100)
-  check('slow burst accepted when allowSlow (dedicated field)', b.complete(opts, true) === 'WSH2410ABC1234')
+  const t = feed(b, '29', 1000, 100)
+  feed(b, '737757', t + BURST_RESET_MS + 1, 100)
+  check('human-speed tail after a pause is not a scan', b.complete(opts) === null)
 }
 {
   const b = new ScanBuffer()
@@ -176,6 +180,11 @@ check(
   'diagnosis: Shift keys ignored',
   diagnoseScan([{ key: 'Shift', code: 'ShiftLeft', time: 990 }, ...keysOf('27304918', 4)], 'Enter').keyCount === 8
 )
+
+// 4. Burst timing uses the key's own timestamp, not when a busy renderer handled it
+check('keyTime: the event timestamp wins over the handling time', keyTime({ timeStamp: 5327 }, () => 5914) === 5327)
+check('keyTime: no timestamp falls back to now', keyTime({}, () => 42) === 42)
+check('keyTime: zero timestamp falls back to now', keyTime({ timeStamp: 0 }, () => 42) === 42)
 
 if (passed) {
   console.log('[PASS] Scanner key mapping, burst buffer and diagnosis logic verified.')

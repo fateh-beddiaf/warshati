@@ -3,7 +3,7 @@ import type { ElectronApplication, Page } from '@playwright/test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { createTicket, launchElectron, openDetailsByBarcode } from './helpers'
+import { createTicket, launchElectron, openDetailsByBarcode, resetUi } from './helpers'
 
 // Smoke test for the renderer: walks through every screen and fails on any
 // page error, console.error or an empty #root (the "white screen" symptom).
@@ -42,6 +42,11 @@ test.beforeAll(async () => {
   })
   await page.waitForSelector('[data-testid="nav-tickets"]')
   await assertAlive('boot')
+})
+
+// One app for the file: every test starts from the app's starting state, whatever the previous one left behind
+test.beforeEach(async () => {
+  await resetUi(page)
 })
 
 test.afterAll(async () => {

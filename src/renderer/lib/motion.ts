@@ -23,11 +23,10 @@ export const transitions = {
   spring: { type: 'spring', duration: 0.35, bounce: 0.1 } satisfies Transition
 } as const
 
-/** Screen/page transition (used by App for the active tab). */
+/** Screen/page entrance (used by App for the active tab). No exit: the previous screen leaves at once (see App). */
 export const pageTransition = {
   initial: { opacity: 0, y: 8 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
   transition: transitions.base
 } as const
 

@@ -80,6 +80,17 @@ export function classifyKey(ev: KeyLike): KeyClass {
   return { kind: 'other' }
 }
 
+/**
+ * When a key was pressed, for burst timing: the event's own timestamp (set when the OS / browser generated the key),
+ * not the time this renderer got round to handling it. A busy renderer (a slow PC re-rendering a large form after
+ * every key the scanner types into it) handles a burst typed a few ms apart 80-120ms apart, which would make a real
+ * scan look like human typing. Falls back to `now` for an event without a usable timestamp.
+ */
+export function keyTime(ev: { timeStamp?: number }, now: () => number): number {
+  const t = ev.timeStamp
+  return typeof t === 'number' && Number.isFinite(t) && t > 0 ? t : now()
+}
+
 export interface BurstOptions {
   maxIntervalMs: number
   minLength: number
@@ -131,21 +142,21 @@ export class ScanBuffer {
 
   /**
    * Called on a suffix key. Returns the scanned code when the buffered burst qualifies (long enough and at
-   * scanner speed), else null. Always clears the buffer afterwards.
-   * `allowSlow` accepts a burst of any speed (used for the dedicated barcode fields).
+   * scanner speed), else null. Always clears the buffer afterwards. Speed is required everywhere, barcode fields
+   * included: a slow burst is someone typing, and taking it as a scan would replace what they typed with its tail.
    */
-  complete(opts: BurstOptions, allowSlow = false): string | null {
-    const summary = this.completeWithSummary(opts, allowSlow)
+  complete(opts: BurstOptions): string | null {
+    const summary = this.completeWithSummary(opts)
     return summary.accepted ? summary.text : null
   }
 
   /** Same as complete(), but describes the burst too. */
-  completeWithSummary(opts: BurstOptions, allowSlow = false): BurstSummary {
+  completeWithSummary(opts: BurstOptions): BurstSummary {
     const text = this.text
     const intervals = this.intervals
     this.reset()
     const avgIntervalMs = intervals.length > 0 ? intervals.reduce((a, b) => a + b, 0) / intervals.length : null
-    const fastEnough = allowSlow || (avgIntervalMs !== null && avgIntervalMs <= opts.maxIntervalMs)
+    const fastEnough = avgIntervalMs !== null && avgIntervalMs <= opts.maxIntervalMs
     return { text, avgIntervalMs, accepted: text.length >= opts.minLength && fastEnough }
   }
 }

@@ -3,7 +3,7 @@ import type { ElectronApplication, Page, CDPSession } from '@playwright/test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { launchElectron } from './helpers'
+import { goTo, launchElectron, resetUi } from './helpers'
 
 // Barcode scanner (HID keyboard wedge) behaviour, app-wide regardless of focus.
 // Bursts are sent through the DevTools protocol as real (trusted) key events carrying a
@@ -108,11 +108,6 @@ async function scan(code: string, layout: 'latin' | 'arabic', suffix: Suffix = '
   await Promise.all(sends)
 }
 
-async function go(tab: 'tickets' | 'new-ticket'): Promise<void> {
-  await page.getByTestId(`nav-${tab}`).click()
-  await page.waitForTimeout(200)
-}
-
 async function closeDetailsIfOpen(): Promise<void> {
   const close = page.getByTestId('details-close')
   if (await close.isVisible().catch(() => false)) {
@@ -172,13 +167,19 @@ test.afterAll(async () => {
   }
 })
 
+// One app for the file: every test starts from the same state, whatever the previous one left (a typed New Ticket
+// form would make a scan ask "discard your changes?" instead of opening the ticket)
+test.beforeEach(async () => {
+  await resetUi(page)
+})
+
 test.afterEach(() => {
   expect(problems, 'renderer errors').toEqual([])
 })
 
 /** The ticket every test scans, created through the form, and the Enter probe (in beforeAll: any test can run alone) */
 async function createTicketAndProbe(): Promise<void> {
-  await go('new-ticket')
+  await goTo(page, 'new-ticket')
   const form = page.getByTestId('new-ticket-form')
   const textInputs = form.locator('input[type="text"]')
   await textInputs.nth(0).fill('Scanner Customer')
@@ -197,7 +198,7 @@ async function createTicketAndProbe(): Promise<void> {
 }
 
 test('scan under an Arabic layout while the customer-name field holds "abc"', async () => {
-  await go('new-ticket')
+  await goTo(page, 'new-ticket')
   const name = page.getByTestId('new-ticket-form').locator('input[type="text"]').nth(0)
   await name.fill('abc')
   await name.focus()
@@ -227,7 +228,7 @@ test('scan under an Arabic layout while the customer-name field holds "abc"', as
 })
 
 test('scan with a Latin layout also works from another field, and with no focus', async () => {
-  await go('new-ticket')
+  await goTo(page, 'new-ticket')
   const phone = page.getByTestId('new-ticket-form').locator('input[type="text"]').nth(1)
   await phone.fill('0555')
   await phone.focus()
@@ -252,7 +253,7 @@ test('scan with a Latin layout also works from another field, and with no focus'
 })
 
 test('normal human typing in a field is unaffected', async () => {
-  await go('new-ticket')
+  await goTo(page, 'new-ticket')
   const name = page.getByTestId('new-ticket-form').locator('input[type="text"]').nth(0)
   await name.fill('')
   await name.focus()
@@ -299,6 +300,19 @@ test('header search input is emptied after a scan and after a manual submit', as
   await page.getByTestId('details-close').waitFor()
   await expect(header).toHaveValue('')
   await closeDetailsIfOpen()
+
+  // a person who pauses mid-way: the digits after the pause are not a scan and must not replace the field (the
+  // header used to be overwritten with the last 6 digits, and "ticket not found" showed instead of the ticket)
+  await header.focus()
+  await page.keyboard.type(barcode.slice(0, 2), { delay: 90 })
+  await page.waitForTimeout(300) // the human pause itself (input timing, not a wait for state)
+  await page.keyboard.type(barcode.slice(2), { delay: 90 })
+  await expect(header).toHaveValue(barcode)
+  await page.keyboard.press('Enter')
+  await page.getByTestId('details-close').waitFor()
+  await expect(page.locator('strong', { hasText: barcode }).first()).toBeVisible()
+  await expect(header).toHaveValue('')
+  await closeDetailsIfOpen()
 })
 
 test('delete-confirmation field (data-barcode-input) receives the scan instead of opening the ticket', async () => {
@@ -338,7 +352,7 @@ test('delete-confirmation field (data-barcode-input) receives the scan instead o
 })
 
 test('outside any field, ANY scan lands in the scan box and is looked up (product barcode: not found)', async () => {
-  await go('tickets')
+  await goTo(page, 'tickets')
   const header = page.getByTestId('header-barcode-input')
   await header.fill('')
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
@@ -364,7 +378,7 @@ test('outside any field, a ticket code opens the ticket (Enter, NumpadEnter or T
 })
 
 test('inside the customer-name field, a product barcode stays in the field', async () => {
-  await go('new-ticket')
+  await goTo(page, 'new-ticket')
   const name = page.getByTestId('new-ticket-form').locator('input[type="text"]').nth(0)
   await name.fill('')
   await name.focus()

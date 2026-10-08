@@ -228,38 +228,39 @@ function AppContent(): React.JSX.Element {
       </AnimatePresence>
 
       {/* Screen Views */}
-      {/* resetKey: switching tabs clears a previous crash without remounting (keeps exit animations) */}
+      {/* resetKey: switching tabs clears a previous crash */}
+      {/* Only the active screen is mounted: it fades in and the previous one leaves at once. With an exit animation
+          (AnimatePresence mode="wait"), quick tab switches on a slow PC could lose the exiting screen's "done" signal,
+          and that screen then stayed up whichever tab was clicked next. */}
       <ErrorBoundary scope={`screen:${activeTab}`} resetKey={activeTab}>
-        <AnimatePresence mode="wait">
-          {activeTab === 'tickets' && (
-            <motion.div key="tickets" data-testid="screen-tickets" {...pageTransition}>
-              <TicketsListScreen
-                onNewTicketClick={() => setActiveTab('new-ticket')}
-                onOpenTicketDetails={handleOpenTicketDetails}
-                onPrintTicket={handlePrintTicket}
-                refreshKey={listRefreshKey}
-              />
-            </motion.div>
-          )}
+        {activeTab === 'tickets' && (
+          <motion.div key="tickets" data-testid="screen-tickets" {...pageTransition}>
+            <TicketsListScreen
+              onNewTicketClick={() => setActiveTab('new-ticket')}
+              onOpenTicketDetails={handleOpenTicketDetails}
+              onPrintTicket={handlePrintTicket}
+              refreshKey={listRefreshKey}
+            />
+          </motion.div>
+        )}
 
-          {activeTab === 'new-ticket' && (
-            <motion.div key="new-ticket" data-testid="screen-new-ticket" {...pageTransition}>
-              <NewTicketScreen onTicketCreated={handleTicketCreated} />
-            </motion.div>
-          )}
+        {activeTab === 'new-ticket' && (
+          <motion.div key="new-ticket" data-testid="screen-new-ticket" {...pageTransition}>
+            <NewTicketScreen onTicketCreated={handleTicketCreated} />
+          </motion.div>
+        )}
 
-          {activeTab === 'reports' && (
-            <motion.div key="reports" data-testid="screen-reports" {...pageTransition}>
-              <ReportsScreen onOpenTicketDetails={handleOpenTicketDetails} />
-            </motion.div>
-          )}
+        {activeTab === 'reports' && (
+          <motion.div key="reports" data-testid="screen-reports" {...pageTransition}>
+            <ReportsScreen onOpenTicketDetails={handleOpenTicketDetails} />
+          </motion.div>
+        )}
 
-          {activeTab === 'settings' && (
-            <motion.div key="settings" data-testid="screen-settings" {...pageTransition}>
-              <SettingsScreen key={settingsEntry.nonce} initialTab={settingsEntry.tab} />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {activeTab === 'settings' && (
+          <motion.div key="settings" data-testid="screen-settings" {...pageTransition}>
+            <SettingsScreen key={settingsEntry.nonce} initialTab={settingsEntry.tab} />
+          </motion.div>
+        )}
       </ErrorBoundary>
 
       {/* Ticket Details Modal */}

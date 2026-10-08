@@ -1,6 +1,14 @@
 import { test, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
-import { launchApp, shutdownApp, createTicket, openDetailsByBarcode, closeDetails, type Launched } from './helpers'
+import {
+  launchApp,
+  shutdownApp,
+  createTicket,
+  openDetailsByBarcode,
+  closeDetails,
+  resetUi,
+  type Launched
+} from './helpers'
 
 // Ticket details modal: internal state is reset between tickets, invalid custom payments are
 // rejected, and the debt-payment section works for delivered tickets with a remaining balance.
@@ -25,6 +33,12 @@ test.beforeAll(async () => {
     await closeDetails(l.page)
   }
 })
+
+// One app for the file: every test starts from the app's starting state, whatever the previous one left behind
+test.beforeEach(async () => {
+  await resetUi(l.page)
+})
+
 test.afterAll(async () => {
   await shutdownApp(l)
 })

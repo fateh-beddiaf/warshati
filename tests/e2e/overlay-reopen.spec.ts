@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { launchApp, shutdownApp, type Launched } from './helpers'
+import { launchApp, shutdownApp, resetUi, type Launched } from './helpers'
 
 // Overlays (select, popover, tooltip) reopened right after they close. An exit animation keeps closed Radix content
 // mounted for a moment; a press (or hover) in that window must open the overlay again and keep it open, not have it
@@ -12,6 +12,12 @@ let l: Launched
 test.beforeAll(async () => {
   l = await launchApp('overlay-reopen')
 })
+
+// One app for the file: every test starts from the app's starting state, whatever the previous one left behind
+test.beforeEach(async () => {
+  await resetUi(l.page)
+})
+
 test.afterAll(async () => {
   await shutdownApp(l)
 })

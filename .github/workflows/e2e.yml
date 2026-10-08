@@ -1,0 +1,55 @@
+name: E2E
+
+# The full end-to-end suite on demand (Actions > E2E > Run workflow, on any branch), e.g. before tagging a release.
+# Releases run it too (release.yml). `cpu_throttle` slows the app's windows down to hunt timing-dependent failures.
+on:
+  workflow_dispatch:
+    inputs:
+      cpu_throttle:
+        description: CPU throttling of the app's windows (1 = none)
+        type: choice
+        options: ['1', '2', '4']
+        default: '1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    # The app targets Windows; Electron windows open on the Windows runner without xvfb
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Cache the Electron binary
+        uses: actions/cache@v6
+        with:
+          path: ~/AppData/Local/electron/Cache
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-
+
+      - name: Install
+        run: npm ci
+
+      - name: End-to-end tests (Electron + Playwright)
+        env:
+          E2E_CPU_THROTTLE: ${{ inputs.cpu_throttle }}
+        run: npm run test:e2e
+
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

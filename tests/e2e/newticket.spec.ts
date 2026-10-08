@@ -3,7 +3,7 @@ import type { ElectronApplication, Page } from '@playwright/test'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { launchElectron } from './helpers'
+import { launchElectron, resetUi } from './helpers'
 
 // New-ticket form: customer lookup beyond the latest 20, phone-match suggestions, no silent
 // customer rename, and clean (unique) option keys with the full brand/model catalog.
@@ -45,6 +45,11 @@ test.beforeAll(async () => {
     }
   })
   problems.length = 0
+})
+
+// One app for the file: every test starts from the app's starting state, whatever the previous one left behind
+test.beforeEach(async () => {
+  await resetUi(page)
 })
 
 test.afterAll(async () => {

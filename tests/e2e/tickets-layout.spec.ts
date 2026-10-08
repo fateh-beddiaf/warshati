@@ -4,7 +4,7 @@ import { spawnSync } from 'child_process'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { launchElectron } from './helpers'
+import { launchElectron, resetUi } from './helpers'
 
 // The tickets table must fit the window without horizontal scrolling or clipping at every
 // width from the 1024px minimum up, in both languages, with realistic (long) data.
@@ -32,6 +32,11 @@ test.beforeAll(async () => {
     if (msg.type() === 'error') problems.push(`console.error: ${msg.text()}`)
   })
   await page.waitForSelector('[data-testid="nav-tickets"]')
+})
+
+// One app for the file: every test starts from the app's starting state, whatever the previous one left behind
+test.beforeEach(async () => {
+  await resetUi(page)
 })
 
 test.afterAll(async () => {

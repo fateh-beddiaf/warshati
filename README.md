@@ -160,6 +160,8 @@ npm run test:packaged  # smoke test of the packaged app in release/win-unpacked 
 
 Set `WARSHATI_DATA_DIR` to a scratch folder to run the app on separate data (the tests always do).
 
+An end-to-end test that fails only on CI usually fails because the runner is slower. Set `E2E_CPU_THROTTLE=4` while running `npx playwright test` to slow every app window down 4 times (CPU throttling) and reproduce it locally. Add `CI=1` to also record the Electron trace of a failed test.
+
 | Folder         | Contents                                                                                                             |
 | -------------- | -------------------------------------------------------------------------------------------------------------------- |
 | `src/main`     | Electron main process: window, security policy, IPC, printing, backups                                               |
@@ -171,5 +173,7 @@ Set `WARSHATI_DATA_DIR` to a scratch folder to run the app on separate data (the
 | `build`        | App icon (`icon.svg` is the source: `npm run icons` renders the `.png` and `.ico`)                                   |
 
 The profit rule, the most important logic in the app, is in [`src/shared/profit.ts`](src/shared/profit.ts) and is covered by its own unit tests.
+
+CI: every push and pull request to `main` runs `npm run verify` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)). The end-to-end suite runs on releases and on demand: Actions → **E2E** → Run workflow ([`.github/workflows/e2e.yml`](.github/workflows/e2e.yml)), with an optional CPU throttle.
 
 Releases: pushing a `v*` tag runs every check, builds the installer and opens a draft GitHub release with the installer and `SHA256SUMS.txt` (see [`.github/workflows/release.yml`](.github/workflows/release.yml)). Security reports: see [SECURITY.md](SECURITY.md). Changes: [CHANGELOG.md](CHANGELOG.md).

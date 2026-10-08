@@ -24,6 +24,7 @@ export async function launchElectron(dataDir: string): Promise<ElectronApplicati
     args: [resolve('out/main/index.js')],
     env: { ...process.env, WARSHATI_DATA_DIR: dataDir }
   })
+  throttleCpu(app)
   if (!process.env.CI) return app
   const tracing = app.context().tracing
   await tracing.start({ screenshots: true, snapshots: true, title: test.info().titlePath.join(' > ') })
@@ -38,6 +39,26 @@ export async function launchElectron(dataDir: string): Promise<ElectronApplicati
     await close()
   }
   return app
+}
+
+/**
+ * E2E_CPU_THROTTLE=<rate> (e.g. 4) slows every window's renderer down `rate` times through the DevTools protocol, to
+ * reproduce locally what only fails on a slow CI runner (GitHub's windows-latest runs the suite several times slower
+ * than a dev PC). Unset or 1: no throttling. The CDP session stays attached: detaching it would drop the emulation.
+ */
+function throttleCpu(app: ElectronApplication): void {
+  const rate = Number(process.env.E2E_CPU_THROTTLE ?? 1)
+  if (!(rate > 1)) return
+  const throttle = async (page: Page): Promise<void> => {
+    try {
+      const cdp = await page.context().newCDPSession(page)
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate })
+    } catch {
+      // a window closing while it opens: nothing to slow down
+    }
+  }
+  for (const page of app.windows()) void throttle(page)
+  app.on('window', (page) => void throttle(page))
 }
 
 export async function launchApp(prefix: string): Promise<Launched> {
@@ -61,6 +82,42 @@ export async function shutdownApp(l: Launched | undefined): Promise<void> {
   } catch {
     // disposable temp dir
   }
+}
+
+const SCREENS = ['tickets', 'new-ticket', 'reports', 'settings'] as const
+export type Screen = (typeof SCREENS)[number]
+
+/**
+ * Opens a sidebar tab and waits until its screen is the only one mounted (the previous one animates out first). The
+ * New Ticket screen also waits for its lists: the fields only render once the categories and technicians are loaded.
+ */
+export async function goTo(page: Page, screen: Screen): Promise<void> {
+  await page.getByTestId(`nav-${screen}`).click()
+  await expect(page.getByTestId(`screen-${screen}`)).toBeVisible()
+  for (const other of SCREENS) if (other !== screen) await expect(page.getByTestId(`screen-${other}`)).toHaveCount(0)
+  if (screen === 'new-ticket') await expect(page.getByTestId('repair-category')).toBeVisible()
+}
+
+/**
+ * Puts an app shared by a whole file (beforeAll) back to how it starts, for a beforeEach: whatever the previous test
+ * left behind, the next one starts with no dialog or overlay open, the Tickets list on screen (leaving New Ticket
+ * unmounts its form, so nothing typed there is "unsaved" any more and a scan or the header search opens the ticket
+ * instead of asking), no scan alert or toast over the page, an empty header search and nothing focused.
+ * Waits on states only, never on fixed delays. Settings and data are not touched: each file owns those.
+ */
+export async function resetUi(page: Page): Promise<void> {
+  const overlays = page.locator('[role="dialog"], [role="alertdialog"], [data-radix-popper-content-wrapper]')
+  await expect(async () => {
+    if ((await overlays.count()) > 0) await page.keyboard.press('Escape')
+    await expect(overlays).toHaveCount(0, { timeout: 2000 })
+  }).toPass({ timeout: 20_000 })
+  await goTo(page, 'tickets')
+  await expect(page.getByTestId('scan-alert')).toHaveCount(0, { timeout: 10_000 })
+  await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 15_000 })
+  const header = page.getByTestId('header-barcode-input')
+  await header.fill('')
+  await header.blur()
+  await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true)
 }
 
 /** Fills the New Ticket form and submits it; returns the new ticket's barcode. `type`: the payment type it must show. */
